@@ -1,0 +1,216 @@
+{
+  "workspace": "AIBO",
+  "execution": "Codex Local / Claude Code Local / OpenAI API / Anthropic API",
+  "providerRouting": "runtime/aibo.py (explicit provider selection; defaults to mock)",
+  "projects": [
+    {
+      "id": "auditdefend",
+      "name": "Auditdefend",
+      "projectHome": "Projects/Auditdefend",
+      "classification": {
+        "industry": "Legal & Compliance Technology",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "books-lockscreens-planners",
+      "name": "Books-Lockscreens-Planners",
+      "projectHome": "Projects/Books-Lockscreens-Planners",
+      "classification": {
+        "industry": "Publishing & Digital Products",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "finclose",
+      "name": "FinClose",
+      "projectHome": "Projects/FinClose",
+      "classification": {
+        "industry": "Finance Technology",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "fixedrider",
+      "name": "FixedRider",
+      "projectHome": "Projects/FixedRider",
+      "classification": {
+        "industry": "Advertising & Media",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "forderbar",
+      "name": "Forderbar",
+      "projectHome": "Projects/Forderbar",
+      "classification": {
+        "industry": "Consumer Claims & Services",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "hccontroller",
+      "name": "hccontroller",
+      "projectHome": "Projects/hccontroller",
+      "classification": {
+        "industry": "B2B SaaS",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "konfydence",
+      "name": "Konfydence",
+      "projectHome": "Projects/Konfydence",
+      "classification": {
+        "industry": "Education & Training",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "locksmith-boston",
+      "name": "Locksmith-Boston",
+      "projectHome": "Projects/Locksmith-Boston",
+      "classification": {
+        "industry": "Local Services",
+        "corePack": "Industry-Packs/Local-Services/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Local-Services/Specialisms/Locksmith/PACK-ADDON.md"
+        ],
+        "status": "confirmed",
+        "reviewRequired": false
+      }
+    },
+    {
+      "id": "locksmith-texas",
+      "name": "Locksmith-Texas",
+      "projectHome": "Projects/Locksmith-Texas",
+      "classification": {
+        "industry": "Local Services",
+        "corePack": "Industry-Packs/Local-Services/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Local-Services/Specialisms/Locksmith/PACK-ADDON.md"
+        ],
+        "status": "confirmed",
+        "reviewRequired": false
+      }
+    },
+    {
+      "id": "planethike",
+      "name": "PlanetHike",
+      "projectHome": "Projects/PlanetHike",
+      "classification": {
+        "industry": "Travel & Experiences",
+        "corePack": "Industry-Packs/Hospitality-Events-Experiences/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Hospitality-Events-Experiences/Add-ons/Experiences-and-Activities/PACK-ADDON.md"
+        ],
+        "status": "provisional",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "politangle",
+      "name": "Politangle",
+      "projectHome": "Projects/Politangle",
+      "classification": {
+        "industry": "Civic Education",
+        "corePack": null,
+        "addOns": [],
+        "status": "pending-pack",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "runyourevent",
+      "name": "RunYourEvent",
+      "projectHome": "Projects/RunYourEvent",
+      "classification": {
+        "industry": "Events & Volunteering",
+        "corePack": "Industry-Packs/Hospitality-Events-Experiences/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Hospitality-Events-Experiences/Add-ons/Event-Production-and-Agencies/PACK-ADDON.md"
+        ],
+        "status": "provisional",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "shoreexcursionpicks",
+      "name": "ShoreExcursionPicks",
+      "projectHome": "Projects/ShoreExcursionPicks",
+      "classification": {
+        "industry": "Travel Content & Discovery",
+        "corePack": "Industry-Packs/Hospitality-Events-Experiences/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Hospitality-Events-Experiences/Add-ons/Experiences-and-Activities/PACK-ADDON.md"
+        ],
+        "status": "provisional",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "tisonik",
+      "name": "Tisonik",
+      "projectHome": "Projects/Tisonik",
+      "classification": {
+        "industry": "Hospitality Technology",
+        "corePack": "Industry-Packs/Hospitality-Events-Experiences/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Hospitality-Events-Experiences/Add-ons/Hotels-and-Accommodation/PACK-ADDON.md"
+        ],
+        "status": "provisional",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "unikmo",
+      "name": "Unikmo",
+      "projectHome": "Projects/Unikmo",
+      "classification": {
+        "industry": "Hospitality & Gifting",
+        "corePack": "Industry-Packs/Hospitality-Events-Experiences/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Hospitality-Events-Experiences/Add-ons/Hotels-and-Accommodation/PACK-ADDON.md"
+        ],
+        "status": "provisional",
+        "reviewRequired": true
+      }
+    },
+    {
+      "id": "gulf-sovereign-intelligence",
+      "name": "Gulf Sovereign Intelligence",
+      "projectHome": "Projects/gulf-sovereign-intelligence",
+      "classification": {
+        "industry": "Financial Markets & Institutional Investment Intelligence",
+        "corePack": "Industry-Packs/Financial-Markets-Institutional-Investment/PACK-OVERVIEW.md",
+        "addOns": [
+          "Industry-Packs/Financial-Markets-Institutional-Investment/Add-Ons/Sovereign-Wealth-Fund-Intelligence/PACK-ADDON.md"
+        ],
+        "status": "provisional",
+        "reviewRequired": true
+      }
+    }
+  ],
+  "connectionRegistry": "System/CONNECTIONS.md"
+}

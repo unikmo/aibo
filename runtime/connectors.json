@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "description": "Supported integration patterns. Connector records carry no secrets, grant no permissions and do not imply connections are active.",
+  "connectors": [
+    {"id":"github","baseHost":"api.github.com","authentication":"GITHUB_TOKEN","supports":["GET","POST","PATCH"],"notes":"Repository metadata, issues and pull requests using scoped tokens; write calls require owner approval"},
+    {"id":"hubspot","baseHost":"api.hubapi.com","authentication":"HUBSPOT_PRIVATE_APP_TOKEN","supports":["GET","POST","PATCH"],"notes":"CRM contacts, companies and deals; contact mutations gated"},
+    {"id":"pipedrive","baseHost":"api.pipedrive.com","authentication":"PIPEDRIVE_API_TOKEN","supports":["GET","POST","PATCH"],"notes":"Host and auth details may vary by account; verify current API details before operation"},
+    {"id":"supabase","baseHost":"PROJECT_REF.supabase.co","authentication":"SUPABASE_SERVICE_TOKEN","supports":["GET","POST","PATCH"],"notes":"Never use service-role credentials in client code; exact project host requires configuration; use scoped roles where possible"},
+    {"id":"vercel","baseHost":"api.vercel.com","authentication":"VERCEL_TOKEN","supports":["GET","POST","PATCH"],"notes":"API metadata and bounded operations; native CLI deployment adapter is separate"},
+    {"id":"stripe","baseHost":"api.stripe.com","authentication":"STRIPE_SECRET_KEY","supports":["GET"],"notes":"Read-only mode exclusively. Financial changes require dedicated connector with stronger approval and provider verification"},
+    {"id":"google-calendar","baseHost":"www.googleapis.com","authentication":"GOOGLE_OAUTH_ACCESS_TOKEN","supports":["GET"],"notes":"OAuth access token is short-lived; token refresh and delegated permissions require configured OAuth client"}
+  ]
+}

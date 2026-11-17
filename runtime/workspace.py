@@ -1,0 +1,181 @@
+"""Local project onboarding and read-only Soni job ledger.
+
+Never changes existing project folders, the project registry, or its knowledge mapping.
+AI provider calls are opt-in per request. All agent requests are analysis-only.
+"""
+from __future__ import annotations
+import datetime as dt
+import json
+from pathlib import Path
+import re
+import threading
+import uuid
+
+try:
+    from . import products, aibo, costs, attachments, ai_providers
+except ImportError:
+    import products, aibo, costs, attachments, ai_providers
+
+LOCK = threading.RLock()
+DIR = products.STATE / 'workspaces'
+STAGES = ('business', 'focus', 'controls')
+PROVIDERS = {'mock', 'auto', 'codex-local', 'claude-local', 'openai', 'anthropic', 'openrouter', 'vercel-gateway', 'together', 'groq'}
+ALLOWED = {'name': 80, 'region': 100, 'goal': 500, 'website': 200,
+           'audience': 250, 'successMeasure': 250, 'notes': 800}
+RUNS_DIR = products.STATE / 'runs'
+CURRENT = {}
+SESSION_ID = str(uuid.uuid4())
+
+def now():
+    return dt.datetime.now(dt.timezone.utc).isoformat()
+
+def _project(project_id):
+    if not isinstance(project_id, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', project_id):
+        raise products.ProductError('Invalid project ID')
+    try:
+        return aibo.project_info(project_id)
+    except aibo.AiboError as exc:
+        raise products.ProductError(str(exc)) from exc
+
+def _path(project_id):
+    _project(project_id)
+    return DIR / (project_id + '.json')
+
+def setup_state(project_id):
+    project = _project(project_id)
+    data = products.read_json(_path(project_id), {})
+    legacy = products.read_json(products.STATE/'custom.json', {}).get(project_id, {})
+    initial = {'name': legacy.get('name', project['name']), 'region': legacy.get('region', project.get('region', '')),
+               'goal': legacy.get('goal', ''), 'website': '', 'audience': '', 'successMeasure': '', 'notes': ''}
+    fields = {**initial, **data.get('fields', {})}
+    completed = bool(data.get('complete', False))
+    return {'project': project_id, 'fields': fields, 'step': data.get('step', 0),
+            'complete': completed, 'savedAt': data.get('savedAt'), 'reviewed': bool(data.get('reviewed', False))}
+
+def save_setup(project_id, payload):
+    _project(project_id)
+    if not isinstance(payload, dict):
+        raise products.ProductError('Invalid setup payload')
+    fields = payload.get('fields')
+    if not isinstance(fields, dict) or any(k not in ALLOWED for k in fields):
+        raise products.ProductError('Unknown setup field')
+    step = payload.get('step', 0)
+    if type(step) is not int or not 0 <= step <= 2:
+        raise products.ProductError('Invalid setup step')
+    finish = payload.get('complete') is True
+    if 'complete' in payload and type(payload['complete']) is not bool:
+        raise products.ProductError('Invalid completion flag')
+    with LOCK:
+        state = setup_state(project_id)
+        for key, value in fields.items():
+            if not isinstance(value, str) or len(value) > ALLOWED[key] or any(ord(c)<32 and c not in '\n\t' for c in value):
+                raise products.ProductError('Invalid ' + key)
+            state['fields'][key] = value.strip()
+        if finish:
+            missing = [k for k in ('name', 'region', 'goal', 'audience', 'successMeasure') if not state['fields'].get(k)]
+            if missing:
+                raise products.ProductError('Complete these fields first: ' + ', '.join(missing))
+            state['complete'] = True
+            state['reviewed'] = True
+        else:
+            # If a completed project is edited, don't silently keep it approved.
+            if state['complete'] and fields:
+                state['complete'] = False
+                state['reviewed'] = False
+        state['step'] = step
+        state['savedAt'] = now()
+        products.write_json(_path(project_id), {k: state[k] for k in ('fields','step','complete','reviewed','savedAt')})
+        return setup_state(project_id)
+
+def _run_file(run_id):
+    if not re.fullmatch(r'[0-9a-f-]{36}', run_id):
+        raise products.ProductError('Invalid run ID')
+    return RUNS_DIR/(run_id+'.json')
+
+def run_status(run_id):
+    item = products.read_json(_run_file(run_id), None)
+    if not item:
+        raise products.ProductError('Unknown run ID')
+    if item.get('status') in ('queued','running') and item.get('sessionId') != SESSION_ID:
+        # A local server restart interrupted in-memory work; never claim it completed.
+        item['status']='interrupted'
+        item['error']='The local server restarted before this run finished. You can start a new run.'
+        item['updatedAt']=now()
+        products.write_json(_run_file(item['id']),item)
+    return item
+
+def _save_run(item):
+    products.write_json(_run_file(item['id']), item)
+
+def start_run(project_id, payload):
+    _project(project_id)
+    if not isinstance(payload, dict):
+        raise products.ProductError('Invalid request')
+    setup=setup_state(project_id)
+    if not setup['complete']:
+        raise products.ProductError('Finish the guided project setup before asking Soni to work')
+    instruction=payload.get('task','')
+    provider=payload.get('provider','mock')
+    if not isinstance(instruction,str) or not 5 <= len(instruction.strip()) <= 1500:
+        raise products.ProductError('Describe the task in 5–1500 characters')
+    if provider not in PROVIDERS:
+        raise products.ProductError('Unsupported AI provider')
+    if provider!='mock' and payload.get('consent') is not True:
+        raise products.ProductError('External AI processing requires explicit consent')
+    attachment_ids=payload.get('attachments',[])
+    attachments.load(project_id,attachment_ids)
+    with LOCK:
+        if project_id in CURRENT:
+            running=products.read_json(_run_file(CURRENT[project_id]),{})
+            if running.get('status') in ('queued','running'):
+                raise products.ProductError('Soni is already working on this project')
+        item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
+              'provider':provider, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
+              'result':None, 'error':None, 'externalActionsExecuted':False}
+        _save_run(item)
+        CURRENT[project_id]=item['id']
+    # AIBO_NFAT_RACE_V1: mock provider has no network or external actions.
+    # Complete mock jobs inline; real AI jobs remain asynchronous.
+    if provider == 'mock':
+        _worker(item['id'])
+    else:
+        threading.Thread(target=_worker,args=(item['id'],),daemon=True,name='aibo-soni').start()
+    return {'id':item['id'],'project':project_id,'status':'queued'}
+
+def _worker(run_id):
+    with LOCK:
+        item=run_status(run_id)
+        item['status']='running';item['updatedAt']=now();_save_run(item)
+    try:
+        # No publishing, sending, buying, deploying, or other external business operations.
+        limits=costs.current()
+        attachment_context=attachments.context(item['project'],item.get('attachments',[]))
+        enriched=item['task'] + ('\n\n' + attachment_context if attachment_context else '')
+        selected,model=ai_providers.route(item['provider']) if item['provider']=='auto' else (item['provider'],None)
+        config=ai_providers.public()
+        routes=None
+        if item['provider']=='auto' and config['switchMode']=='soni':
+            roster=aibo.select_agents(enriched)+['quality','soni']
+            routes={agent:ai_providers.route('auto',agent) for agent in roster}
+        result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
+                            output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+        item['result']=result
+        item['status']='completed'
+    except Exception as exc:
+        item['error']=str(exc)[:600]
+        item['status']='failed'
+    finally:
+        item['updatedAt']=now()
+        with LOCK:
+            _save_run(item)
+            if CURRENT.get(item['project'])==run_id:CURRENT.pop(item['project'],None)
+
+def recent_runs(project_id):
+    _project(project_id)
+    if not RUNS_DIR.exists():return []
+    items=[]
+    for file in RUNS_DIR.glob('*.json'):
+        value=products.read_json(file,{})
+        if value.get('project')==project_id:
+            items.append({k:value.get(k) for k in ('id','project','task','provider','status','createdAt','updatedAt','error')})
+    return sorted(items,key=lambda x:x.get('createdAt') or '',reverse=True)[:12]

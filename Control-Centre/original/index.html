@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Business Control Centre prototype" />
+    <title>Control Centre — Business Operating System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="setup.css" />
+    <link rel="stylesheet" href="usage.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#overview" aria-label="Control Centre home">
+          <span class="brand-mark"><i></i><i></i><i></i></span>
+          <span>control<br /><strong>centre</strong></span>
+        </a>
+        <div class="workspace-switcher">
+          <span class="workspace-dot"></span>
+          <span><b>Northline Services</b><small>Business workspace</small></span>
+          <span class="chevron">⌄</span>
+        </div>
+        <nav class="nav-list">
+          <a class="nav-item active" href="#overview" data-view="overview"><span>⌁</span>Overview</a>
+          <a class="nav-item" href="#plan" data-view="plan"><span>◫</span>Plan</a>
+          <a class="nav-item" href="#approvals" data-view="approvals"><span>✓</span>Approvals <b class="nav-badge">3</b></a>
+          <a class="nav-item" href="#evidence" data-view="evidence"><span>◌</span>Evidence</a>
+          <a class="nav-item" href="#results" data-view="results"><span>↗</span>Results</a>
+          <a class="nav-item" href="#costs" data-view="costs"><span>◎</span>Costs</a>
+          <a class="nav-item" href="#usage" data-view="usage"><span>◒</span>AI use & control</a>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="trust-card">
+            <span class="trust-icon">✦</span>
+            <div><b>You stay in control</b><p>Nothing publishes, spends, sends, or signs without your approval.</p></div>
+          </div>
+          <a class="support-link" href="guide.html">Simple guide <span>→</span></a>
+          <div class="profile"><div class="avatar">TM</div><span><b>Tichi M.</b><small>Owner</small></span><button aria-label="Account options">•••</button></div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <button class="mobile-menu" aria-label="Open navigation">☰</button>
+          <div class="breadcrumb"><span>Northline Services</span><i>/</i><b>Overview</b></div>
+          <div class="topbar-actions"><span class="sync-status"><i></i> Everything up to date</span><button class="icon-button" aria-label="Notifications">◔<em>3</em></button><button class="help-button">?</button></div>
+        </header>
+
+        <section class="dashboard-view active" id="overview">
+          <div class="page-intro">
+            <div><p class="eyebrow">Tuesday, 11 November</p><h1>Clear priorities. <em>Calm control.</em></h1><p class="subhead">Your Chief of Staff has organised what matters. You decide what moves.</p></div>
+            <button class="primary-button" id="new-request"><span>＋</span> Tell us what you need</button>
+          </div>
+
+          <section class="focus-banner">
+            <div class="focus-label"><span class="spark">✦</span><span><small>THIS WEEK'S FOCUS</small><b>Turn validated demand into booked consultations</b></span></div>
+            <div class="focus-meta"><span><i class="status-dot green"></i> On track</span><span>5 of 8 actions complete</span><button class="text-button" data-view-target="plan">View plan →</button></div>
+          </section>
+
+          <section class="metric-grid" aria-label="Business snapshot">
+            <article class="metric-card"><span class="metric-label">Validated opportunity</span><strong>3</strong><p>gaps worth testing</p><span class="metric-trend good">↑ 1 new this week</span></article>
+            <article class="metric-card"><span class="metric-label">Monthly target</span><strong>$12,000</strong><p>new booked work</p><span class="metric-trend">$4,800 currently attributed</span></article>
+            <article class="metric-card"><span class="metric-label">Plan budget</span><strong>$680</strong><p>approved this month</p><span class="metric-trend good">$412 remains</span></article>
+            <article class="metric-card accent"><span class="metric-label">Approval needed</span><strong id="approval-count">3</strong><p>decisions are waiting</p><button class="metric-action" data-view-target="approvals">Review now →</button></article>
+          </section>
+
+          <section class="content-grid">
+            <article class="panel priority-panel">
+              <div class="panel-heading"><div><p class="eyebrow">YOUR NEXT MOVES</p><h2>Only three things need you</h2></div><button class="text-button" data-view-target="plan">Full plan →</button></div>
+              <div class="priority-list">
+                <button class="priority-item" data-open-approval="landing"><span class="priority-number">01</span><span class="priority-copy"><b>Approve launch page direction</b><small>Lets the build and review work begin</small></span><span class="priority-tag">5 min</span><span class="arrow">→</span></button>
+                <button class="priority-item" data-open-approval="ad"><span class="priority-number">02</span><span class="priority-copy"><b>Confirm test budget for paid search</b><small>We will not spend anything until you say yes</small></span><span class="priority-tag">2 min</span><span class="arrow">→</span></button>
+                <button class="priority-item" data-open-approval="claim"><span class="priority-number">03</span><span class="priority-copy"><b>Review the customer promise</b><small>One wording choice needs your preference</small></span><span class="priority-tag">3 min</span><span class="arrow">→</span></button>
+              </div>
+            </article>
+
+            <article class="panel evidence-panel">
+              <div class="panel-heading"><div><p class="eyebrow">WHY THIS PLAN</p><h2>Evidence, not guesswork</h2></div><button class="text-button" data-view-target="evidence">See sources →</button></div>
+              <div class="signal-card"><span class="signal-icon">⌕</span><div><small>Strongest market signal</small><b>Customers are searching for fast, transparent service in your region.</b><p>Based on demand, competitor, and customer-language research. Last checked today.</p></div></div>
+              <div class="evidence-stats"><span><b>8</b><small>sources checked</small></span><span><b>3</b><small>competitors reviewed</small></span><span><b>High</b><small>confidence</small></span></div>
+            </article>
+          </section>
+
+          <section class="content-grid lower-grid">
+            <article class="panel channel-panel">
+              <div class="panel-heading"><div><p class="eyebrow">GROWTH ACTIVITY</p><h2>Organic and paid, kept separate</h2></div><button class="icon-more" aria-label="More growth options">•••</button></div>
+              <div class="channel-row"><span class="channel-icon organic">↗</span><div><b>Organic social & video</b><small>4 assets ready for review · no publishing scheduled</small></div><span class="channel-status ready">Ready</span></div>
+              <div class="channel-row"><span class="channel-icon paid">$</span><div><b>Paid media test</b><small>$0 spent · $240 proposed · waiting for approval</small></div><span class="channel-status review">Review</span></div>
+              <p class="channel-footnote">You always see channel, budget, audience, and expected signal before money is spent.</p>
+            </article>
+
+            <article class="panel cost-panel">
+              <div class="panel-heading"><div><p class="eyebrow">AI USE CONTROL</p><h2>Useful work, never waste</h2></div><button class="text-button" data-view-target="usage">Usage controls →</button></div>
+              <p class="usage-summary-copy">Every task is scoped, routed to the right capability, and given a limit before work begins.</p>
+              <div class="cost-main"><div><span>Used this month</span><b id="overview-usage">$12.46 <small>of $60 AI & tool limit</small></b></div><div class="mini-ring"><span id="overview-usage-percent">21%</span></div></div>
+              <div class="cost-breakdown"><span><i class="blue"></i>Reuse & routing <b>On</b></span><span><i class="mint"></i>Task limits <b>On</b></span><span><i class="gold"></i>High-use approval <b>On</b></span></div>
+            </article>
+          </section>
+        </section>
+
+        <section class="dashboard-view" id="plan">
+          <div class="page-intro compact"><div><p class="eyebrow">ACTIVE PLAN</p><h1>From evidence to <em>measurable action.</em></h1><p class="subhead">A single, visible path. Work only starts when it supports the agreed goal.</p></div><button class="primary-button" id="adjust-plan">Adjust plan</button></div>
+          <div class="plan-layout"><article class="panel plan-timeline"><div class="timeline-head"><span>Goal: $12,000 in new booked work</span><b>Target date: 30 Nov</b></div><ol><li class="complete"><i>✓</i><div><b>Understand the opportunity</b><p>Demand, gap, region, competition, and customer language reviewed.</p><small>Evidence ready · 8 sources</small></div></li><li class="complete"><i>✓</i><div><b>Validate the business case</b><p>Target range, test budget, and first success measures agreed.</p><small>Confidence: medium-high</small></div></li><li class="current"><i>3</i><div><b>Build the conversion path</b><p>Landing page direction and lead capture flow are waiting for your approval.</p><button class="small-action" data-open-approval="landing">Review decision</button></div></li><li><i>4</i><div><b>Prepare organic and paid launch assets</b><p>Video, social, search test, and follow-up material.</p></div></li><li><i>5</i><div><b>Launch, learn, and improve</b><p>Measure enquiry quality, booking rate, and cost per qualified lead.</p></div></li></ol></article><aside class="panel plan-side"><p class="eyebrow">PLAN HEALTH</p><div class="health-score"><b>82</b><span>/100</span></div><p>Strong evidence base. Three owner choices will unlock the next stage.</p><hr /><span><i class="status-dot green"></i> Evidence checked</span><span><i class="status-dot amber"></i> 3 approvals pending</span><span><i class="status-dot grey"></i> Nothing live yet</span></aside></div>
+        </section>
+
+        <section class="dashboard-view" id="approvals"><div class="page-intro compact"><div><p class="eyebrow">YOUR CONTROL POINTS</p><h1>Nothing important happens <em>without you.</em></h1><p class="subhead">Review the purpose, evidence, cost, and risk before you decide.</p></div></div><div class="approval-stack" id="approval-stack"></div></section>
+        <section class="dashboard-view" id="evidence"><div class="page-intro compact"><div><p class="eyebrow">DECISION EVIDENCE</p><h1>See what the plan is <em>built on.</em></h1><p class="subhead">Every recommendation is traceable to a source, an assumption, and a confidence level.</p></div></div><div class="evidence-list"></div></section>
+        <section class="dashboard-view" id="results"><div class="page-intro compact"><div><p class="eyebrow">RESULTS</p><h1>Progress you can <em>actually use.</em></h1><p class="subhead">No vanity activity: outcomes, learning, and the next best decision.</p></div></div><div class="results-placeholder"><span>↗</span><h2>Your first results will appear here after launch</h2><p>The system will separate activity from business impact: leads, bookings, revenue, spend, and what to improve next.</p></div></section>
+        <section class="dashboard-view" id="costs"><div class="page-intro compact"><div><p class="eyebrow">COST LEDGER</p><h1>Clear costs. <em>No surprises.</em></h1><p class="subhead">You see what has been approved, used, and proposed—before it happens.</p></div></div><div class="cost-ledger"><div class="ledger-summary"><div><span>Approved this month</span><b>$680</b></div><div><span>Used</span><b>$268</b></div><div><span>Available</span><b>$412</b></div></div><div class="ledger-row heading"><span>Item</span><span>Purpose</span><span>Status</span><span>Cost</span></div><div class="ledger-row"><span>Research & analysis</span><span>Opportunity and competition review</span><span class="ledger-status paid">Used</span><b>$48</b></div><div class="ledger-row"><span>Build & tools</span><span>Landing page prototype and lead capture</span><span class="ledger-status paid">Used</span><b>$148</b></div><div class="ledger-row"><span>Content & video</span><span>Launch assets in production</span><span class="ledger-status paid">Used</span><b>$72</b></div><div class="ledger-row"><span>Paid media test</span><span>Regional search demand experiment</span><span class="ledger-status proposed">Proposed</span><b>$240</b></div></div></section>
+        <section class="dashboard-view" id="usage"><div class="page-intro compact"><div><p class="eyebrow">AI USE & CONTROL</p><h1>Spend intelligence, <em>not needless tokens.</em></h1><p class="subhead">Your Chief of Staff scopes work, reuses approved knowledge, and stops for your approval before a task crosses its agreed limit.</p></div><button class="primary-button" id="edit-usage">Set usage limits</button></div><div class="usage-layout"><article class="panel usage-overview"><div class="usage-meter-head"><div><span>AI & tool use this month</span><b id="usage-total">$12.46 <small>of $60.00 limit</small></b></div><span class="usage-status" id="usage-status">Within limit</span></div><div class="usage-bar" aria-label="Monthly AI and tool usage"><i id="usage-bar"></i></div><div class="usage-metrics"><span><b id="usage-percent">21%</b><small>used</small></span><span><b id="usage-remaining">$47.54</b><small>available</small></span><span><b id="usage-cap">$12.00</b><small>per task cap</small></span></div></article><article class="panel usage-rules"><p class="eyebrow">HOW IT STAYS EFFICIENT</p><ol><li><b>Scope first</b><span>One clear outcome, deadline, and evidence need.</span></li><li><b>Reuse first</b><span>Approved facts and prior work are retrieved instead of recreated.</span></li><li><b>Route carefully</b><span>Use the smallest capable specialist; elevate only when value warrants it.</span></li><li><b>Pause visibly</b><span>High-use work stops at its cap and returns for a decision.</span></li></ol></article></div><article class="panel usage-activity"><div class="panel-heading"><div><p class="eyebrow">WORK LEDGER</p><h2>What the system used—and why</h2></div><span class="usage-note">Illustrative until live connections are enabled</span></div><div class="usage-table" id="usage-table"></div><p class="usage-footnote">This control layer manages AI and tool usage separately from business spend such as advertising. It never publishes, sends, spends, or connects an external service by itself.</p></article></section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true"><section class="approval-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" aria-label="Close">×</button><p class="eyebrow">YOUR APPROVAL</p><h2 id="modal-title">Approve launch page direction</h2><p id="modal-intro">A short, focused page designed to turn high-intent visitors into consultation requests.</p><div class="approval-detail"><span>Why now</span><b id="modal-why">This is the next blocker in the agreed plan.</b></div><div class="approval-detail"><span>Evidence</span><b id="modal-evidence">Demand and competitor research support this direction.</b></div><div class="approval-detail"><span>Cost</span><b id="modal-cost">Included in the $680 approved monthly budget.</b></div><div class="approval-detail"><span>What happens after</span><b id="modal-next">Build work begins, then quality review happens before anything goes live.</b></div><div class="modal-actions"><button class="secondary-button" id="request-change">Request a change</button><button class="primary-button" id="approve-action">Approve this step</button></div><p class="approval-note">Approving this does not publish, spend, or deploy anything.</p></section></div>
+    <div class="modal-backdrop" id="setup-backdrop" aria-hidden="true"><section class="setup-modal" role="dialog" aria-modal="true" aria-labelledby="setup-title"><button class="modal-close" id="setup-close" aria-label="Close">×</button><p class="eyebrow">START A WORKSPACE</p><h2 id="setup-title">Tell the Chief of Staff where to begin.</h2><p>These details create your first visible plan. No external research, connections, messages, or spending start from this form.</p><form id="setup-form"><label>Business name<input id="business-name" required maxlength="70" placeholder="e.g. Northline Services" /></label><label>Industry<select id="business-industry" required><option value="">Choose an industry</option><option>Home & local services</option><option>Professional services</option><option>Hospitality & experiences</option><option>Retail & e-commerce</option><option>Other</option></select></label><label>Primary region<input id="business-region" required maxlength="80" placeholder="e.g. Greater London" /></label><label>What outcome matters most?<textarea id="business-goal" required maxlength="180" placeholder="e.g. Validate demand and book our first 15 consultations"></textarea></label><div class="setup-note"><span>✦</span><p>Next, the control centre will create an opportunity brief, a target range, and a plan for your approval.</p></div><button class="primary-button setup-submit" type="submit">Create my first plan →</button></form></section></div>
+    <div class="modal-backdrop" id="usage-backdrop" aria-hidden="true"><section class="setup-modal usage-modal" role="dialog" aria-modal="true" aria-labelledby="usage-title"><button class="modal-close" id="usage-close" aria-label="Close">×</button><p class="eyebrow">AI USE LIMITS</p><h2 id="usage-title">Set the guardrails once.</h2><p>These limits tell the Chief of Staff when to pause for your approval. They do not lower the quality of important work.</p><form id="usage-form"><label>Monthly AI & tool limit (USD)<input id="usage-monthly-limit" type="number" min="5" max="5000" step="1" required /></label><label>Maximum per task before approval (USD)<input id="usage-task-limit" type="number" min="1" max="1000" step="1" required /></label><label class="switch-line"><input id="usage-hard-stop" type="checkbox" checked /><span><b>Pause at the task limit</b><small>Bring you the next option rather than continuing automatically.</small></span></label><div class="setup-note"><span>✦</span><p>Every customer-facing cost remains visible. Advertising and other external spend always require their own approval.</p></div><button class="primary-button setup-submit" type="submit">Save usage controls →</button></form></section></div>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="app.js"></script>
+  <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5963ec0f8574f41',t:'MTc5NDQ5MzkzNg=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5963ec0f8574f41',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

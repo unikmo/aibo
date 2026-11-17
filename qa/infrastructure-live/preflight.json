@@ -1,0 +1,42 @@
+{
+  "generated_at_utc": "2026-11-15T16:34:29Z",
+  "mode": "read-only",
+  "changes_made": 0,
+  "results": [
+    {
+      "provider": "Cloudflare",
+      "status": "not-configured",
+      "reason": "Required credential environment variable absent from this process"
+    },
+    {
+      "provider": "Hetzner Cloud",
+      "status": "not-configured",
+      "reason": "Required credential environment variable absent from this process"
+    },
+    {
+      "provider": "GoDaddy (AIBO bearer mode)",
+      "status": "not-configured",
+      "reason": "Required credential environment variable absent from this process"
+    },
+    {
+      "provider": "IONOS DNS",
+      "status": "not-configured",
+      "reason": "Required credential environment variable absent from this process"
+    },
+    {
+      "provider": "AWS STS",
+      "status": "not-configured",
+      "reason": "boto3 not installed"
+    },
+    {
+      "provider": "HostEurope",
+      "status": "unsupported",
+      "reason": "No verified native API adapter available for live read-only preflight"
+    },
+    {
+      "provider": "MongoDB",
+      "status": "deferred",
+      "reason": "Excluded at user request"
+    }
+  ]
+}

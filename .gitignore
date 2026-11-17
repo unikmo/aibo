@@ -1,0 +1,36 @@
+﻿# Local AIBO state
+.aibo-state/
+proposal.json
+*.proposal.json
+.claude/
+.codex/
+backups/
+Politangle/
+Projects/
+System/CONNECTIONS.md
+
+# Credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+credentials*.json
+service-account*.json
+
+# Dependencies, builds, reports, logs, and runtime files
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.log
+*.pid
+*.sqlite
+*.sqlite3
+__pycache__/
+*.py[cod]
+.venv/
+venv/

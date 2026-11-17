@@ -1,0 +1,223 @@
+.product-summary{margin-bottom:16px;max-width:980px}.product-summary strong{font-size:15px}.product-summary p{color:var(--muted);font-size:12px}.product-summary small{color:var(--muted)}.product-list{max-width:980px;display:grid;gap:12px;margin-bottom:16px}.product-project{display:flex;align-items:center;justify-content:space-between;gap:15px}.product-project b,.product-project small{display:block}.product-project b{font-size:13px}.product-project small{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5}.product-footer{font-size:11px;color:var(--muted);max-width:980px}.product-project button:disabled{opacity:.5;cursor:not-allowed}#project-setup-form{grid-template-columns:1fr}#project-setup-form label{grid-column:1/-1}#project-save-status{font-size:12px;margin-top:12px}@media(max-width:760px){.product-project{align-items:flex-start;flex-direction:column}.product-project button{width:100%}}
+body[data-product] .dashboard-view:not(#projects):not(.aibo-operational-view){display:none!important}
+body[data-product] .dashboard-view#projects.active{display:block}
+body[data-product] .topbar-actions .icon-button{display:none}
+body[data-product] .page-intro{margin-bottom:22px}
+body[data-product] .page-intro h1{font-size:36px;line-height:1.08}
+body[data-product] .page-intro .subhead{font-size:14px;color:#516067;max-width:760px}
+body[data-product] .product-summary{max-width:none;background:#eef7f5;border:1px solid #d0e7e1;padding:22px;border-radius:14px;box-shadow:none}
+body[data-product] .product-summary strong{font-size:18px;letter-spacing:-.03em}
+body[data-product] .product-summary p{font-size:13px;line-height:1.65;margin:10px 0;color:#304148}
+body[data-product] .product-summary small{display:block;font-size:12px;line-height:1.55;color:#617179}
+body[data-product] .product-list{max-width:none;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}
+body[data-product] .product-project{min-height:188px;align-items:flex-start;flex-direction:column;justify-content:space-between;gap:16px;border-color:#dbe4e1;box-shadow:0 2px 4px rgba(20,34,36,.02)}
+body[data-product] .product-project-info{width:100%}
+body[data-product] .product-project-heading{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+body[data-product] .product-project-heading b{font-size:16px;letter-spacing:-.03em}
+body[data-product] .project-index{font-family:"DM Mono",monospace;color:#0d8e88;font-size:12px;background:#edf7f4;border-radius:999px;padding:4px 6px}
+body[data-product] .project-state{font-size:10px;border-radius:999px;padding:6px 9px;margin-left:auto;white-space:nowrap;background:#f2f4f4;color:#647079;font-weight:700}
+body[data-product] .project-state.configured{background:#dff3ea;color:#0f6a4f}
+body[data-product] .project-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px;margin-bottom:9px}
+body[data-product] .project-facts span{font-size:12px;color:#24343a;min-width:0;overflow-wrap:anywhere}
+body[data-product] .project-facts strong{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:9px;color:#6c7983;margin-bottom:4px}
+body[data-product] .product-project button{align-self:flex-end}
+body[data-product] .product-footer{max-width:none;line-height:1.65;background:#fafaf8}
+body[data-product=custom] .page-intro h1 em{color:#0d8e88}
+body[data-product=standard] .page-intro h1 em{color:#138477}
+body[data-product] .support-link{font-size:11px;color:#495961}
+body[data-product] .trust-card{background:#f1f5f4}
+.summary-pill{font:700 10px "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;background:#e1f4ee;color:#0f786d;border-radius:999px;padding:6px 8px}
+.product-summary-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.product-summary-top .primary-button{white-space:nowrap}
+#new-project-form,#project-setup-form{grid-template-columns:1fr}
+#new-project-form label,#project-setup-form label{grid-column:1/-1}
+#new-project-form select{width:100%;min-height:42px;padding:8px;border:1px solid #c9d3d3;border-radius:8px;background:white}
+#new-project-form select[multiple]{min-height:116px}
+#new-project-status{font-size:12px;margin-top:12px}
+#new-project-backdrop .form-hint{display:block;font-size:11px;color:var(--muted);line-height:1.5}
+.form-status{font-size:12px;line-height:1.5;margin-top:12px;color:#516067}
+.form-status.error{color:var(--red)}
+.form-status.success{color:#0f6a4f}
+body[data-product] .setup-modal>p:not(.eyebrow){font-size:12px;line-height:1.55;color:#5b686f}
+body[data-product] .setup-note{background:#eef7f5;border:1px solid #d7ebe6;display:block}
+body[data-product] .setup-note p{font-size:11px;line-height:1.55;color:#4f6462}
+@media(max-width:900px){body[data-product] .project-facts{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){body[data-product] .page-intro h1{font-size:30px}body[data-product] .product-project button{align-self:stretch}body[data-product] .project-facts{grid-template-columns:1fr}.product-summary-top .primary-button{width:100%}}
+
+/* Operational onboarding and Soni interface */
+body[data-product] .wizard-modal{max-width:570px;width:calc(100vw - 32px);max-height:min(86vh,780px);overflow-y:auto}
+body[data-product] .wizard-modal form{display:block}
+body[data-product] .wizard-modal .wizard-step[hidden],body[data-product] .provider-consent[hidden]{display:none!important}
+body[data-product] .wizard-modal label{display:block;margin:12px 0;font-size:12px;font-weight:700;color:#31444b}
+body[data-product] .wizard-modal label input,body[data-product] .wizard-modal label textarea,body[data-product] .wizard-modal select{display:block;width:100%;margin-top:7px}
+body[data-product] .wizard-progress{display:flex;align-items:center;gap:15px;margin:14px 0 20px;font-size:11px;font-weight:700;color:#0e7975}
+body[data-product] .wizard-track{height:6px;flex:1;border-radius:99px;background:#e0e8e6;overflow:hidden}
+body[data-product] #wizard-fill{height:100%;background:#0a928b;width:33%;transition:width .15s}
+body[data-product] .wizard-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:22px}
+body[data-product] .wizard-actions button{min-width:95px}
+body[data-product] .wizard-hint{color:#526269;font-size:12px;line-height:1.55}
+body[data-product] .wizard-review{border:1px solid #d9e7e3;background:#f5faf8;border-radius:10px;padding:12px;margin-top:12px}
+body[data-product] .wizard-review>b{font-size:12px}
+body[data-product] .wizard-review p{margin:5px 0 0;display:grid;gap:6px}
+body[data-product] .wizard-review span{display:block;font-size:11px;overflow-wrap:anywhere}
+body[data-product] .wizard-review strong{color:#134844}
+body[data-product] .project-actions{display:flex;align-self:flex-end;gap:8px;flex-wrap:wrap}
+body[data-product] .product-project .project-actions button{align-self:auto}
+body[data-product] .soni-results{max-height:340px;overflow-y:auto;white-space:normal;margin-top:13px}
+body[data-product] .soni-results pre{font:12px/1.55 "DM Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f8f7;padding:12px;border-radius:8px;max-height:220px;overflow-y:auto}
+body[data-product] .soni-result-card h3{font-size:15px;margin:12px 0}
+body[data-product] .soni-results details{margin-top:12px;border-top:1px solid #d9e4e2;padding:10px 0;font-size:12px}
+body[data-product] .soni-results h4{font-size:12px;margin-bottom:5px}
+body[data-product] .result-warning{color:#8b5914;font-size:12px}
+body[data-product] .result-ok{color:#12644a;font-size:12px}
+body[data-product] .provider-consent{display:flex!important;align-items:flex-start;gap:8px;line-height:1.5;font-weight:500!important}
+body[data-product] .provider-consent[hidden]{display:none!important}
+body[data-product] .provider-consent input{width:auto!important;margin:2px 0!important}
+@media(max-width:760px){body[data-product] .project-actions{align-self:stretch;flex-direction:column}body[data-product] .project-actions button{width:100%}}
+
+body[data-product] .work-history{margin-top:16px;border-top:1px solid #d9e4e2;padding-top:10px;display:grid;gap:7px}
+body[data-product] .work-history h3{font-size:13px;margin:5px 0}
+body[data-product] .work-history>p{color:#63737b;font-size:12px}
+body[data-product] .work-history-entry{border:1px solid #d9e4e2;padding:10px;text-align:left;border-radius:8px;background:#fafcfb;cursor:pointer;display:flex;gap:10px;align-items:center;justify-content:space-between;width:100%}
+body[data-product] .work-history-entry span{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body[data-product] .work-history-entry small{font-size:10px;color:#58716d;white-space:nowrap}
+/* AIBO Custom operational dashboard and Soni workspace */
+body[data-product=custom] .dashboard-view.aibo-operational-view.active{display:block!important}
+body[data-product=custom] .dashboard-view#projects.active{display:block!important}
+.op-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:28px}.op-heading h1{font-size:35px;letter-spacing:-1.5px;margin:5px 0 8px}.op-heading p{color:#57666e;font-size:13px}.op-heading .eyebrow{color:#0b8d87}
+.op-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.op-metric{min-width:0;padding:22px!important;display:grid;gap:7px;border-color:#dae3e0}.op-metric small{font-size:11px;color:#5a6a72}.op-metric b{font-size:30px;letter-spacing:-1.5px;color:#142630}.op-metric span{font-size:10px;color:#64747c}
+.op-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-bottom:18px}.op-grid>.panel,.op-kpis{padding:22px!important}
+.op-panel-title{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:18px}.op-panel-title h2{margin:0;font-size:17px;letter-spacing:-.45px}.op-panel-title span{font-size:10px;color:#72808a}
+.op-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #e9edeb;align-items:center}.op-row:last-child{border-bottom:0}.op-row strong{display:block;font-size:12px}.op-row small{display:block;color:#74818b;font-size:10px;max-width:330px;overflow-wrap:anywhere;margin-top:4px}.op-chip{white-space:nowrap;padding:5px 9px;border-radius:100px;background:#fff2df;color:#8a560e;font-size:10px;font-weight:700}.op-chip.ready{background:#e2f4ec;color:#176a51}.op-chip.pending{background:#f2f4f4;color:#52616b}.op-empty{font-size:12px;color:#74818b}
+.op-kpi-project{border-top:1px solid #e8edeb;padding:15px 0}.op-kpi-project h3{margin:0 0 12px;font-size:13px}.op-kpi-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.op-kpi-values>div{padding:12px;background:#f2f8f6;border-radius:9px}.op-kpi-values b,.op-kpi-values span,.op-kpi-values small{display:block}.op-kpi-values b{font-size:21px}.op-kpi-values span{font-size:11px}.op-kpi-values small{font-size:9px;color:#697983;margin-top:6px}.op-kpi-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px;padding-top:18px;border-top:1px solid #dce8e3}.op-kpi-form label{font-size:10px;font-weight:700;color:#566871}.op-kpi-form input,.op-kpi-form select{display:block;width:100%;padding:10px;border:1px solid #cbd6d3;border-radius:8px;margin-top:5px;font:inherit}.op-kpi-form button{align-self:end}.op-kpis #op-kpi-status{font-size:11px;color:#176a51;margin-top:10px}
+.op-chat-shell{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(230px,.7fr);gap:18px}.op-chat-panel,.op-chat-aside{padding:22px!important}.op-chat-aside h2{font-size:16px;margin:0 0 14px}.op-chat-aside p{font-size:12px;color:#667781;line-height:1.7}.op-project-picker{font-size:11px;font-weight:700;display:block}.op-project-picker select{margin-left:10px;padding:9px;min-width:250px;border:1px solid #cbd6d3;border-radius:8px;background:#fff}.op-conversation{height:390px;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:20px 8px;margin:15px 0;border-top:1px solid #e9edeb;border-bottom:1px solid #e9edeb}.op-message{padding:12px 16px;border-radius:12px;max-width:88%}.op-message.user{background:#eef4f3;align-self:flex-end}.op-message.assistant{background:#e6f4ef;align-self:flex-start}.op-message small{font-size:10px;color:#63757a}.op-message p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:#28363c;margin:8px 0 0;line-height:1.6}#op-chat-form label{font-size:11px;font-weight:700}#op-chat-task{display:block;resize:vertical;padding:13px;border:1px solid #ccd6d3;border-radius:10px;width:100%;font:inherit;margin:6px 0 12px}.op-chat-actions{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap}.op-chat-actions select{display:block;margin-top:6px;padding:9px;border:1px solid #cbd6d3;border-radius:7px;background:#fff}.op-chat-actions #op-chat-consent-wrap{max-width:280px;font-size:10px;font-weight:500}#op-chat-status{font-size:11px;color:#58716b;margin:10px 0 0}
+@media(max-width:1100px){.op-grid,.op-chat-shell{grid-template-columns:1fr}}@media(max-width:760px){.op-metrics{grid-template-columns:repeat(2,1fr)}.op-heading{flex-direction:column;align-items:flex-start}.op-kpi-form{grid-template-columns:1fr}.op-panel-title{flex-direction:column}.op-heading h1{font-size:28px}.op-project-picker select{min-width:0;width:100%;margin:6px 0 0}}
+
+/* Cost management: compact accessible controls */
+.aibo-cost-form{display:grid;gap:12px}.aibo-cost-form label{font-weight:700;font-size:12px;display:grid;gap:5px;color:#273b42}.aibo-cost-form input{border:1px solid #cbd8d6;border-radius:8px;padding:11px;font:inherit;background:white;color:#172027;width:100%}.aibo-cost-form input:focus{outline:2px solid #0b8d84;outline-offset:2px}.aibo-cost-form small{color:#63747b;font-size:11px;margin-top:-8px;line-height:1.5}.aibo-cost-form button{justify-self:start}.aibo-cost-form p[role=status]{color:#0b746a;font-size:12px;line-height:1.5}.aibo-cost-explainer p{padding:12px 0;border-bottom:1px solid #e1e7e5;font-size:13px;line-height:1.6;color:#4b5c63}.aibo-cost-explainer b{color:#1b3038}
+/* Connections discovery: no fake connected states. */
+.aibo-connect-summary{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
+.aibo-connect-summary h2,.aibo-connect-notice h3{margin:0 0 6px;font-size:17px}
+.aibo-connect-summary p,.aibo-connect-notice p{margin:0;color:#576670;font-size:12px;line-height:1.6}
+#aibo-connect-stats{flex-shrink:0;font:600 12px Manrope,Arial,sans-serif;color:#0e6861;background:#e6f4f0;border-radius:8px;padding:10px}
+.aibo-connect-controls{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:15px;align-items:end}
+.aibo-connect-controls label{display:grid;gap:6px;color:#526067;font-size:11px;font-weight:700}
+.aibo-connect-controls input,.aibo-connect-controls select{width:100%;min-width:0;padding:10px 12px;border-radius:8px;border:1px solid #d9e2df;background:white;font:inherit;color:#16272d}
+.aibo-connection-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-bottom:16px}
+.aibo-connector{padding:18px;display:flex;justify-content:space-between;gap:15px;align-items:flex-start;flex-direction:column;min-height:145px}
+.aibo-connector small{color:#617078;font-size:10px;line-height:1.4}
+.aibo-connector h3{font-size:15px;letter-spacing:-.03em;margin:4px 0 8px;color:#16252b}
+.aibo-connector-state{font-size:10px;color:#5e6e77;background:#f0f3f3;border-radius:999px;padding:5px 8px}
+.aibo-connector .secondary-button{align-self:flex-end}
+.aibo-connect-notice{margin-bottom:24px;background:#fbfcfb}
+#aibo-connection-status{margin-top:12px;font-size:12px;color:#0b7066}
+@media(max-width:920px){.aibo-connect-controls{grid-template-columns:1fr 1fr}.aibo-connect-controls label:first-child{grid-column:1/-1}}
+@media(max-width:640px){.aibo-connect-summary{flex-direction:column;align-items:flex-start}.aibo-connect-controls{grid-template-columns:1fr}.aibo-connect-controls label:first-child{grid-column:auto}}
+.aibo-connection-dialog{border:1px solid #d7e4e0;border-radius:14px;padding:26px;max-width:min(440px,calc(100vw - 36px));width:100%;color:#172027;box-shadow:0 15px 50px rgba(15,35,40,.22)}
+.aibo-connection-dialog::backdrop{background:rgba(9,29,35,.4)}
+.aibo-connection-dialog h2{margin:0 0 6px;font-size:22px}
+.aibo-connection-dialog p{color:#596973;font-size:12px;line-height:1.6}
+.aibo-connection-dialog label{display:grid;gap:6px;font-size:12px;margin-top:16px}
+.aibo-connection-dialog select{border:1px solid #d5e1dd;border-radius:8px;padding:10px;font:inherit}
+.aibo-connection-dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* Connection-aware Soni tasks */
+.aibo-dependent-work{margin-top:20px;padding:18px}.aibo-dependent-work .op-row{gap:10px}.aibo-connector-buttons{display:flex;gap:6px;flex-wrap:wrap}.aibo-dependent-work .secondary-button{font-size:11px;padding:7px 10px}#aibo-dependency-status{font-size:12px;color:#36645b}#op-chat-required-service{max-width:170px}
+
+.aibo-translation{margin-top:18px;padding:20px}.aibo-translation form{display:grid;gap:12px}.aibo-translation form>label{display:grid;gap:6px;font-size:12px}.aibo-translation textarea{width:100%;border:1px solid #d8e2df;padding:12px;border-radius:8px}.aibo-translation-langs{display:grid;grid-template-columns:1fr 1fr;gap:12px}.aibo-translation-langs label{display:grid;gap:5px;font-size:12px}.aibo-translation-consent{display:flex!important;align-items:flex-start;gap:10px!important;font-size:11px!important}.aibo-translation-consent input{width:auto}.aibo-translation button{justify-self:start}#aibo-translation-status{font-size:12px;color:#34635a}@media(max-width:760px){.aibo-translation-langs{grid-template-columns:1fr}}
+
+/* Human writing and exact-scope actions share the existing Control Centre hierarchy. */
+.aibo-new-form{display:grid;gap:14px;max-width:720px;margin:15px 0 22px}
+.aibo-new-form label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#385058}
+.aibo-new-form input,.aibo-new-form select,.aibo-new-form textarea{width:100%;border:1px solid #cbd8d5;border-radius:9px;padding:11px;background:#fff;color:#172027;font:inherit;font-weight:400}
+.aibo-new-form button{justify-self:start}
+#aibo-editor-results{border-top:1px solid #e0e6e3;padding-top:16px}
+#aibo-editor-results h3,.aibo-buffer-auth h3{font-size:15px}
+.aibo-buffer-auth{padding-top:22px;margin-top:22px;border-top:1px solid #e0e6e3}
+.aibo-action-card{border-bottom:1px solid #e1e7e4;padding:14px 0;display:grid;gap:10px}
+.aibo-action-card strong{font-size:13px}
+.aibo-action-card small{color:#49626a}
+.aibo-action-card pre{white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;background:#f1f7f5;padding:12px;border-radius:8px;font-size:11px}
+.aibo-action-card button{justify-self:start}
+
+/* Visible run diagnostics; preserve short, scannable task history. */
+body[data-product] .soni-run-error {border:1px solid #ddc4c4;background:#fff8f7;border-radius:10px;padding:14px;margin:12px 0;font-size:13px;}
+body[data-product] .soni-run-error p {overflow-wrap:anywhere;margin:8px 0;}
+body[data-product] .soni-run-error small {color:#6c5252;}
+body[data-product] .work-history-entry {flex-wrap:wrap;}
+body[data-product] .soni-history-error {flex-basis:100%;font-size:11px;font-style:normal;color:#9a3737;overflow-wrap:anywhere;}
+body[data-product] .soni-job-error {font-size:11px;color:#9a3737;font-weight:600;overflow-wrap:anywhere;}
+/* Compact operational agent configuration */
+.aibo-agent-panel{max-width:980px;margin:0 auto;padding:28px}
+.aibo-agent-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:24px}
+.aibo-agent-panel label{display:flex;flex-direction:column;gap:7px;font-weight:600}
+.aibo-agent-panel h2{font-size:1.1rem;margin:22px 0 8px}
+.aibo-agent-muted{color:#64748b;font-size:.86rem;line-height:1.5}
+.aibo-agent-permissions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:15px}
+.aibo-agent-choice{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;border:1px solid #e1e7e6;border-radius:12px;padding:12px 14px;gap:16px}
+.aibo-agent-choice span{display:flex;flex-direction:column;gap:2px}
+.aibo-agent-choice small{color:#64748b;font-weight:400}
+.aibo-agent-choice input{width:19px;height:19px;flex-shrink:0;accent-color:#008d84}
+.aibo-agent-mailbox,.aibo-agent-mailbox-add,.aibo-agent-footer{display:flex;gap:12px;align-items:center;margin-top:12px}
+.aibo-agent-mailbox{border-bottom:1px solid #edf0f0;padding:6px 0}
+.aibo-agent-mailbox-address{flex:1;overflow-wrap:anywhere}
+.aibo-agent-mailbox-add input{flex:1;min-width:0}
+#aibo-agent-status{font-size:.9rem;color:#006d65}
+@media(max-width:760px){.aibo-agent-top,.aibo-agent-permissions{grid-template-columns:1fr}.aibo-agent-panel{padding:18px}.aibo-agent-mailbox-add{flex-wrap:wrap}}
+
+/* Dedicated provider setup: concise control hierarchy. */
+#aibo-ai-priority,#aibo-ai-models,#aibo-ai-agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0 24px}
+#aibo-ai-priority label,#aibo-ai-models label,#aibo-ai-agents label{display:flex;flex-direction:column;gap:5px}
+#aibo-ai-credentials{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.aibo-ai-key{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid #e5e9eb;border-radius:12px}
+.aibo-ai-key small{color:#667781}
+#aibo-optional-translation summary{cursor:pointer;font-weight:600;padding:12px}
+#aibo-optional-translation[open] summary{margin-bottom:12px}
+
+/* Focused Soni composer, project-scoped writing */
+#soni .op-chat-shell{display:block;max-width:980px;margin-inline:auto}
+#soni .op-chat-panel{padding:24px!important}
+#soni .op-heading{max-width:980px;margin-inline:auto}
+#soni .op-chat-aside{display:none}
+#soni .op-conversation{min-height:230px;height:min(44vh,430px);margin:12px 0;padding:14px 5px;gap:12px}
+#soni .op-message{max-width:80%;padding:12px 14px}
+#soni .op-message p{font-size:13px;line-height:1.5;margin:4px 0 0}
+#soni .op-chat-actions{align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+#soni .aibo-chat-options{order:0;min-width:135px;font-size:12px}
+#soni .aibo-chat-options summary{cursor:pointer;color:#53656b;padding:9px 3px}
+#soni .aibo-chat-options label{margin:10px 0;display:block}
+#soni .aibo-chat-options select{max-width:240px}
+#soni .op-chat-actions button[type=submit]{margin-left:auto;order:3}
+#soni .aibo-chat-attach{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 8px}
+#soni .aibo-chat-attach-button{display:inline-flex;align-items:center;border:1px solid #cbd6d3;border-radius:9px;padding:8px 12px;cursor:pointer;font-size:12px!important}
+#soni .aibo-chat-attach-button:hover{background:#eef4f3}
+#op-chat-files{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+#op-chat-attachment-list{color:#607178;font-size:12px;overflow-wrap:anywhere}
+.aibo-visually-hidden{position:absolute!important;clip:rect(0,0,0,0);width:1px;height:1px;overflow:hidden}
+#soni .aibo-dependent-work{margin:10px 0 0;padding:0;border:0;background:none}
+#soni .aibo-dependent-work summary{font-size:12px;cursor:pointer;color:#6b7a80}
+#soni .aibo-dependent-work .op-row{font-size:12px}
+#aibo-agent-project{min-width:0}
+.aibo-agent-writing{margin-top:18px;padding:20px!important}
+.aibo-agent-writing>summary{cursor:pointer;font-weight:700;font-size:16px}
+.aibo-agent-editorial{margin-top:15px}
+.aibo-agent-editorial .op-heading{margin:0 0 12px}
+.aibo-agent-editorial .op-heading h1{font-size:19px}
+.aibo-agent-editorial article.panel{border:0;box-shadow:none;padding:0!important}
+@media(max-width:700px){#soni .op-chat-panel{padding:14px!important}#soni .op-message{max-width:95%}}
+
+/* Shared premium restraint: Standard and Custom. No duplicated heading stacks. */
+body[data-product] .aibo-operational-view .op-heading .eyebrow{display:none}
+body[data-product] .aibo-operational-view .op-heading{margin-bottom:18px}
+body[data-product] .aibo-operational-view .op-heading h1{font-size:clamp(21px,2vw,27px);letter-spacing:-.04em;line-height:1.2;margin:0}
+body[data-product] .aibo-operational-view .op-heading p{font-size:13px;line-height:1.5;margin:0;color:#52636a}
+body[data-product] .aibo-operational-view .aibo-quiet-heading{margin:0 0 18px}
+body[data-product] .aibo-operational-view .aibo-quiet-heading p{font-size:13px;font-weight:450}
+body[data-product] .aibo-operational-view .panel{box-shadow:none}
+body[data-product] .page-intro.compact{margin-bottom:18px}
+body[data-product] .page-intro.compact h1{font-size:clamp(24px,2.5vw,32px);letter-spacing:-.045em}
+body[data-product] #soni-work-backdrop .wizard-hint{display:none}
+body[data-product] #op-chat-task{min-height:86px;line-height:1.55;resize:vertical}
+body[data-product] #op-chat-task:focus-visible, body[data-product] #soni-work-form textarea:focus-visible{outline:2px solid #177c74;outline-offset:2px}
+@media(max-width:700px){body[data-product] .aibo-operational-view .op-heading{margin-bottom:12px}}

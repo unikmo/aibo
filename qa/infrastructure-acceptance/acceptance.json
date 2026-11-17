@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-11-14T23:10:28.312698+00:00",
+  "scope": "Windows local AIBO infrastructure acceptance, no live cloud changes",
+  "passed": 11,
+  "failed": 0,
+  "results": [
+    {
+      "name": "file runtime/control_server.py",
+      "status": "PASS",
+      "detail": "present"
+    },
+    {
+      "name": "file runtime/infra_actions.py",
+      "status": "PASS",
+      "detail": "present"
+    },
+    {
+      "name": "file Control-Centre/shared/infra_ui.js",
+      "status": "PASS",
+      "detail": "present"
+    },
+    {
+      "name": "Python compilation",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Regression suite",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Infrastructure unit tests",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Isolated local server startup",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "Infrastructure capability API",
+      "status": "PASS",
+      "detail": "approvalRequired=true"
+    },
+    {
+      "name": "Soni infrastructure UI asset",
+      "status": "PASS",
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "Direct Chromium standard UI",
+      "status": "PASS",
+      "detail": "rendered and no JS errors or mobile overflow"
+    },
+    {
+      "name": "Direct Chromium custom UI",
+      "status": "PASS",
+      "detail": "rendered and no JS errors or mobile overflow"
+    }
+  ],
+  "cloud_write_certified": false,
+  "commercial_release_certified": false
+}

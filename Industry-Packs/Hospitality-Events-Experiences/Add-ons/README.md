@@ -1,0 +1,2 @@
+# Hospitality add-ons
+All six modules require the Hospitality, Events & Experiences core pack. Activate only verified applicable modules: Hotels & Accommodation; Restaurants & F&B; Event Venues & Spaces; Experiences & Activities; Event Production & Agencies; Membership & Recurring Experiences. Multiple modules may coexist; the strictest applicable capacity, safety, consent and approval control wins. They provide instructions/templates, not executable integrations or account grants.

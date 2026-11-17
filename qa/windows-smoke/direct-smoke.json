@@ -1,0 +1,78 @@
+{
+  "type": "direct-windows-localhost-no-bridge",
+  "passed": 14,
+  "failed": 0,
+  "results": [
+    {
+      "name": "standard direct localhost navigation",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:64352/standard/"
+    },
+    {
+      "name": "standard navigation",
+      "status": "PASS",
+      "detail": "1"
+    },
+    {
+      "name": "standard screenshot",
+      "status": "PASS",
+      "detail": "standard desktop screenshot"
+    },
+    {
+      "name": "standard mobile overflow",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "name": "standard mobile screenshot",
+      "status": "PASS",
+      "detail": "standard mobile screenshot"
+    },
+    {
+      "name": "standard JavaScript errors",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "name": "standard failed requests",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "name": "custom direct localhost navigation",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:64352/custom/"
+    },
+    {
+      "name": "custom navigation",
+      "status": "PASS",
+      "detail": "9"
+    },
+    {
+      "name": "custom screenshot",
+      "status": "PASS",
+      "detail": "custom desktop screenshot"
+    },
+    {
+      "name": "custom mobile overflow",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "name": "custom mobile screenshot",
+      "status": "PASS",
+      "detail": "custom mobile screenshot"
+    },
+    {
+      "name": "custom JavaScript errors",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "name": "custom failed requests",
+      "status": "PASS",
+      "detail": "none"
+    }
+  ],
+  "disclaimer": "Isolated test data and no live AI authentication or external actions."
+}

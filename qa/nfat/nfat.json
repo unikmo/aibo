@@ -1,0 +1,149 @@
+{
+  "date_utc": "2026-11-15T17:24:39.330977+00:00",
+  "machine_python": "3.13.17",
+  "root": "C:\\Users\\mbanw\\AIBO",
+  "checks": [
+    {
+      "check": "installed regression tests",
+      "result": "PASS",
+      "details": {
+        "exit_code": 0,
+        "log": "regression-first.log"
+      }
+    },
+    {
+      "check": "isolated loopback startup",
+      "result": "PASS",
+      "details": {
+        "pid_alive": true,
+        "ready_http_200": true,
+        "last_response": {
+          "status": 200,
+          "ms": 596.94,
+          "headers": {
+            "Server": "SimpleHTTP/0.6 Python/3.13.17",
+            "Date": "Sun, 15 Nov 2026 17:24:33 GMT",
+            "Content-type": "text/html",
+            "Content-Length": "19497",
+            "Last-Modified": "Thu, 12 Nov 2026 14:16:10 GMT",
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "no-referrer",
+            "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+            "Cache-Control": "no-store, max-age=0"
+          },
+          "bytes_sampled": 19497
+        },
+        "exit_code": null,
+        "log": "server.log"
+      }
+    },
+    {
+      "check": "UI /standard/",
+      "result": "PASS",
+      "details": {
+        "http": 200,
+        "latency_ms": 2.0
+      }
+    },
+    {
+      "check": "security headers /standard/",
+      "result": "PASS",
+      "details": {
+        "missing": []
+      }
+    },
+    {
+      "check": "UI /custom/",
+      "result": "PASS",
+      "details": {
+        "http": 200,
+        "latency_ms": 1.66
+      }
+    },
+    {
+      "check": "security headers /custom/",
+      "result": "PASS",
+      "details": {
+        "missing": []
+      }
+    },
+    {
+      "check": "products API /api/products/standard",
+      "result": "PASS",
+      "details": 200
+    },
+    {
+      "check": "products API /api/products/custom",
+      "result": "PASS",
+      "details": 200
+    },
+    {
+      "check": "forged Host rejected",
+      "result": "PASS",
+      "details": 403
+    },
+    {
+      "check": "8-client HTTP reliability",
+      "result": "PASS",
+      "details": {
+        "requests": 80,
+        "concurrency": 8,
+        "errors": 0,
+        "p50_ms": 9.86,
+        "p95_ms": 11.79,
+        "max_ms": 28.75
+      }
+    },
+    {
+      "check": "mobile browser standard",
+      "result": "PASS",
+      "details": {
+        "horizontal_overflow": false,
+        "js_errors": []
+      }
+    },
+    {
+      "check": "mobile browser custom",
+      "result": "PASS",
+      "details": {
+        "horizontal_overflow": false,
+        "js_errors": []
+      }
+    },
+    {
+      "check": "tracked project data unchanged",
+      "result": "PASS",
+      "details": {
+        "changed_file_paths": [],
+        "tracked_files_before": 297,
+        "tracked_files_after": 297
+      }
+    }
+  ],
+  "performance": {
+    "requests": 80,
+    "concurrency": 8,
+    "errors": 0,
+    "p50_ms": 9.86,
+    "p95_ms": 11.79,
+    "max_ms": 28.75
+  },
+  "playwright": {
+    "status": "RUN"
+  },
+  "failures": [],
+  "pass": 13,
+  "fail": 0,
+  "not_covered": [
+    "authenticated AI provider execution",
+    "real cloud write/readback/rollback",
+    "credential vault security audit",
+    "installer bundle / uninstallation",
+    "Windows OS compatibility matrix",
+    "accessibility audit",
+    "external dependency vulnerability audit",
+    "macOS"
+  ],
+  "verdict": "LOCAL_NFAT_PASS_LIMITED"
+}

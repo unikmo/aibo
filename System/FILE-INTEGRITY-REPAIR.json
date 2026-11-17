@@ -1,0 +1,21 @@
+{
+  "filesRepaired": [
+    "AGENTS.md",
+    "Projects/Politangle/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/hccontroller/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/RunYourEvent/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Locksmith-Texas/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Unikmo/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/PlanetHike/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/ShoreExcursionPicks/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/FinClose/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Tisonik/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Auditdefend/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Locksmith-Boston/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/FixedRider/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Konfydence/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Forderbar/AIBO-PROJECT-OVERVIEW.md",
+    "Projects/Books-Lockscreens-Planners/AIBO-PROJECT-OVERVIEW.md"
+  ],
+  "method": "Restore leading zero in numbered-directory references; preserve all other content"
+}
