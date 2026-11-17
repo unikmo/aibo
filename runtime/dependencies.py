@@ -45,7 +45,7 @@ def queue(payload):
     if not isinstance(task,str) or not 5<=len(task.strip())<=1500:raise products.ProductError('Invalid task')
     provider=payload.get('provider','mock')
     if provider not in workspace.PROVIDERS:raise products.ProductError('Unknown AI provider')
-    if provider!='mock' and payload.get('consent') is not True:raise products.ProductError('AI-provider data sharing requires explicit consent')
+    if workspace.requires_api_consent(provider) and payload.get('consent') is not True:raise products.ProductError('API-provider data sharing requires explicit consent')
     requested=payload.get('connector') or infer_connector(task)
     if requested and requested not in {x['id'] for x in connector_catalog.entries()}:
         raise products.ProductError('Unknown connector')

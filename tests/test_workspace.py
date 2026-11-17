@@ -34,10 +34,15 @@ class WorkspaceTests(unittest.TestCase):
         with self.assertRaisesRegex(products.ProductError,'Finish the guided'):
             workspace.start_run(self.id,{'task':'Review the existing page','provider':'mock'})
 
-    def test_consent_required_for_nonmock(self):
+    def test_consent_required_for_api_provider(self):
         self._ready()
         with self.assertRaisesRegex(products.ProductError,'consent'):
             workspace.start_run(self.id,{'task':'Research the market','provider':'openai'})
+
+    def test_local_code_agents_do_not_require_api_consent(self):
+        self.assertFalse(workspace.requires_api_consent('codex-local'))
+        self.assertFalse(workspace.requires_api_consent('claude-local'))
+        self.assertTrue(workspace.requires_api_consent('openrouter'))
 
     def test_soni_mock_run(self):
         self._ready()

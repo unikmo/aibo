@@ -20,6 +20,10 @@ LOCK = threading.RLock()
 DIR = products.STATE / 'workspaces'
 STAGES = ('business', 'focus', 'controls')
 PROVIDERS = {'mock', 'auto', 'codex-local', 'claude-local', 'openai', 'anthropic', 'openrouter', 'vercel-gateway', 'together', 'groq'}
+API_PROVIDERS = frozenset({'openai', 'anthropic', 'openrouter', 'vercel-gateway', 'together', 'groq'})
+
+def requires_api_consent(provider):
+    return provider in API_PROVIDERS
 ALLOWED = {'name': 80, 'region': 100, 'goal': 500, 'website': 200,
            'audience': 250, 'successMeasure': 250, 'notes': 800}
 RUNS_DIR = products.STATE / 'runs'
@@ -120,8 +124,8 @@ def start_run(project_id, payload):
         raise products.ProductError('Describe the task in 5–1500 characters')
     if provider not in PROVIDERS:
         raise products.ProductError('Unsupported AI provider')
-    if provider!='mock' and payload.get('consent') is not True:
-        raise products.ProductError('External AI processing requires explicit consent')
+    if requires_api_consent(provider) and payload.get('consent') is not True:
+        raise products.ProductError('API processing requires explicit consent')
     attachment_ids=payload.get('attachments',[])
     attachments.load(project_id,attachment_ids)
     with LOCK:
