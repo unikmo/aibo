@@ -4,6 +4,7 @@ import html
 import ipaddress
 import re
 import errno
+import sys
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -29,7 +30,7 @@ try:
     from . import infra_actions
 except ImportError:
     import infra_actions
-ROOT=Path(__file__).resolve().parent.parent
+ROOT=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent.parent))
 WEB=ROOT/'Control-Centre'
 DEFAULT_PORT=8765
 DEFAULT_PORT_RETRIES=20

@@ -24,6 +24,7 @@ service-account*.json
 node_modules/
 .next/
 dist/
+*.spec
 build/
 coverage/
 *.log
@@ -34,5 +35,7 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+build/
+dist/
 
 *.backup-*
