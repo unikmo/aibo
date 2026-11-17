@@ -3,6 +3,7 @@ import json
 import html
 import ipaddress
 import re
+import errno
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -30,6 +31,9 @@ except ImportError:
     import infra_actions
 ROOT=Path(__file__).resolve().parent.parent
 WEB=ROOT/'Control-Centre'
+DEFAULT_PORT=8765
+DEFAULT_PORT_RETRIES=20
+UNAVAILABLE_PORT_ERRORS=(errno.EADDRINUSE,errno.EACCES,10048,10013)
 
 class Handler(SimpleHTTPRequestHandler):
     def _trusted_local_client(self):
@@ -383,10 +387,42 @@ class LocalServer(ThreadingHTTPServer):
         sock.settimeout(12)
         return sock, address
 
+def create_local_server(port=DEFAULT_PORT,port_retries=DEFAULT_PORT_RETRIES):
+    """Bind a loopback-only server, choosing the next local port if needed."""
+    if not isinstance(port,int) or not 0<=port<=65535:
+        raise ValueError('Port must be between 0 and 65535')
+    if not isinstance(port_retries,int) or port_retries<0:
+        raise ValueError('Port retries must be zero or greater')
+    candidates=(0,) if port==0 else range(port,min(65536,port+port_retries+1))
+    last_error=None
+    for candidate in candidates:
+        try:
+            return LocalServer(('127.0.0.1',candidate),Handler)
+        except OSError as error:
+            # Windows may report an occupied or excluded port as either
+            # WSAEADDRINUSE (10048) or WSAEACCES (10013).
+            if error.errno not in UNAVAILABLE_PORT_ERRORS:
+                raise
+            last_error=error
+    upper=min(65535,port+port_retries)
+    raise OSError(f'No local AIBO port is available between {port} and {upper}') from last_error
+
 def main():
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8765);args=parser.parse_args()
-    srv=LocalServer(('127.0.0.1',args.port),Handler)
-    print(f'AIBO local Control Centre: http://127.0.0.1:{args.port}/standard/ or /custom/',flush=True)
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--port',type=int,default=DEFAULT_PORT)
+    parser.add_argument('--port-retries',type=int,default=DEFAULT_PORT_RETRIES,help='Number of consecutive local ports to try when the requested port is busy')
+    parser.add_argument('--strict-port',action='store_true',help='Fail instead of choosing a fallback local port')
+    parser.add_argument('--open-browser',action='store_true',help='Open the Standard Control Centre after the local server starts')
+    args=parser.parse_args()
+    try:
+        srv=create_local_server(args.port,0 if args.strict_port else args.port_retries)
+    except (OSError,ValueError) as error:
+        parser.error(str(error))
+    url=f'http://127.0.0.1:{srv.server_port}/standard/'
+    print(f'AIBO local Control Centre: {url} or /custom/',flush=True)
+    if args.open_browser:
+        import webbrowser
+        webbrowser.open_new_tab(url)
     srv.serve_forever()
 if __name__=='__main__':main()
