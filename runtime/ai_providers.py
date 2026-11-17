@@ -128,7 +128,13 @@ def route(explicit='auto',agent=None):
     settings=_saved()
     if explicit in ORDER:return (explicit,settings['models'].get(explicit) or None)
     if explicit!='auto':raise products.ProductError('Unsupported provider')
-    preferred=settings['priority'][0]
+    # Auto mode is intentionally local-first. It must never turn an unavailable
+    # Codex/Claude session into an unapproved paid API request.
+    ready=public()['ready']
+    local=[provider for provider in settings['priority'] if provider in ('codex-local','claude-local') and ready.get(provider)]
+    if not local:
+        raise products.ProductError('No local Codex or Claude connection is available. Choose an API provider and approve that request, or connect a local code agent.')
+    preferred=local[0]
     if settings['switchMode']=='soni' and agent:
         choice=settings['agentOverrides'].get(agent)
         if choice in ORDER:preferred=choice
