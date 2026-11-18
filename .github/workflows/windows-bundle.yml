@@ -1,0 +1,62 @@
+name: AIBO Windows bundle verification
+
+on:
+  pull_request:
+    paths:
+      - 'runtime/**'
+      - 'Control-Centre/**'
+      - 'System/**'
+      - 'Industry-Packs/**'
+      - 'build-windows.ps1'
+      - 'tests/**'
+      - '.github/workflows/windows-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-bundle:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Python regression suite
+        run: python -m unittest discover -s tests -v
+      - name: Install bundle dependencies
+        run: python -m pip install pyinstaller playwright
+      - name: Build Windows executable
+        shell: pwsh
+        run: ./build-windows.ps1
+      - name: Check bundled resources
+        shell: pwsh
+        run: |
+          $app = "dist/AIBO/_internal"
+          if (!(Test-Path $app)) { throw "Missing bundled application data directory" }
+          foreach ($item in @("Control-Centre/standard/index.html", "Control-Centre/custom/index.html", "System/project-registry.json", "Industry-Packs/README.md", "runtime/agents.json")) {
+            if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
+          }
+          if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
+      - name: Executable loopback smoke
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--port", "0") -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/aibo-stdout.txt" -RedirectStandardError "$env:RUNNER_TEMP/aibo-stderr.txt"
+          try {
+            $url = $null
+            for ($i=0; $i -lt 80; $i++) {
+              Start-Sleep -Milliseconds 500
+              $output = if (Test-Path "$env:RUNNER_TEMP/aibo-stdout.txt") { Get-Content "$env:RUNNER_TEMP/aibo-stdout.txt" -Raw } else { "" }
+              if ($output -match 'http://127\\.0\\.0\\.1:(\\d+)/standard/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
+              if ($proc.HasExited) { throw "Executable exited before HTTP startup: $(Get-Content "$env:RUNNER_TEMP/aibo-stderr.txt" -Raw)" }
+            }
+            if (!$url) { throw "Executable did not announce loopback URL" }
+            foreach ($endpoint in @("/standard/", "/custom/", "/api/products/custom")) {
+              $response = Invoke-WebRequest -Uri ($url + $endpoint) -UseBasicParsing -TimeoutSec 10
+              if ($response.StatusCode -ne 200) { throw "HTTP smoke failed for $endpoint" }
+            }
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
