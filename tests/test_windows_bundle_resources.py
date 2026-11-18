@@ -17,12 +17,13 @@ import sys
 from pathlib import Path
 sys._MEIPASS = sys.argv[1]
 sys.path.insert(0, sys.argv[2])
-import products, aibo
+import products, aibo, connector_catalog
 expected = Path(sys.argv[1])
 assert products.ROOT == expected, (products.ROOT, expected)
 assert aibo.ROOT == expected, (aibo.ROOT, expected)
 assert products.REGISTRY == expected / 'System' / 'project-registry.json'
 assert aibo.ROSTER == expected / 'runtime' / 'agents.json'
+assert connector_catalog.ROOT == expected
 """
             run = subprocess.run(
                 [sys.executable, "-c", script, temporary, str(ROOT / "runtime")],
@@ -37,6 +38,7 @@ assert aibo.ROSTER == expected / 'runtime' / 'agents.json'
             'System;System',
             'Industry-Packs;Industry-Packs',
             'runtime\\agents.json;runtime',
+            'runtime\\connectors.json;runtime',
         ):
             with self.subTest(item=item):
                 self.assertIn(item, script)
