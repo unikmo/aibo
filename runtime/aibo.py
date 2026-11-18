@@ -35,18 +35,39 @@ def safe_path(relative):
     return path
 
 
+def _products():
+    try:
+        from . import products
+    except ImportError:
+        try:
+            from runtime import products
+        except ImportError:
+            import products
+    return products
+
+
 def project_info(project_id):
-    for item in load_json(REGISTRY)['projects']:
+    for item in _products().project_records():
         if item['id'] == project_id:
             return item
     raise AiboError('Unknown project: ' + project_id)
 
 
+def _project_folder(project):
+    products=_products()
+    base=products.STATE if project.get('stateProject') is True else ROOT
+    folder=(base/project['projectHome']).resolve()
+    if not folder.is_relative_to(base.resolve()):
+        raise AiboError('Invalid project workspace')
+    return folder
+
+
 def context(project):
-    profile_path = ROOT / project['projectHome'] / '01-Business-Foundation/01-Business-Profile.md'
+    folder=_project_folder(project)
+    profile_path = folder / '01-Business-Foundation/01-Business-Profile.md'
     parts = [f'PROJECT: {project["name"]}']
     if profile_path.is_file():
-        parts.append(safe_path(project['projectHome'] + '/01-Business-Foundation/01-Business-Profile.md').read_text(encoding='utf-8')[:6500])
+        parts.append(profile_path.read_text(encoding='utf-8')[:6500])
     else:
         parts.append('No existing business profile file; use the owner-reviewed local setup.')
     # Owner-reviewed setup is stored outside the source tree so updates cannot replace it.
@@ -58,7 +79,7 @@ def context(project):
             parts.append('OWNER-REVIEWED CURRENT SETUP: ' + json.dumps(public_fields,ensure_ascii=False)[:5000])
     mapping = project.get('classification', {})
     # Custom edition: local project knowledge mapping overrides the legacy central index.
-    project_mapping = ROOT / project['projectHome'] / 'PROJECT-KNOWLEDGE.json'
+    project_mapping = folder / 'PROJECT-KNOWLEDGE.json'
     if project_mapping.exists():
         mapping = load_json(project_mapping)
     parts.append('CLASSIFICATION: ' + json.dumps(mapping, ensure_ascii=False))
