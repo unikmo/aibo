@@ -36,7 +36,7 @@ jobs:
         run: |
           $app = "dist/AIBO/_internal"
           if (!(Test-Path $app)) { throw "Missing bundled application data directory" }
-          foreach ($item in @("Control-Centre/standard/index.html", "Control-Centre/custom/index.html", "System/project-registry.json", "Industry-Packs/README.md", "runtime/agents.json")) {
+          foreach ($item in @("Control-Centre/standard/index.html", "Control-Centre/custom/index.html", "System/project-registry.json", "Industry-Packs/README.md", "runtime/agents.json", "runtime/connectors.json")) {
             if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
           }
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
