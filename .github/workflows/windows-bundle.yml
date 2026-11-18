@@ -49,7 +49,7 @@ jobs:
             for ($i=0; $i -lt 80; $i++) {
               Start-Sleep -Milliseconds 500
               $output = if (Test-Path "$env:RUNNER_TEMP/aibo-stdout.txt") { Get-Content "$env:RUNNER_TEMP/aibo-stdout.txt" -Raw } else { "" }
-              if ($output -match 'http://127\\.0\\.0\\.1:(\\d+)/standard/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
+              if ($output -match 'http://127\.0\.0\.1:(\d+)/standard/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
               if ($proc.HasExited) { throw "Executable exited before HTTP startup: $(Get-Content "$env:RUNNER_TEMP/aibo-stderr.txt" -Raw)" }
             }
             if (!$url) { throw "Executable did not announce loopback URL" }
