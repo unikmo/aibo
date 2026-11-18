@@ -8,6 +8,10 @@ from runtime import ai_providers, products
 
 class ProviderConfigTests(unittest.TestCase):
     def setUp(self):
+        # Test routing independent of CLI installations on CI runners.
+        self.local_cli_probe=patch('runtime.ai_providers.shutil.which', side_effect=lambda name: 'C:/test/'+name if name in ('codex','claude') else None)
+        self.local_cli_probe.start()
+        self.addCleanup(self.local_cli_probe.stop)
         self.tmp=tempfile.TemporaryDirectory()
         self.saved_path=ai_providers.PATH
         self.saved_key=ai_providers.KEY_PATH
