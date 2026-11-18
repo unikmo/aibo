@@ -48,13 +48,33 @@ def write_json(p,obj):
     finally:
         if os.path.exists(tmp):os.unlink(tmp)
 
+def project_records():
+    """Bundled registry plus user-owned additions, without modifying packaged sources."""
+    bundled=read_json(REGISTRY, {'projects':[]})
+    extra=read_json(STATE/'custom-projects.json', {'projects':[]})
+    if not isinstance(bundled,dict) or not isinstance(bundled.get('projects'),list):
+        raise ProductError('Invalid bundled project registry')
+    if not isinstance(extra,dict) or not isinstance(extra.get('projects'),list):
+        raise ProductError('Invalid local project registry')
+    return bundled['projects'] + extra['projects']
+
+
+def _project_folder(record):
+    """User-created project files live in writable local state, not PyInstaller."""
+    base=STATE if record.get('stateProject') is True else ROOT
+    candidate=(base/record['projectHome']).resolve()
+    if not candidate.is_relative_to(base.resolve()):
+        raise ProductError('Invalid project workspace path')
+    return candidate
+
+
 def custom_projects():
-    registry=read_json(REGISTRY,{'projects':[]})
+    registry={'projects':project_records()}
     state=read_json(STATE/'custom.json',{})
     projects=[]
     for p in registry['projects']:
         x=state.get(p['id'],{})
-        mapping=read_json(ROOT/p['projectHome']/'PROJECT-KNOWLEDGE.json',p.get('classification') or {'status':'pending-pack','industry':None,'corePack':None,'addOns':[]})
+        mapping=read_json(_project_folder(p)/'PROJECT-KNOWLEDGE.json',p.get('classification') or {'status':'pending-pack','industry':None,'corePack':None,'addOns':[]})
         setup=read_json(STATE/'workspaces'/(p['id']+'.json'),{})
         projects.append({'id':p['id'],'name':setup.get('fields',{}).get('name',x.get('name',p['name'])),'industry':mapping.get('industry'),
             'corePack':mapping.get('corePack'),'addOns':mapping.get('addOns',[]),
@@ -141,22 +161,32 @@ def create_custom_project(data):
     region=data.get('region','')
     if not isinstance(region,str) or len(region)>100:raise ProductError('Invalid region')
     region=region.strip()
-    folder=ROOT/'Projects'/slug
+    # Portable Windows builds must never try to write inside their bundled _MEIPASS directory.
+    folder=STATE/'Projects'/slug
     with _registry_lock:
-        registry=read_json(REGISTRY,{'projects':[]})
-        existing=registry.get('projects',[])
-        if not isinstance(existing,list):raise ProductError('Invalid project registry')
+        bundled=read_json(REGISTRY, {'projects':[]})
+        extra=read_json(STATE/'custom-projects.json', {'projects':[]})
+        if not isinstance(bundled,dict) or not isinstance(bundled.get('projects'),list):
+            raise ProductError('Invalid built-in project registry')
+        if not isinstance(extra,dict) or not isinstance(extra.get('projects'),list):
+            raise ProductError('Invalid local project registry')
+        existing=bundled['projects']+extra['projects']
         if any(x.get('id','').lower()==slug or x.get('name','').casefold()==name.casefold() or
                 x.get('projectHome','').casefold()==('Projects/'+slug).casefold()
-                for x in existing):raise ProductError('Project already exists')
-        if folder.exists():raise ProductError('Project folder already exists; existing files will never be overwritten')
+                for x in existing):
+            raise ProductError('Project already exists')
+        if folder.exists() or (ROOT/'Projects'/slug).exists():
+            raise ProductError('Project folder already exists; existing files will never be overwritten')
         classification={'industry':industry,'corePack':core,'addOns':addons,
                         'status':'provisional' if industry and core else 'pending-pack',
                         'reviewRequired':True}
-        record={'id':slug,'name':name,'projectHome':'Projects/'+slug,'classification':classification,'region':region}
+        record={'id':slug,'name':name,'projectHome':'Projects/'+slug,
+                'classification':classification,'region':region,'stateProject':True}
+        folder.parent.mkdir(parents=True,exist_ok=True)
+        created=False
         try:
             folder.mkdir(parents=False,exist_ok=False)
-            # Create only new files in a newly created folder, with exclusive writes.
+            created=True
             with (folder/'PROJECT-KNOWLEDGE.json').open('x',encoding='utf8') as h:
                 json.dump(classification,h,ensure_ascii=False,indent=2)
             with (folder/'AIBO-PROJECT-OVERVIEW.md').open('x',encoding='utf8') as h:
@@ -166,10 +196,10 @@ def create_custom_project(data):
                       '03-Strategy-and-Targets','04-Delivery',
                       '05-Approvals-and-Governance','06-Results-and-Learning'):
                 (folder/d).mkdir(exist_ok=False)
-            write_json(REGISTRY,{**registry,'projects':existing+[record]})
+            write_json(STATE/'custom-projects.json',{'projects':extra['projects']+[record]})
         except Exception:
-            # Remove only the folder this operation created, before publication in registry.
-            import shutil
-            shutil.rmtree(folder)
+            if created:
+                import shutil
+                shutil.rmtree(folder)
             raise
         return {'ok':True,'project':slug,'totalProjects':len(existing)+1}
