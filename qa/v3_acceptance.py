@@ -90,7 +90,8 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#modalBody input[name='industry']").fill("Internal test")
                     page.locator("#modalBody form button[type=submit]").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
-                    assert page.locator("#projectCards .project-card").count()>=16
+                    assert len(page.request.get(BASE+"/api/products/custom").json()["projects"])>=16
+                    assert page.locator("#projectSelect").input_value()=="v3-acceptance-initiative"
                     result["functional"].append("new project safely created")
 
                 assert not result["errors"], "Browser JS errors: "+repr(result["errors"])
