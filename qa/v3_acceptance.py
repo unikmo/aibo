@@ -85,6 +85,15 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#overlay.open").wait_for(state="hidden")
                     assert page.request.get(BASE+"/api/ai-providers").json()["switchMode"]=="soni"
                     result["functional"].append("model routing settings persisted")
+                    page.locator("#settingsBtn").click()
+                    page.locator("#modalBody button",has_text="Model IDs").click()
+                    page.locator("#modalBody select[name='provider']").select_option("openrouter")
+                    page.locator("#modalBody input[name='model']").fill("example/model")
+                    page.locator("#modalBody form button[type=submit]").click()
+                    page.locator("#overlay.open").wait_for(state="hidden")
+                    assert page.request.get(BASE+"/api/ai-providers").json()["models"]["openrouter"]=="example/model"
+                    result["functional"].append("provider model selection persisted")
+
                     # Additive project creation must not overwrite existing workspaces.
                     page.locator(".nav[data-screen='projects']").click()
                     page.locator("#projectSearch + button").click()
