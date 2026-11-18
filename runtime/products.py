@@ -5,6 +5,7 @@ Local owner settings cannot grant paid entitlements.
 """
 import json
 import os
+import sys
 from pathlib import Path
 import tempfile
 import re
@@ -12,7 +13,7 @@ import threading
 
 _registry_lock=threading.RLock()
 
-ROOT=Path(__file__).resolve().parent.parent
+ROOT=Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
 REGISTRY=ROOT/'System'/'project-registry.json'
 STATE=Path(os.environ.get('AIBO_STATE_DIR', str(Path.home()/'.aibo-state')))
 MAX_SLOTS=5
