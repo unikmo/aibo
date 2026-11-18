@@ -63,6 +63,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#activityRows .rowitem").count()>0
                     result["functional"].append("activity records reflect real run")
                     page.locator("#settingsBtn").click()
+                    page.locator("#modalBody button",has_text="Cost controls").click()
                     page.locator("#modalBody input[name='maxModelCalls']").fill("7")
                     page.locator("#modalBody form button[type=submit]").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
