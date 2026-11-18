@@ -56,7 +56,8 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#soniPrompt").fill("Review selected project positioning")
                     page.locator("#reviewPrompt").click()
                     page.wait_for_function("document.querySelector('#promptHint').textContent.includes('completed')",timeout=45000)
-                    assert page.locator(".log-item.agent").count()>0
+                    page.locator(".log-item.agent").first.wait_for(state="visible",timeout=15000)
+                    assert "MOCK" in page.locator(".log-item.agent").last.inner_text()
                     result["functional"].append("Soni mock execution persisted and rendered")
                     page.locator(".nav[data-screen='activity']").click()
                     assert page.locator("#activityRows .rowitem").count()>0
