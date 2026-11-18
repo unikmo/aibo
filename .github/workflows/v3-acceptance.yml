@@ -1,0 +1,33 @@
+name: AIBO Control Centre 3 acceptance
+on:
+  pull_request:
+    paths:
+      - 'Control-Centre/v3/**'
+      - 'qa/v3_acceptance.py'
+      - 'runtime/**'
+      - '.github/workflows/v3-acceptance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  functional-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install browser
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Test five areas and real local operations
+        run: python qa/v3_acceptance.py
+      - name: Keep visual and execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aibo-v3-acceptance
+          path: qa/v3-acceptance/
+          retention-days: 14
