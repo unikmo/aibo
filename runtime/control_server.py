@@ -118,7 +118,7 @@ class Handler(SimpleHTTPRequestHandler):
             item=self._infra().status(path.rsplit('/',1)[-1])
             self._json(200 if item else 404,item if item else {'error':'Not found'})
             return
-        if path=='/':self.send_response(302);self.send_header('Location','/standard/');self.end_headers();return
+        if path=='/':self.send_response(302);self.send_header('Location','/v3/');self.end_headers();return
         if path=='/api/oauth/buffer/callback':
             from urllib.parse import parse_qs
             qs=parse_qs(urlsplit(self.path).query)
@@ -414,13 +414,13 @@ def main():
     parser.add_argument('--port',type=int,default=DEFAULT_PORT)
     parser.add_argument('--port-retries',type=int,default=DEFAULT_PORT_RETRIES,help='Number of consecutive local ports to try when the requested port is busy')
     parser.add_argument('--strict-port',action='store_true',help='Fail instead of choosing a fallback local port')
-    parser.add_argument('--open-browser',action='store_true',help='Open the Standard Control Centre after the local server starts')
+    parser.add_argument('--open-browser',action='store_true',help='Open the AIBO Control Centre 3 after the local server starts')
     args=parser.parse_args()
     try:
         srv=create_local_server(args.port,0 if args.strict_port else args.port_retries)
     except (OSError,ValueError) as error:
         parser.error(str(error))
-    url=f'http://127.0.0.1:{srv.server_port}/standard/'
+    url=f'http://127.0.0.1:{srv.server_port}/v3/'
     print(f'AIBO local Control Centre: {url} or /custom/',flush=True)
     if args.open_browser:
         import webbrowser

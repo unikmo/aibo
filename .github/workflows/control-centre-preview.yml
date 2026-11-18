@@ -1,0 +1,35 @@
+name: AIBO Control Centre design preview
+
+on:
+  pull_request:
+    paths:
+      - 'Control-Centre/preview/**'
+      - 'qa/preview_acceptance.py'
+      - '.github/workflows/control-centre-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  design-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install browser tooling
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Capture and test all five screens at desktop and mobile
+        run: python qa/preview_acceptance.py
+      - name: Upload visual review and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aibo-control-centre-design-preview
+          path: qa/control-centre-preview/
+          retention-days: 14

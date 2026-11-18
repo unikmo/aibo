@@ -37,8 +37,11 @@ class CreationTests(unittest.TestCase):
         state=json.loads(products.REGISTRY.read_text())
         self.assertEqual(state['projects'][0],self.original_registry['projects'][0])
         self.assertEqual(state['workspace'],'keep-metadata')
-        self.assertEqual(state['projects'][1]['region'],'Munich')
-        self.assertTrue((self.p/'Projects'/'new-branch'/'PROJECT-KNOWLEDGE.json').exists())
+        self.assertEqual(len(state['projects']),1)  # Built-in registry remains unchanged.
+        local=json.loads((products.STATE/'custom-projects.json').read_text())
+        self.assertEqual(local['projects'][0]['region'],'Munich')
+        self.assertTrue(local['projects'][0]['stateProject'])
+        self.assertTrue((products.STATE/'Projects'/'new-branch'/'PROJECT-KNOWLEDGE.json').exists())
         self.assertEqual(len(products.custom_projects()),2)
     def test_no_existing_folder_replacement(self):
         (self.p/'Projects'/'in-use').mkdir()
@@ -50,11 +53,12 @@ class CreationTests(unittest.TestCase):
     def test_duplicate_rejected(self):
         products.create_custom_project({'name':'New Branch'})
         with self.assertRaises(products.ProductError):products.create_custom_project({'name':'New Branch'})
-        self.assertEqual(len(json.loads(products.REGISTRY.read_text())['projects']),2)
+        self.assertEqual(len(json.loads(products.REGISTRY.read_text())['projects']),1)
+        self.assertEqual(len(json.loads((products.STATE/'custom-projects.json').read_text())['projects']),1)
     def test_unlisted_pack_rejected(self):
         with self.assertRaises(products.ProductError):
             products.create_custom_project({'name':'Trial','industry':'X','corePack':'../../private'})
-        self.assertFalse((self.p/'Projects'/'trial').exists())
+        self.assertFalse((products.STATE/'Projects'/'trial').exists())
     def test_cross_industry_addons_rejected(self):
         (self.p/'Industry-Packs'/'Other').mkdir()
         (self.p/'Industry-Packs'/'Other'/'PACK-ADDON.md').write_text('addon')
