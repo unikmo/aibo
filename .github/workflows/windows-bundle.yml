@@ -36,7 +36,7 @@ jobs:
         run: |
           $app = "dist/AIBO/_internal"
           if (!(Test-Path $app)) { throw "Missing bundled application data directory" }
-          foreach ($item in @("Control-Centre/standard/index.html", "Control-Centre/custom/index.html", "System/project-registry.json", "Industry-Packs/README.md", "runtime/agents.json", "runtime/connectors.json")) {
+          foreach ($item in @("Control-Centre/v3/index.html", "Control-Centre/v3/app.js", "Control-Centre/standard/index.html", "Control-Centre/custom/index.html", "System/project-registry.json", "Industry-Packs/README.md", "runtime/agents.json", "runtime/connectors.json")) {
             if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
           }
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
@@ -49,11 +49,11 @@ jobs:
             for ($i=0; $i -lt 80; $i++) {
               Start-Sleep -Milliseconds 500
               $output = if (Test-Path "$env:RUNNER_TEMP/aibo-stdout.txt") { Get-Content "$env:RUNNER_TEMP/aibo-stdout.txt" -Raw } else { "" }
-              if ($output -match 'http://127\.0\.0\.1:(\d+)/standard/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
+              if ($output -match 'http://127\.0\.0\.1:(\d+)/v3/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
               if ($proc.HasExited) { throw "Executable exited before HTTP startup: $(Get-Content "$env:RUNNER_TEMP/aibo-stderr.txt" -Raw)" }
             }
             if (!$url) { throw "Executable did not announce loopback URL" }
-            foreach ($endpoint in @("/standard/", "/custom/", "/api/products/custom")) {
+            foreach ($endpoint in @("/v3/", "/standard/", "/custom/", "/api/products/custom")) {
               $response = Invoke-WebRequest -Uri ($url + $endpoint) -UseBasicParsing -TimeoutSec 10
               if ($response.StatusCode -ne 200) { throw "HTTP smoke failed for $endpoint" }
             }
