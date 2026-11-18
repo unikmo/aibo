@@ -75,6 +75,24 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#closeModal").click()
                     assert len(page.request.get(BASE+"/api/connections/catalog").json()["requests"])>=1
                     result["functional"].append("connection setup request recorded")
+                    # Provider settings change using the real authenticated-local API surface.
+                    page.locator("#settingsBtn").click()
+                    page.locator("#modalBody button",has_text="AI providers").click()
+                    page.locator("#modalBody select[name='switchMode']").select_option("soni")
+                    page.locator("#modalBody form button[type=submit]").click()
+                    page.locator("#overlay.open").wait_for(state="hidden")
+                    assert page.request.get(BASE+"/api/ai-providers").json()["switchMode"]=="soni"
+                    result["functional"].append("model routing settings persisted")
+                    # Additive project creation must not overwrite existing workspaces.
+                    page.locator(".nav[data-screen='projects']").click()
+                    page.locator("#projectSearch + button").click()
+                    page.locator("#modalBody input[name='name']").fill("V3 Acceptance Initiative")
+                    page.locator("#modalBody input[name='industry']").fill("Internal test")
+                    page.locator("#modalBody form button[type=submit]").click()
+                    page.locator("#overlay.open").wait_for(state="hidden")
+                    assert page.locator("#projectCards .project-card").count()>=16
+                    result["functional"].append("new project safely created")
+
                 assert not result["errors"], "Browser JS errors: "+repr(result["errors"])
                 page.close()
             browser.close()
