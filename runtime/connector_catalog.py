@@ -6,13 +6,14 @@ remains unchanged and is the only source for currently registered HTTP adapters.
 """
 import json
 import os
+import sys
 import re
 import tempfile
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
 STATE = Path(os.environ.get('AIBO_STATE_DIR', str(Path.home()/'.aibo-state')))
 _LOCK = threading.RLock()
 

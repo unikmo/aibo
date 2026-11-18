@@ -11,6 +11,9 @@ python -m PyInstaller --noconfirm --clean --onedir --name AIBO `
   --specpath build `
   --add-data "$root\Control-Centre;Control-Centre" `
   --add-data "$root\System;System" `
+  --add-data "$root\Industry-Packs;Industry-Packs" `
+  --add-data "$root\runtime\agents.json;runtime" `
+  --add-data "$root\runtime\connectors.json;runtime" `
   --collect-all playwright `
   runtime\windows_app.py
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }

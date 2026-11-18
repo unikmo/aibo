@@ -15,7 +15,7 @@ import sys
 import urllib.error
 import urllib.request
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
 REGISTRY = ROOT / 'System' / 'project-registry.json'
 ROSTER = ROOT / 'runtime' / 'agents.json'
 HIGH_RISK = ('send', 'email', 'outreach', 'publish', 'deploy', 'purchase', 'spend', 'invoice', 'contract', 'refund', 'book', 'booking', 'bookings', 'reservation', 'reservations', 'reschedule', 'delete', 'production', 'payment', 'payments', 'charge', 'post to', 'calendar', 'compensation', 'pricing', 'discount')
