@@ -95,6 +95,24 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert len(page.request.get(BASE+"/api/products/custom").json()["projects"])>=16
                     assert page.locator("#projectSelect").input_value()=="v3-acceptance-initiative"
                     result["functional"].append("new project safely created")
+                    # New state-owned projects must work through Soni, not merely appear in a card.
+                    new_id="v3-acceptance-initiative"
+                    setup=page.request.post(BASE+"/api/setup/custom/"+new_id,data={
+                        "fields":{"name":"V3 Acceptance Initiative","region":"Germany",
+                                  "goal":"Verify new project execution","audience":"Test owner",
+                                  "successMeasure":"Verified local run"},
+                        "step":2,"complete":True
+                    },headers={"Content-Type":"application/json"})
+                    assert setup.ok,setup.text()
+                    run=page.request.post(BASE+"/api/work/custom/"+new_id,data={
+                        "task":"Check new project routing","provider":"mock","consent":False
+                    },headers={"Content-Type":"application/json"})
+                    assert run.ok,run.text()
+                    detail=page.request.get(BASE+"/api/run/"+run.json()["id"])
+                    assert detail.ok and detail.json()["status"]=="completed"
+                    assert "MOCK" in detail.json()["result"]["soni"]
+                    result["functional"].append("newly created project routes through Soni")
+
 
                 assert not result["errors"], "Browser JS errors: "+repr(result["errors"])
                 page.close()
