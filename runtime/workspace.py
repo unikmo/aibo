@@ -12,7 +12,7 @@ import threading
 import uuid
 
 try:
-    from . import products, aibo, costs, attachments, ai_providers
+    from . import products, aibo, costs, attachments, ai_providers, source_onboarding, source_onboarding
 except ImportError:
     import products, aibo, costs, attachments, ai_providers
 
@@ -41,49 +41,62 @@ def _project(project_id):
     except aibo.AiboError as exc:
         raise products.ProductError(str(exc)) from exc
 
+DRAFTS = products.STATE/'source-previews'
 def source_inventory(project_id):
-    """Inspect only bounded existing project-owned local files, without remote access."""
-    project = _project(project_id)
-    folder = aibo._project_folder(project)
-    filenames = (
-        '01-Business-Foundation/01-Business-Profile.md',
-        '01-Business-Foundation/README.md',
-        'AIBO-PROJECT-OVERVIEW.md',
-        'README.md',
-    )
-    sources = []
-    suggestions = {'name': project['name']}
-    if project.get('region'):
-        suggestions['region'] = project['region']
-    labels = {
-        'business goal': 'goal', 'goal': 'goal',
-        'target audience': 'audience', 'audience': 'audience',
-        'measure of success': 'successMeasure',
-        'success measure': 'successMeasure', 'website': 'website',
-    }
-    for rel in filenames:
-        file = folder / rel
-        if not file.is_file() or file.stat().st_size > 500000:
+    """Inspect bounded known project files; no remote fetch without user action."""
+    project=_project(project_id)
+    folder=aibo._project_folder(project)
+    sources=[]
+    for rel in ('01-Business-Foundation/01-Business-Profile.md',
+                '01-Business-Foundation/README.md',
+                'AIBO-PROJECT-OVERVIEW.md','README.md'):
+        file=(folder/rel).resolve()
+        if not file.is_relative_to(folder.resolve()) or not file.is_file() or file.stat().st_size>500000:
             continue
-        contents = file.read_text(encoding='utf-8-sig', errors='replace')[:10000]
-        sources.append({
-            'kind': 'local-file', 'path': rel, 'excerpt': contents[:750],
-            'status': 'read', 'complete': file.stat().st_size <= 10000,
-        })
-        for line in contents.splitlines():
-            cleaned = re.sub(r'^\s*(?:#+\s*)?\*\*', '', line).replace('**', '').strip()
-            match = re.match(r'^([^:]{2,35}):\s*(.{5,500})$', cleaned)
-            if not match:
-                continue
-            key = labels.get(match.group(1).strip().lower())
-            if key and key not in suggestions:
-                suggestions[key] = match.group(2).strip()
-    return {
-        'project': project_id, 'sources': sources, 'suggestions': suggestions,
-        'reviewRequired': True,
-        'note': 'Only local files were inspected. External websites, repos, Drive and uploads were not fetched.',
-    }
+        try:
+            source=source_onboarding.inspect_document(rel,file.read_bytes()[:source_onboarding.MAX_EXTRACT])
+            source['reference']='Project file · '+rel
+            for item in source['evidence']:item['source']=source['reference']
+            sources.append(source)
+        except source_onboarding.SourceError:
+            continue
+    return {'project':project_id,'sources':sources,'localOnly':True,
+            'note':'Only existing local project files were inspected. No external connections used.'}
 
+def inspect_sources(project_id,payload):
+    """Explicit owner-triggered discovery, with per-source errors and no model calls."""
+    _project(project_id)
+    if not isinstance(payload,dict) or set(payload)-{'website','repository','drive','attachments'}:
+        raise products.ProductError('Invalid source inspection payload')
+    sources=source_inventory(project_id)['sources']
+    failures=[]
+    references=[]
+    for kind in ('website','repository','drive'):
+        url=payload.get(kind,'')
+        if not isinstance(url,str) or len(url)>1400:
+            raise products.ProductError('Invalid '+kind+' URL')
+        if not url.strip():continue
+        references.append({'kind':kind,'url':url.strip()})
+        try:
+            source=source_onboarding.inspect_remote(kind,url.strip())
+            sources.append(source)
+        except source_onboarding.SourceError as exc:
+            failures.append({'kind':kind,'source':url.strip(),'reason':str(exc)[:260]})
+    ids=payload.get('attachments',[])
+    for meta,file in attachments.load(project_id,ids):
+        try:
+            sources.append(source_onboarding.inspect_document(meta['name'],file.read_bytes()))
+            references.append({'kind':'uploaded-document','name':meta['name'],'sha256':meta['sha256']})
+        except source_onboarding.SourceError as exc:
+            failures.append({'kind':'uploaded-document','source':meta['name'],'reason':str(exc)[:260]})
+    summary=source_onboarding.consolidate(sources)
+    result={'project':project_id,'sources':[{'reference':x['reference'],'excerpt':x['excerpt'],'read':True}
+                                            for x in sources],
+            'suggestions':summary['suggestions'],'conflicts':summary['conflicts'],
+            'failures':failures,'references':references,
+            'reviewRequired':True,'saved':False}
+    products.write_json(DRAFTS/(project_id+'.json'),result)
+    return result
 
 def _path(project_id):
     _project(project_id)
@@ -98,7 +111,8 @@ def setup_state(project_id):
     fields = {**initial, **data.get('fields', {})}
     completed = bool(data.get('complete', False))
     return {'project': project_id, 'fields': fields, 'step': data.get('step', 0),
-            'complete': completed, 'savedAt': data.get('savedAt'), 'reviewed': bool(data.get('reviewed', False))}
+            'complete': completed, 'savedAt': data.get('savedAt'), 'reviewed': bool(data.get('reviewed', False)),
+            'sourceEvidence': data.get('sourceEvidence', [])}
 
 def save_setup(project_id, payload):
     _project(project_id)
@@ -110,6 +124,8 @@ def save_setup(project_id, payload):
     step = payload.get('step', 0)
     if type(step) is not int or not 0 <= step <= 2:
         raise products.ProductError('Invalid setup step')
+    if 'reviewSources' in payload and type(payload['reviewSources']) is not bool:
+        raise products.ProductError('Invalid source review flag')
     finish = payload.get('complete') is True
     if 'complete' in payload and type(payload['complete']) is not bool:
         raise products.ProductError('Invalid completion flag')
@@ -120,9 +136,17 @@ def save_setup(project_id, payload):
                 raise products.ProductError('Invalid ' + key)
             state['fields'][key] = value.strip()
         if finish:
-            missing = [k for k in ('name', 'region', 'goal', 'audience', 'successMeasure') if not state['fields'].get(k)]
-            if missing:
-                raise products.ProductError('Complete these fields first: ' + ', '.join(missing))
+            draft = products.read_json(DRAFTS/(project_id+'.json'),{})
+            has_sources = bool(draft.get('sources')) and payload.get('reviewSources') is True
+            if not state['fields'].get('name'):
+                raise products.ProductError('Project name required')
+            if not has_sources and not state['fields'].get('goal'):
+                raise products.ProductError('Provide a business goal or review existing project sources first')
+            if has_sources:
+                state['sourceEvidence'] = [
+                    {'reference':src['reference'],'excerpt':src['excerpt'][:650]}
+                    for src in draft['sources'][:12]
+                ]
             state['complete'] = True
             state['reviewed'] = True
         else:
@@ -132,7 +156,7 @@ def save_setup(project_id, payload):
                 state['reviewed'] = False
         state['step'] = step
         state['savedAt'] = now()
-        products.write_json(_path(project_id), {k: state[k] for k in ('fields','step','complete','reviewed','savedAt')})
+        products.write_json(_path(project_id), {k: state.get(k) for k in ('fields','step','complete','reviewed','savedAt','sourceEvidence')})
         return setup_state(project_id)
 
 def _run_file(run_id):
