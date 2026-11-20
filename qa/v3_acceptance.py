@@ -76,6 +76,13 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".nav[data-screen='projects']").click()
                     page.locator("#projectSelect").select_option(index=1)
                     page.locator("#projectCards .project-summary button",has_text="Import sources").click()
+                    page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible",timeout=15000)
+                    assert page.locator("#modalBody input[type=file]").is_visible()
+                    assert page.locator("#modalBody details.source-extra").evaluate("(x) => !x.open")
+                    assert page.locator("#modalBody input[name='repository']").is_hidden()
+                    assert page.locator("#modalBody input[name='drive']").is_hidden()
+                    assert page.locator("#modalBody input[name='website']").is_hidden()
+                    assert page.locator("#modalBody input[name='sourceLink']").count()==1
                     page.locator("#modalBody form button",has_text="Continue").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
                     page.locator("#modalBody details.source-extra summary").click()

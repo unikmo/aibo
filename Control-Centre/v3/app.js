@@ -83,21 +83,22 @@ async function openProject(p){
   try{
     const [state,local]=await Promise.all([api("/api/setup/custom/"+encodeURIComponent(p.id)),api("/api/setup/custom/"+encodeURIComponent(p.id)+"/sources").catch(()=>({suggestions:{}}))]);
     const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
-    const intro=E("p","visually-hidden","Import existing project information. Review extracted facts before saving.");
-    const form=E("form","modal-form");
-    const inputs=[
-      ["website","Website URL",state.fields?.website||local.suggestions?.website?.value||""],
-      ["repository","GitHub repository",""],
-      ["drive","Google Drive link",""]
-    ];
-    for(const [key,title,value] of inputs){
-      const label=E("label","",title),input=E("input","field");input.name=key;input.type="url";
-      input.placeholder=key==="repository"?"https://github.com/owner/repository":key==="drive"?"https://docs.google.com/document/d/…":"https://example.com";
-      input.value=value;label.append(input);form.append(label);
-    }
-    const fileLabel=E("label","","Upload documents");
+    const form=E("form","modal-form compact-ingest");
+    const linkLabel=E("label","","Website, GitHub or Google Drive link");
+    const link=E("input","field");link.name="sourceLink";link.type="url";link.autocomplete="url";
+    link.placeholder="Paste a link";
+    link.value=state.fields?.website||local.suggestions?.website?.value||"";
+    linkLabel.append(link);form.append(linkLabel);
+    const fileLabel=E("label","upload-source-label","Or add documents");
     const files=E("input");files.type="file";files.multiple=true;
     files.accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json";fileLabel.append(files);form.append(fileLabel);
+    const more=E("details","source-extra"),moreTitle=E("summary","","More sources");
+    more.append(moreTitle);
+    for(const [key,title] of [["website","Additional website"],["repository","Additional GitHub repository"],["drive","Additional Google Drive link"]]){
+      const label=E("label","",title),input=E("input","field");input.name=key;input.type="url";
+      input.placeholder="Optional additional link";label.append(input);more.append(label);
+    }
+    form.append(more);
     const status=E("p","notice","");
     status.setAttribute("role","status");form.append(status);
     const actions=E("div","modal-controls");
@@ -116,9 +117,9 @@ async function openProject(p){
           status.textContent="Authorize read-only Drive access in the new browser tab, then select Inspect sources.";
         }catch(error){status.className="notice error";status.textContent=error.message;}
       };
-      actions.insertBefore(connect,cancel);
+      more.append(connect);
     }
-    form.append(actions);root.append(intro,form);
+    form.append(actions);root.append(form);
     $("overlay").classList.add("open");
     form.onsubmit=async e=>{
       e.preventDefault();scan.disabled=true;status.textContent="Reading sources…";
@@ -134,8 +135,15 @@ async function openProject(p){
           ids.push(result.id);
         }
         const data=Object.fromEntries(new FormData(form).entries());
+        const main=(data.sourceLink||"").trim();
+        const hostname=main?new URL(main).hostname.toLowerCase():"";
+        const kind=hostname==="github.com"?"repository":
+          ["docs.google.com","drive.google.com"].includes(hostname)?"drive":"website";
+        if(main&&data[kind]&&data[kind]!==main)throw Error("Use the More sources section to avoid two links of the same type");
+        const sources={website:data.website||"",repository:data.repository||"",drive:data.drive||""};
+        if(main)sources[kind]=main;
         const report=await api("/api/setup/custom/"+encodeURIComponent(p.id)+"/inspect",
-          json("POST",{website:data.website||"",repository:data.repository||"",drive:data.drive||"",attachments:ids}));
+          json("POST",{...sources,attachments:ids}));
         renderSourceReview(p,state,report);
       }catch(error){status.className="notice error";status.textContent=error.message;scan.disabled=false;}
     };
@@ -171,9 +179,12 @@ function renderSourceReview(project,state,report){
   const intro=E("div","source-review");
   intro.append(E("strong","",sources.length+" readable source"+(sources.length===1?"":"s")+" found"));
   intro.append(E("p","",missingSource||"Review the extracted facts."));
-  const list=E("div","source-list");
-  for(const entry of sources.slice(0,8))list.append(E("div","",entry.reference));
-  if(sources.length)intro.append(list);
+  if(sources.length){
+    const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");
+    list.append(heading);
+    for(const entry of sources.slice(0,8))list.append(E("div","source-list-item",entry.reference));
+    intro.append(list);
+  }
   for(const [key,alternatives] of Object.entries(conflicts)){
     if(alternatives?.length)intro.append(E("p","source-warning","Conflicting "+key+": "+alternatives.map(x=>x.source).join(", ")+". Please verify."));
   }
