@@ -40,12 +40,29 @@ with tempfile.TemporaryDirectory() as state_dir:
                     result["screens"].append(f"{screen}-{device}")
                 assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),"Horizontal overflow on "+device
                 page.locator('.nav[data-screen="soni"]').click()
+                # An unused Soni workspace must not display an empty dark history
+                # occupying most of the screen. Only the composer stays dark.
+                assert page.locator("#conversation").evaluate("(el)=>el.children.length===0")
+                empty_chat=page.locator("#screen-soni .chat").evaluate("""el => {
+                    const r=el.getBoundingClientRect();
+                    const wrap=el.parentElement.getBoundingClientRect();
+                    const composer=document.querySelector('#soniPrompt').getBoundingClientRect();
+                    return {height:r.height,top:r.top,wrapHeight:wrap.height,
+                            composerBottom:composer.bottom,viewport:innerHeight,
+                            background:getComputedStyle(el).backgroundColor};
+                }""")
+                assert empty_chat["height"]<230,empty_chat
+                assert empty_chat["wrapHeight"]>empty_chat["height"]+60,empty_chat
+                assert empty_chat["composerBottom"]<empty_chat["viewport"]-10,empty_chat
+                assert empty_chat["background"]=="rgba(0, 0, 0, 0)",empty_chat
+                result["functional"].append("Empty Soni history collapses; composer remains bottom-anchored")
                 colors=page.locator("#conversation").evaluate("""el => {
                     const css=getComputedStyle(el);
                     const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
                     return [css.backgroundColor,css.color,agent.backgroundColor];
                 }""")
-                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgb(36, 41, 39)'],colors
+                # Empty chat intentionally has no dark history container.
+                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgba(0, 0, 0, 0)'],colors
                 assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible"
                 assert len(page.locator("#soniProvider option[value=auto]").inner_text())<=27,"Auto provider label should be compact on mobile"
                 def check_composer():

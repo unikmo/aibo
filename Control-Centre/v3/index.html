@@ -211,6 +211,36 @@
  #screen-soni .conversation{padding:13px 12px 15px}
  #screen-soni .composer-dock{padding:10px 11px max(12px,env(safe-area-inset-bottom))}
 }
+
+/* Empty Soni conversations: never reserve a full-height dark message panel.
+   Keep the composer pinned to the bottom of the viewport; history uses
+   the scrollable dark panel only after messages actually exist. */
+#screen-soni .chat-wrap:has(#conversation:empty){
+  align-items:flex-end!important;
+}
+#screen-soni .chat-wrap:has(#conversation:empty) .chat{
+  flex:0 0 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  width:100%;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:visible!important;
+}
+#screen-soni #conversation:empty{
+  display:none!important;
+}
+#screen-soni .chat-wrap:has(#conversation:empty) .composer-dock{
+  border:1px solid #414944!important;
+  border-radius:17px;
+  padding:14px 18px max(14px,env(safe-area-inset-bottom));
+}
+@media(max-width:700px){
+ #screen-soni .chat-wrap:has(#conversation:empty) .composer-dock{
+   padding:11px 12px max(11px,env(safe-area-inset-bottom));
+ }
+}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
