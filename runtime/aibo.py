@@ -153,6 +153,16 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
         cmd = ['claude', '-p', '--permission-mode', 'plan', '--output-format', 'text']
     else:
         raise AiboError('Unsupported provider: ' + provider)
+    # Resolve npm's Windows .cmd launchers before passing the command to
+    # subprocess; PowerShell can find .ps1 shims that Python cannot execute.
+    try:
+        from . import ai_providers
+    except ImportError:
+        import ai_providers
+    cli = ai_providers.local_cli_path(provider)
+    if not cli:
+        raise AiboError('Local CLI not installed or not on PATH: ' + cmd[0])
+    cmd[0] = cli
     try:
         p = subprocess.run(cmd, input=system + '\n\nTASK:\n' + user, cwd=ROOT, text=True,
                            capture_output=True, timeout=timeout, check=False)
