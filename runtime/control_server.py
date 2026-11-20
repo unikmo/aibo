@@ -136,6 +136,12 @@ class Handler(SimpleHTTPRequestHandler):
             try:self._json(200,relationship_work.overview(path.split('/')[-1]))
             except products.ProductError as e:self._json(404,{'error':str(e)})
             return
+        if path=='/api/ai-providers/models':
+            from urllib.parse import parse_qs
+            provider=parse_qs(urlsplit(self.path).query).get('provider',[''])[0]
+            try:self._json(200,ai_providers.available_models(provider))
+            except products.ProductError as e:self._json(400,{'error':str(e)})
+            return
         if path=='/api/ai-providers':self._json(200,ai_providers.public());return
         if path=='/api/qa/capabilities':self._json(200,browser_qa.capabilities());return
         if path=='/api/readiness':
