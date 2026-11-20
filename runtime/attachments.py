@@ -11,7 +11,7 @@ try:
 except ImportError:
     import products, aibo
 
-EXTENSIONS={'.csv','.xlsx','.xls','.txt','.md','.json','.pdf'}
+EXTENSIONS={'.csv','.xlsx','.txt','.md','.json','.pdf','.docx','.pptx'}
 MAX_BYTES=12*1024*1024
 ROOT=products.STATE/'attachments'
 
@@ -66,10 +66,10 @@ def context(pid,ids):
             excerpt=p.read_bytes()[:min(7000,budget)].decode('utf-8-sig',errors='replace')
             parts.append('FILE EXCERPT (partial, NOT the full database):\n'+excerpt)
             budget-=len(excerpt)
-        elif p.suffix.lower()=='.xlsx':
-            parts.append('XLSX workbook stored locally, no sheet content extracted for API provider. Use local file-capable tools for full inspection.')
+        elif p.suffix.lower() in ('.docx','.xlsx','.pptx'):
+            parts.append('Office document stored locally; its content is not automatically sent to a model. Source preview extracts text on owner request.')
         elif p.suffix.lower()=='.pdf':
-            parts.append('PDF stored locally, no page text extracted for API provider. Use local file-capable tools for full inspection.')
+            parts.append('PDF stored locally; its content is not automatically sent to a model. Source preview requires a PDF extractor.')
         else:
             parts.append('Binary reference stored locally; full content not included in AI request.')
     parts.append('IMPORTANT: Do not claim full-file inspection from excerpts. No database changes were made by attachment upload.')
