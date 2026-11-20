@@ -137,7 +137,13 @@ def _unpack_text(data,ext):
                 for name in names:
                     if not expected(name):continue
                     if bundle.getinfo(name).file_size>1500000:continue
-                    element=ET.fromstring(bundle.read(name))
+                    raw_xml=bundle.read(name)
+                    # Office files are untrusted. Reject entity/DTD declarations before
+                    # parsing and cap expanded ZIP member size above. No external
+                    # entity or DTD processing is permitted in project imports.
+                    if b'<!DOCTYPE' in raw_xml.upper() or b'<!ENTITY' in raw_xml.upper():
+                        raise SourceError('Document XML entity declarations are not permitted')
+                    element=ET.fromstring(raw_xml)  # nosec B314 - size bounded; DTD and ENTITY explicitly rejected
                     if ext==".docx":
                         paras=[node for node in element.iter() if node.tag.endswith("}p")]
                         blocks=["".join((child.text or "") for child in p.iter() if child.tag.endswith("}t"))
