@@ -152,7 +152,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                         recent=portfolio.get("recentWork",[])[:3]
                         raise AssertionError(f"Soni UI did not reach a terminal state. Hint={hint!r}; modal={modal!r}; recentRuns={recent!r}; browserErrors={result['errors']!r}") from exc
                     hint=page.locator("#promptHint").inner_text()
-                    if "completed" not in hint:
+                    if "completed" not in hint.lower():
                         modal=page.locator("#modalBody").inner_text() if page.locator("#overlay.open").count() else ""
                         recent=page.request.get(BASE+"/api/portfolio/custom").json().get("recentWork",[])[:3]
                         raise AssertionError(f"Soni failed. Hint={hint!r}; modal={modal!r}; recentRuns={recent!r}")
@@ -254,6 +254,17 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert setup.ok,setup.text()
                     assert setup.json()["sourceEvidence"],"Owner-reviewed uploaded evidence not retained"
                     result["functional"].append("uploaded document ingested into project context before owner review")
+                    # Isolation: naming a different registered project while another is
+                    # selected must be rejected before any provider call or run is queued.
+                    mismatch=page.request.post(BASE+"/api/work/custom/"+new_id,data={
+                        "task":"Review Politangle's development status using its sources",
+                        "provider":"auto","consent":False
+                    },headers={"Content-Type":"application/json"})
+                    assert mismatch.status==400,mismatch.text()
+                    assert "Project mismatch" in mismatch.text(),mismatch.text()
+                    previous=page.request.get(BASE+"/api/runs/custom/"+new_id).json()
+                    assert not previous.get("runs"),"Cross-project request unexpectedly created a run"
+                    result["functional"].append("cross-project request denied before AI execution")
                     run=page.request.post(BASE+"/api/work/custom/"+new_id,data={
                         "task":"Check new project routing","provider":"mock","consent":False
                     },headers={"Content-Type":"application/json"})

@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -223,7 +224,7 @@ def select_agents(goal):
     return (selected or ['research'])[:5]
 
 
-def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=120, output_token_limit=1800, max_model_calls=8, agent_routes=None):
+def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=120, output_token_limit=1800, max_model_calls=8, agent_routes=None, deadline=None):
     project = project_info(project_id)
     roster = load_json(ROSTER)
     index = {a['id']:a for a in roster['specialists']}
@@ -241,7 +242,10 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
         if name == 'quality':
             user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + json.dumps(outputs, ensure_ascii=False)[:18000]
         selected_provider,selected_model=(agent_routes.get(name,(provider,model)) if agent_routes else (provider,model))
-        outputs[name] = provider_call(selected_provider, system, user, selected_model, timeout, output_token_limit)
+        remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
+        if remaining<1:
+            raise AiboError('Soni task deadline reached; no completed result can be reported')
+        outputs[name] = provider_call(selected_provider, system, user, selected_model, remaining, output_token_limit)
     soni_system = ('You are Soni, a concise executive-level business partner. Answer the actual question directly in plain language. '
                    'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
                    'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
@@ -253,7 +257,10 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
                    'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
     soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
-    synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, timeout, output_token_limit)
+    remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
+    if remaining<1:
+        raise AiboError('Soni task deadline reached before synthesis')
+    synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, remaining, output_token_limit)
     return {'project':project_id, 'provider':provider, 'agents':requested, 'classification':project.get('classification'),
             'actionGate':classify_action(goal), 'decisionPackage':approval_record(project_id, goal) if classify_action(goal)=='approval-required' else None,
             'specialistResults':outputs, 'soni':synthesis, 'providerRouting':{k:v[0] for k,v in (agent_routes or {}).items()}, 'externalActionsExecuted':False,
