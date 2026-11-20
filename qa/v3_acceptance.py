@@ -89,6 +89,24 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".log-item.agent").first.wait_for(state="visible",timeout=15000)
                     assert "MOCK" in page.locator(".log-item.agent").last.inner_text()
                     result["functional"].append("Soni mock execution persisted and rendered")
+                    # Regression: legacy Markdown, encoding errors and HTML must not appear as raw chat text.
+                    run_id=sent.value.json()["id"]
+                    run_file=Path(state_dir)/"runs"/(run_id+".json")
+                    original=json.loads(run_file.read_text(encoding="utf-8"))
+                    fixture="**Executive status**â€”<div>Registered project</div>\\n- Pending review"
+                    original["result"]["soni"]=fixture
+                    run_file.write_text(json.dumps(original,ensure_ascii=False),encoding="utf-8")
+                    page.locator(".nav[data-screen='projects']").click()
+                    page.locator(".nav[data-screen='soni']").click()
+                    page.locator("#projectSelect").select_option(original["project"])
+                    page.locator(".log-item.agent").last.wait_for(state="visible")
+                    displayed=page.locator(".log-item.agent").last.locator(".message-body").inner_text()
+                    assert "**" not in displayed and "â€”" not in displayed and "<div>" not in displayed,displayed
+                    assert "Executive status—" in displayed,displayed
+                    assert page.locator(".log-item.agent").last.locator(".detail-body").is_hidden()
+                    assert page.locator("#conversation").evaluate("(x) => x.getBoundingClientRect().bottom <= document.querySelector('#soniPrompt').getBoundingClientRect().top + 1"),"Conversation should sit above composer"
+                    result["functional"].append("Markdown, HTML and mojibake normalized in bottom-anchored Soni chat")
+
                     page.locator(".nav[data-screen='activity']").click()
                     page.wait_for_function("document.querySelectorAll('#activityRows .rowitem').length > 0",timeout=15000)
                     assert any(x["status"]=="completed" for x in page.request.get(BASE+"/api/portfolio/custom").json()["recentWork"])
