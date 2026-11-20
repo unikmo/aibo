@@ -125,8 +125,15 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#modalBody input[name='industry']").fill("Internal test")
                     page.locator("#modalBody form button[type=submit]").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
-                    assert len(page.request.get(BASE+"/api/products/custom").json()["projects"])>=16
-                    assert page.locator("#projectSelect").input_value()=="v3-acceptance-initiative"
+                    projects_response=page.request.get(BASE+"/api/products/custom").json()
+                    assert len(projects_response["projects"])>=16
+                    assert any(p["id"]=="v3-acceptance-initiative" for p in projects_response["projects"]), "New project missing from backend"
+                    try:
+                        page.wait_for_function("document.querySelector('#projectSelect').value === 'v3-acceptance-initiative'",timeout=15000)
+                    except Exception as exc:
+                        actual=page.locator("#projectSelect").input_value()
+                        options=page.locator("#projectSelect option").evaluate_all("(options) => options.map(o => o.value)")
+                        raise AssertionError(f"Created project exists in backend but selector did not synchronize: selected={actual!r}, options={options!r}; browserErrors={result['errors']!r}") from exc
                     result["functional"].append("new project safely created")
                     # New state-owned projects must work through Soni, not merely appear in a card.
                     new_id="v3-acceptance-initiative"
