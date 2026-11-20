@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import re
 import threading
+import time
 import uuid
 
 try:
@@ -29,6 +30,7 @@ ALLOWED = {'name': 80, 'region': 100, 'goal': 500, 'website': 200,
 RUNS_DIR = products.STATE / 'runs'
 CURRENT = {}
 SESSION_ID = str(uuid.uuid4())
+MAX_RUN_SECONDS = 480  # Hard wall-clock timeout for Soni execution.
 
 def now():
     return dt.datetime.now(dt.timezone.utc).isoformat()
@@ -194,6 +196,33 @@ def _run_file(run_id):
         raise products.ProductError('Invalid run ID')
     return RUNS_DIR/(run_id+'.json')
 
+def _cross_project_names(project_id, instruction):
+    """Reject explicit references to other managed projects before any model call."""
+    matches=[]
+    for project in products.project_records():
+        if project['id']==project_id:
+            continue
+        name=project.get('name','').strip()
+        if len(name)>=4 and re.search(r'(?<!\w)'+re.escape(name)+r'(?!\w)',instruction,re.IGNORECASE):
+            matches.append(name)
+    return sorted(set(matches),key=str.casefold)
+
+
+def _expire_run(run_id):
+    """Mark a stuck run terminal and clear its slot; do not claim completion."""
+    with LOCK:
+        saved=products.read_json(_run_file(run_id),{})
+        if saved.get('sessionId')!=SESSION_ID or saved.get('status') not in ('queued','running'):
+            return False
+        saved['status']='failed'
+        saved['error']='Soni exceeded the 8-minute task limit. No result was confirmed. Try a smaller request or select another available CLI provider.'
+        saved['updatedAt']=now()
+        products.write_json(_run_file(run_id),saved)
+        if CURRENT.get(saved.get('project'))==run_id:
+            CURRENT.pop(saved['project'],None)
+        return True
+
+
 def run_status(run_id):
     item = products.read_json(_run_file(run_id), None)
     if not item:
@@ -204,6 +233,14 @@ def run_status(run_id):
         item['error']='The local server restarted before this run finished. You can start a new run.'
         item['updatedAt']=now()
         products.write_json(_run_file(item['id']),item)
+    if item.get('status') in ('queued','running'):
+        try:
+            age=(dt.datetime.now(dt.timezone.utc)-dt.datetime.fromisoformat(item['createdAt'])).total_seconds()
+        except (KeyError,TypeError,ValueError):
+            age=MAX_RUN_SECONDS+1
+        if age>=MAX_RUN_SECONDS:
+            _expire_run(run_id)
+            return products.read_json(_run_file(run_id),item)
     return item
 
 def _save_run(item):
@@ -224,6 +261,11 @@ def start_run(project_id, payload):
         raise products.ProductError('Unsupported AI provider')
     if requires_api_consent(provider) and payload.get('consent') is not True:
         raise products.ProductError('API processing requires explicit consent')
+    other_projects=_cross_project_names(project_id,instruction)
+    if other_projects:
+        active=_project(project_id)['name']
+        raise products.ProductError('Project mismatch: '+', '.join(other_projects[:3])+
+            ' mentioned while '+active+' is selected. Select the intended project first. No AI request was started.')
     attachment_ids=payload.get('attachments',[])
     attachments.load(project_id,attachment_ids)
     with LOCK:
@@ -241,6 +283,9 @@ def start_run(project_id, payload):
     if provider == 'mock':
         _worker(item['id'])
     else:
+        watchdog=threading.Timer(MAX_RUN_SECONDS,_expire_run,args=(item['id'],))
+        watchdog.daemon=True
+        watchdog.start()
         threading.Thread(target=_worker,args=(item['id'],),daemon=True,name='aibo-soni').start()
     return {'id':item['id'],'project':project_id,'status':'queued'}
 
@@ -271,10 +316,13 @@ def _verified_records_answer(project_id, task):
     return None
 
 def _worker(run_id):
-    with LOCK:
-        item=run_status(run_id)
-        item['status']='running';item['updatedAt']=now();_save_run(item)
+    item={'project':None,'updatedAt':None}
     try:
+        with LOCK:
+            item=run_status(run_id)
+            if item.get('status') not in ('queued','running'):
+                return
+            item['status']='running';item['updatedAt']=now();_save_run(item)
         # Narrow factual record requests must not be answered by speculative AI.
         local_answer=_verified_records_answer(item['project'],item['task'])
         if local_answer is not None:
@@ -287,6 +335,7 @@ def _worker(run_id):
             return
         # No publishing, sending, buying, deploying, or other external business operations.
         limits=costs.current()
+        deadline=time.monotonic()+MAX_RUN_SECONDS-5
         attachment_context=attachments.context(item['project'],item.get('attachments',[]))
         enriched=item['task'] + ('\n\n' + attachment_context if attachment_context else '')
         selected,model=(item['provider'],None) if item['provider']=='mock' else ai_providers.route(item['provider'])
@@ -300,7 +349,7 @@ def _worker(run_id):
         _save_run(item)
         try:
             result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
-                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline)
         except aibo.AiboError as original:
             # Only an automatically routed CLI task may switch providers.
             # Never retry explicit/manual selections or use paid API endpoints.
@@ -319,7 +368,7 @@ def _worker(run_id):
             # Use one CLI for the entire retry; overrides cannot route to APIs.
             result=aibo.execute(item['project'],enriched,provider=fallback,
                                 model=config['models'].get(fallback) or None,agent_routes=None,
-                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline)
             item['providerAttempts'][-1]['status']='completed'
             item['effectiveProvider']=fallback
         else:
@@ -338,10 +387,15 @@ def _worker(run_id):
             item['error']='Execution failed. Check connection settings or local diagnostics.'
         item['status']='failed'
     finally:
-        item['updatedAt']=now()
         with LOCK:
-            _save_run(item)
-            if CURRENT.get(item['project'])==run_id:CURRENT.pop(item['project'],None)
+            persisted=products.read_json(_run_file(run_id),{})
+            if persisted.get('status') in ('failed','interrupted') and persisted.get('updatedAt')!=item.get('updatedAt'):
+                # Never overwrite a watchdog timeout or interrupted run with a late model response.
+                if CURRENT.get(persisted.get('project'))==run_id:CURRENT.pop(persisted['project'],None)
+            elif item.get('project'):
+                item['updatedAt']=now()
+                _save_run(item)
+                if CURRENT.get(item['project'])==run_id:CURRENT.pop(item['project'],None)
 
 def recent_runs(project_id):
     _project(project_id)
