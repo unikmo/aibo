@@ -15,42 +15,43 @@ function filteredProjects(){return S.selected?S.projects.filter(p=>p.id===S.sele
 function show(name){if(!["home","soni","projects","activity","connections"].includes(name))return;document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+name));document.querySelectorAll(".nav").forEach(x=>{const yes=x.dataset.screen===name;x.classList.toggle("active",yes);if(yes)x.setAttribute("aria-current","page");else x.removeAttribute("aria-current")});if(location.hash.slice(1)!==name)location.hash=name;document.title="AIBO — "+name[0].toUpperCase()+name.slice(1);if(name==="soni")renderConversation();if(name==="activity")refresh().catch(e=>console.warn('Activity refresh:',e.message));window.scrollTo(0,0)}
 document.addEventListener("click",e=>{const r=e.target.closest("[data-go],[data-screen]");if(r){e.preventDefault();show(r.dataset.go||r.dataset.screen)}});
 function renderRows(id,items,empty){const node=$(id);node.replaceChildren();if(!items.length){node.className="empty";node.textContent=empty;return;}node.className="";for(const item of items){const row=E("div","rowitem"),left=E("div");left.append(E("strong","",item.name),E("small","",item.info));row.append(left,E("span","pill"+(["failed","interrupted","Attention"].includes(item.status)?" gold":""),item.status||"Recorded"));if(item.click){row.style.cursor="pointer";row.tabIndex=0;row.setAttribute("role","button");row.onclick=item.click;row.onkeydown=e=>{if(e.key==="Enter")item.click()}}node.append(row)}}
-function renderHome(){const p=filteredProjects(),num=k=>p.reduce((n,x)=>n+Number(x[k]||0),0),activity=S.activity.filter(x=>!S.selected||x.project===S.selected);$("countProjects").textContent=p.length;$("countActive").textContent=num("tasksOpen");$("countNeeds").textContent=num("tasksFailed");$("countDone").textContent=num("tasksCompleted");renderRows("homeNeeds",p.filter(x=>x.tasksFailed||x.tasksOpen||!x.setupComplete).slice(0,5).map(x=>({name:x.name,info:x.tasksFailed?"Latest work needs review":x.tasksOpen?"Work running":"Complete project setup",status:x.tasksFailed?"Attention":"Review",click:()=>openProject(x)})),"No open project attention items recorded.");renderRows("homeRecent",activity.slice(0,5).map(x=>({name:projectName(x.project),info:(x.task||"Task").slice(0,130),status:x.status,click:()=>runDetail(x.id)})),"No work recorded.");renderRows("homeHealth",p.slice(0,6).map(x=>({name:x.name,info:x.readiness||"No readiness assessment",status:x.tasksFailed?"Attention":"Recorded"})),"No portfolio records available.")}
+function renderHome(){const p=filteredProjects(),num=k=>p.reduce((n,x)=>n+Number(x[k]||0),0),activity=S.activity.filter(x=>!S.selected||x.project===S.selected);$("countProjects").textContent=p.length;$("countActive").textContent=num("tasksOpen");$("countNeeds").textContent=num("tasksFailed");$("countDone").textContent=num("tasksCompleted");renderRows("homeNeeds",p.filter(x=>x.tasksFailed||x.tasksOpen||!x.setupComplete).slice(0,5).map(x=>({name:x.name,info:x.tasksFailed?"Latest work needs review":x.tasksOpen?"Work running":"Review setup",status:x.tasksFailed?"Attention":"Review",click:()=>openProject(x)})),"Nothing needs attention.");renderRows("homeRecent",activity.slice(0,5).map(x=>({name:projectName(x.project),info:(x.task||"Task").slice(0,130),status:x.status,click:()=>runDetail(x.id)})),"No activity yet.");renderRows("homeHealth",p.slice(0,6).map(x=>({name:x.name,info:x.readiness||"No readiness assessment",status:x.tasksFailed?"Attention":"Recorded"})),"No portfolio records available.")}
 function renderProjects(){
  const node=$("projectCards");node.replaceChildren();
  const chosen=S.projects.find(p=>p.id===S.selected);
  if(chosen){
-   $("projectSubheading").textContent="Project workspace";
+   $("projectSubheading").textContent=chosen.name;
    const card=E("div","project-summary");
-   card.append(E("h2","",chosen.name),E("div","meta",(chosen.industry||"Industry not classified")+" · "+(chosen.readiness||"Setup required")));
-   const desc=E("p","",chosen.setupComplete?"Review or update the existing source-backed project profile.":"Start by importing existing documents, website or repository. Only review missing facts.");
-   const actions=E("div","project-actions"),setup=E("button","cta",chosen.setupComplete?"Review sources & profile":"Import project sources");
-   setup.onclick=()=>openProject(chosen);actions.append(setup);
-   const open=E("button","secondary","Ask Soni");open.onclick=()=>show("soni");actions.append(open);
-   card.append(desc,actions);node.append(card);return;
+   const state=E("div","meta",chosen.setupComplete?"Profile reviewed":"Setup needed");
+   const actions=E("div","project-actions");
+   const setup=E("button","cta",chosen.setupComplete?"Review sources":"Import sources");
+   setup.onclick=()=>openProject(chosen);
+   const open=E("button","secondary","Ask Soni");open.onclick=()=>show("soni");
+   actions.append(setup,open);card.append(state,actions);node.append(card);return;
  }
- $("projectSubheading").textContent=S.projects.length+" workspaces · Select a project here or in the top bar";
+ $("projectSubheading").textContent=S.projects.length+" projects";
  for(const p of S.projects){
    const button=E("button","project-card");button.type="button";
-   const left=E("div");left.append(E("h3","",p.name),E("p","eyebrow",p.industry||"Industry not classified"));
-   const right=E("div","footer");right.append(E("span","category",p.setupComplete?"Ready to work":"Setup needed"),E("span","arrow","›"));
+   const left=E("div");left.append(E("h3","",p.name));
+   if(p.industry)left.append(E("p","eyebrow",p.industry));
+   const right=E("div","footer");right.append(E("span","category",p.setupComplete?"Ready":"Setup needed"),E("span","arrow","›"));
    button.append(left,right);
    button.onclick=()=>{S.selected=p.id;$("projectSelect").value=p.id;render();renderConversation();};
    node.append(button);
  }
 }
-function renderActivity(){const list=S.activity.filter(x=>(!S.selected||x.project===S.selected)&&(S.filter==="all"||S.filter==="completed"&&x.status==="completed"||S.filter==="running"&&["queued","running"].includes(x.status)||S.filter==="failed"&&["failed","interrupted"].includes(x.status)));$("activityCount").textContent=list.length+" records";renderRows("activityRows",list.map(x=>({name:projectName(x.project),info:safe(x.task).slice(0,150)+" · "+safe(x.createdAt||""),status:x.status,click:()=>runDetail(x.id)})),"No matching execution records.");renderRows("approvalRows",S.actions.filter(x=>!S.selected||x.project===S.selected).slice(0,15).map(x=>({name:x.kind||"Action",info:projectName(x.project)+" · "+safe(x.createdAt||""),status:x.status||"Unknown",click:()=>actionDetail(x)})),"No approval actions recorded. This is not proof of authorization.")}
+function renderActivity(){const list=S.activity.filter(x=>(!S.selected||x.project===S.selected)&&(S.filter==="all"||S.filter==="completed"&&x.status==="completed"||S.filter==="running"&&["queued","running"].includes(x.status)||S.filter==="failed"&&["failed","interrupted"].includes(x.status)));$("activityCount").textContent=String(list.length);renderRows("activityRows",list.map(x=>({name:projectName(x.project),info:safe(x.task).slice(0,150)+" · "+safe(x.createdAt||""),status:x.status,click:()=>runDetail(x.id)})),"No activity.");renderRows("approvalRows",S.actions.filter(x=>!S.selected||x.project===S.selected).slice(0,15).map(x=>({name:x.kind||"Action",info:projectName(x.project)+" · "+safe(x.createdAt||""),status:x.status||"Unknown",click:()=>actionDetail(x)})),"No approvals.")}
 function renderConnections(){
  const node=$("connectionsGrid"),focus=$("connectionFocus");node.replaceChildren();focus.replaceChildren();
  const data=S.connections;if(!data){focus.append(E("div","empty","Connection status unavailable."));return;}
  const entries=data.connectors||[],verified=entries.filter(x=>x.connected),registered=entries.filter(x=>x.status==="runtime-registered"&&!x.connected);
- $("connectionStatus").textContent=verified.length+" verified · "+registered.length+" registered · Other integrations available on request";
- const visible=[...verified,...registered];
- if(!visible.length)focus.append(E("div","empty","No verified integrations. Open the catalog to connect a tool."));
+ $("connectionStatus").textContent=verified.length+" connected · "+registered.length+" available";
+ const visible=[...verified];
+ if(!visible.length)focus.append(E("div","empty","No tools connected."));
  const create=(c)=>{
    const card=E("div","conn"),left=E("div"),right=E("div");
    left.append(E("h3","",c.name),E("p","",c.category||"Integration"));
-   right.append(E("span","pill",c.connected?"Verified":c.status==="runtime-registered"?"Not verified":"Available"));
+   right.append(E("span","pill",c.connected?"Verified":c.status==="runtime-registered"?"Available":"Available"));
    const button=E("button","secondary",c.connected?"Details":"Connect");button.type="button";
    button.style.marginTop="8px";button.onclick=()=>requestConnection(c);right.append(button);
    card.append(left,right);return card;
@@ -82,25 +83,25 @@ async function openProject(p){
   try{
     const [state,local]=await Promise.all([api("/api/setup/custom/"+encodeURIComponent(p.id)),api("/api/setup/custom/"+encodeURIComponent(p.id)+"/sources").catch(()=>({suggestions:{}}))]);
     const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
-    const intro=E("p","","Start with what already exists. AIBO will inspect permitted sources and suggest a project profile for your review.");
+    const intro=E("p","visually-hidden","Import existing project information. Review extracted facts before saving.");
     const form=E("form","modal-form");
     const inputs=[
-      ["website","Website (public HTTPS URL)",state.fields?.website||local.suggestions?.website?.value||""],
-      ["repository","GitHub repository (public or upload a README)",""],
-      ["drive","Google Doc (public link; private Drive requires connection)",""]
+      ["website","Website URL",state.fields?.website||local.suggestions?.website?.value||""],
+      ["repository","GitHub repository",""],
+      ["drive","Google Drive link",""]
     ];
     for(const [key,title,value] of inputs){
       const label=E("label","",title),input=E("input","field");input.name=key;input.type="url";
       input.placeholder=key==="repository"?"https://github.com/owner/repository":key==="drive"?"https://docs.google.com/document/d/…":"https://example.com";
       input.value=value;label.append(input);form.append(label);
     }
-    const fileLabel=E("label","","Or upload documents (PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, JSON)");
+    const fileLabel=E("label","","Upload documents");
     const files=E("input");files.type="file";files.multiple=true;
     files.accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json";fileLabel.append(files);form.append(fileLabel);
-    const status=E("p","notice","Existing local project files are inspected automatically. No model calls or paid API charges.");
+    const status=E("p","notice","");
     status.setAttribute("role","status");form.append(status);
     const actions=E("div","modal-controls");
-    const scan=E("button","cta","Inspect sources");scan.type="submit";
+    const scan=E("button","cta","Continue");scan.type="submit";
     const cancel=E("button","secondary","Cancel");cancel.type="button";cancel.onclick=closeModal;
     actions.append(scan,cancel);
     const driveStatus=await api("/api/oauth/google-drive/status/"+encodeURIComponent(p.id)).catch(()=>({available:false,status:"not-connected"}));
@@ -120,7 +121,7 @@ async function openProject(p){
     form.append(actions);root.append(intro,form);
     $("overlay").classList.add("open");
     form.onsubmit=async e=>{
-      e.preventDefault();scan.disabled=true;status.textContent="Inspecting approved sources…";
+      e.preventDefault();scan.disabled=true;status.textContent="Reading sources…";
       try{
         const ids=[];
         if(files.files.length>5)throw Error("Select up to five documents");
@@ -149,7 +150,7 @@ function renderSourceReview(project,state,report){
   const values={...derived,...Object.fromEntries(Object.entries(fields).filter(([,value])=>value))};
   const sources=report.sources||[],failures=report.failures||[],conflicts=report.conflicts||{};
   const sourceReviewed=sources.length>0;
-  const missingSource=sourceReviewed?"":"No readable source found; add a business goal manually.";
+  const missingSource=sourceReviewed?"":"No sources found. Add the missing details.";
   const definitions=[
     ["name","Project name",true,80,false],
     ["region","Country / region",false,100,false],
@@ -169,7 +170,7 @@ function renderSourceReview(project,state,report){
   const form=$("modalBody").querySelector("form");
   const intro=E("div","source-review");
   intro.append(E("strong","",sources.length+" readable source"+(sources.length===1?"":"s")+" found"));
-  intro.append(E("p","",missingSource||"Suggested facts are editable. AIBO will preserve source excerpts as project evidence, not treat them as instructions."));
+  intro.append(E("p","",missingSource||"Review the extracted facts."));
   const list=E("div","source-list");
   for(const entry of sources.slice(0,8))list.append(E("div","",entry.reference));
   if(sources.length)intro.append(list);

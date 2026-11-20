@@ -48,6 +48,13 @@ with tempfile.TemporaryDirectory() as state_dir:
                 assert colors==['rgb(250, 250, 250)','rgb(32, 33, 36)','rgb(255, 255, 255)'],colors
                 assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible without scrolling"
                 page.locator('.nav[data-screen="projects"]').click()
+                # Copy-density and hierarchy contract: no promotional filler or duplicate controls.
+                visible_headings=[page.locator("#screen-"+screen+" h1").inner_text() for screen in ("home","soni","projects","activity","connections")]
+                assert visible_headings[0]=="Overview" and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
+                assert page.locator(".aside-foot").count()==0,"Decorative sidebar footer returned"
+                assert page.locator("#screen-home .page-heading p").count()==0
+                assert page.locator("#screen-activity .page-heading p").count()==0
+                assert page.locator("#screen-projects #projectSubheading").evaluate("(el)=>getComputedStyle(el).position==='absolute'"),"Project instructions should not occupy visual space"
                 assert page.locator("#projectSelect").count()==1
                 assert page.locator("#newProjectBtn").count()==1
                 assert page.locator("#projectSearch").count()==0,"Duplicate project search returned"
@@ -68,8 +75,8 @@ with tempfile.TemporaryDirectory() as state_dir:
                     # Work with existing project, recording setup and Soni mock result in isolated state.
                     page.locator(".nav[data-screen='projects']").click()
                     page.locator("#projectSelect").select_option(index=1)
-                    page.locator("#projectCards .project-summary button",has_text="Import project sources").click()
-                    page.locator("#modalBody form button",has_text="Inspect sources").click()
+                    page.locator("#projectCards .project-summary button",has_text="Import sources").click()
+                    page.locator("#modalBody form button",has_text="Continue").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
                     page.locator("#modalBody details.source-extra summary").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
