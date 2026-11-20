@@ -12,9 +12,9 @@ import threading
 import uuid
 
 try:
-    from . import products, aibo, costs, attachments, ai_providers, source_onboarding
+    from . import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth
 except ImportError:
-    import products, aibo, costs, attachments, ai_providers, source_onboarding
+    import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth
 
 LOCK = threading.RLock()
 DIR = products.STATE / 'workspaces'
@@ -105,7 +105,7 @@ def inspect_sources(project_id,payload):
         if not url.strip():continue
         references.append({'kind':kind,'url':url.strip()})
         try:
-            source=source_onboarding.inspect_remote(kind,url.strip())
+            source=source_onboarding.inspect_remote(kind,url.strip(),drive_token=drive_oauth.token(project_id) if kind=="drive" else None)
             if isinstance(source,list):
                 sources.extend(source)
             else:
