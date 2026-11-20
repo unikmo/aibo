@@ -35,7 +35,7 @@ async function requestConnection(c){if(!S.selected){notice("Choose a project fir
 function shortAnswer(text){
   const content=safe(text).trim();if(!content)return "No verified response was recorded.";
   // Display a compact extract of the *recorded answer*. Never claim a new summary was generated.
-  const first=content.split(/\\n\\s*\\n/)[0].replace(/^#+\\s*/,"").trim();
+  const first=content.split(/\n\s*\n/)[0].replace(/^#+\s*/,"").trim();
   if(first.length<=280)return first;
   const cut=first.slice(0,280),boundary=Math.max(cut.lastIndexOf(". "),cut.lastIndexOf("! "),cut.lastIndexOf("? "));
   return boundary>85?cut.slice(0,boundary+1):cut.slice(0,245).trimEnd()+"…";
@@ -63,7 +63,7 @@ async function renderConversation(){
       let detail=r;
       if(r.status==="completed"){try{detail=await api("/api/run/"+encodeURIComponent(r.id))}catch{}}
       const result=detail.result||{},answer=result.soni||detail.error||"Run "+r.status;
-      const extended=[answer,...Object.entries(result.specialistResults||{}).map(([name,body])=>name.toUpperCase()+":\\n"+safe(body))].join("\\n\\n");
+      const extended=[answer,...Object.entries(result.specialistResults||{}).map(([name,body])=>name.toUpperCase()+":\n"+safe(body))].join("\n\n");
       logMessage("agent","Soni · "+r.status,shortAnswer(answer),extended);
     }
   }catch(e){root.append(E("div","empty","Conversation unavailable: "+e.message))}
