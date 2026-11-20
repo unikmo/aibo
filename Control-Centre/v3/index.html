@@ -201,7 +201,9 @@
 #screen-soni .consent{color:#f4f3ee!important}
 #screen-soni .soni-actions .cta{color:#242927;background:#eeeae0}
 @media(max-width:700px){
- .workspace:has(#screen-soni.active){height:100dvh}
+ .shell:has(#screen-soni.active){display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden}
+ .shell:has(#screen-soni.active)>.aside{flex:0 0 auto;min-height:0}
+ .workspace:has(#screen-soni.active){height:auto;flex:1 1 0;min-height:0}
  .workspace:has(#screen-soni.active)>.topbar{flex-basis:60px;height:60px;min-height:60px}
  .workspace:has(#screen-soni.active)>.main{padding:8px 12px 0}
  #screen-soni.active{height:100%!important}
