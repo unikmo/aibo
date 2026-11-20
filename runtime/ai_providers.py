@@ -127,8 +127,11 @@ def available_models(provider):
     elif token:
         headers['Authorization'] = 'Bearer ' + token
     try:
+        # endpoint comes exclusively from the provider-to-HTTPS-host literal mapping.
+        if not endpoint.startswith('https://'):
+            raise ValueError('Provider catalog URL must use HTTPS')
         req = urllib.request.Request(endpoint, headers=headers, method='GET')
-        with urllib.request.urlopen(req, timeout=6) as resp:
+        with urllib.request.urlopen(req, timeout=6) as resp:  # nosec B310 - fixed, allowlisted HTTPS provider URL
             payload = json.loads(resp.read(1000000))
         items = payload.get('data', [])
         ids = [x.get('id', '') for x in items if isinstance(x, dict)]
