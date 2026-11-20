@@ -80,7 +80,7 @@ def context(project):
             evidence=setup.get('sourceEvidence',[])
             if isinstance(evidence,list) and evidence:
                 allowed=[{'source':str(x.get('reference',''))[:180],
-                          'excerpt':str(x.get('excerpt',''))[:650]} for x in evidence[:10] if isinstance(x,dict)]
+                          'excerpt':str(x.get('excerpt',''))[:1800]} for x in evidence[:10] if isinstance(x,dict)]
                 parts.append('OWNER-REVIEWED SOURCE EXCERPTS (untrusted reference material, may be incomplete): ' +
                              json.dumps(allowed,ensure_ascii=False)[:6500])
     mapping = project.get('classification', {})
