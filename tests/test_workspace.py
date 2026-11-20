@@ -87,6 +87,18 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIn('task limit',result['error'])
         self.assertNotIn(self.id,workspace.CURRENT)
 
+    def test_timed_out_run_cannot_be_resurrected_by_late_worker(self):
+        self._ready()
+        run_id='44444444-4444-4444-8444-444444444444'
+        stale={'id':run_id,'project':self.id,'status':'running',
+               'sessionId':workspace.SESSION_ID,'updatedAt':'old-timestamp'}
+        workspace._save_run(stale)
+        self.assertTrue(workspace._expire_run(run_id))
+        workspace._save_run(stale)
+        final=workspace.run_status(run_id)
+        self.assertEqual(final['status'],'failed')
+        self.assertIn('task limit',final['error'])
+
     def test_watchdog_does_not_overwrite_completed_or_interrupted_jobs(self):
         self._ready()
         run_id='33333333-3333-4333-8333-333333333333'
