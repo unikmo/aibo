@@ -16,9 +16,56 @@ function show(name){if(!["home","soni","projects","activity","connections"].incl
 document.addEventListener("click",e=>{const r=e.target.closest("[data-go],[data-screen]");if(r){e.preventDefault();show(r.dataset.go||r.dataset.screen)}});
 function renderRows(id,items,empty){const node=$(id);node.replaceChildren();if(!items.length){node.className="empty";node.textContent=empty;return;}node.className="";for(const item of items){const row=E("div","rowitem"),left=E("div");left.append(E("strong","",item.name),E("small","",item.info));row.append(left,E("span","pill"+(["failed","interrupted","Attention"].includes(item.status)?" gold":""),item.status||"Recorded"));if(item.click){row.style.cursor="pointer";row.tabIndex=0;row.setAttribute("role","button");row.onclick=item.click;row.onkeydown=e=>{if(e.key==="Enter")item.click()}}node.append(row)}}
 function renderHome(){const p=filteredProjects(),num=k=>p.reduce((n,x)=>n+Number(x[k]||0),0),activity=S.activity.filter(x=>!S.selected||x.project===S.selected);$("countProjects").textContent=p.length;$("countActive").textContent=num("tasksOpen");$("countNeeds").textContent=num("tasksFailed");$("countDone").textContent=num("tasksCompleted");renderRows("homeNeeds",p.filter(x=>x.tasksFailed||x.tasksOpen||!x.setupComplete).slice(0,5).map(x=>({name:x.name,info:x.tasksFailed?"Latest work needs review":x.tasksOpen?"Work running":"Complete project setup",status:x.tasksFailed?"Attention":"Review",click:()=>openProject(x)})),"No open project attention items recorded.");renderRows("homeRecent",activity.slice(0,5).map(x=>({name:projectName(x.project),info:(x.task||"Task").slice(0,130),status:x.status,click:()=>runDetail(x.id)})),"No work recorded.");renderRows("homeHealth",p.slice(0,6).map(x=>({name:x.name,info:x.readiness||"No readiness assessment",status:x.tasksFailed?"Attention":"Recorded"})),"No portfolio records available.")}
-function renderProjects(){const node=$("projectCards");node.replaceChildren();const q=$("projectSearch").value.toLowerCase().trim();const projects=filteredProjects().filter(p=>p.name.toLowerCase().includes(q));if(!projects.length){node.append(E("div","empty","No matching project."));return}for(const p of projects){const button=E("button","project-card");button.type="button";const top=E("div"),bottom=E("div","footer");top.append(E("p","eyebrow",p.industry||"Independent workspace"),E("h3","",p.name));bottom.append(E("span","category",p.readiness||"Setup required"),E("span","arrow","↗"));button.append(top,bottom);button.onclick=()=>openProject(p);node.append(button)}}
+function renderProjects(){
+ const node=$("projectCards");node.replaceChildren();
+ const chosen=S.projects.find(p=>p.id===S.selected);
+ if(chosen){
+   $("projectSubheading").textContent="Project workspace";
+   const card=E("div","project-summary");
+   card.append(E("h2","",chosen.name),E("div","meta",(chosen.industry||"Industry not classified")+" · "+(chosen.readiness||"Setup required")));
+   const desc=E("p","",chosen.setupComplete?"Review or update the existing source-backed project profile.":"Start by importing existing documents, website or repository. Only review missing facts.");
+   const actions=E("div","project-actions"),setup=E("button","cta",chosen.setupComplete?"Review sources & profile":"Import project sources");
+   setup.onclick=()=>openProject(chosen);actions.append(setup);
+   const open=E("button","secondary","Ask Soni");open.onclick=()=>show("soni");actions.append(open);
+   card.append(desc,actions);node.append(card);return;
+ }
+ $("projectSubheading").textContent=S.projects.length+" workspaces · Select a project here or in the top bar";
+ for(const p of S.projects){
+   const button=E("button","project-card");button.type="button";
+   const left=E("div");left.append(E("h3","",p.name),E("p","eyebrow",p.industry||"Industry not classified"));
+   const right=E("div","footer");right.append(E("span","category",p.setupComplete?"Ready to work":"Setup needed"),E("span","arrow","›"));
+   button.append(left,right);
+   button.onclick=()=>{S.selected=p.id;$("projectSelect").value=p.id;render();renderConversation();};
+   node.append(button);
+ }
+}
 function renderActivity(){const list=S.activity.filter(x=>(!S.selected||x.project===S.selected)&&(S.filter==="all"||S.filter==="completed"&&x.status==="completed"||S.filter==="running"&&["queued","running"].includes(x.status)||S.filter==="failed"&&["failed","interrupted"].includes(x.status)));$("activityCount").textContent=list.length+" records";renderRows("activityRows",list.map(x=>({name:projectName(x.project),info:safe(x.task).slice(0,150)+" · "+safe(x.createdAt||""),status:x.status,click:()=>runDetail(x.id)})),"No matching execution records.");renderRows("approvalRows",S.actions.filter(x=>!S.selected||x.project===S.selected).slice(0,15).map(x=>({name:x.kind||"Action",info:projectName(x.project)+" · "+safe(x.createdAt||""),status:x.status||"Unknown",click:()=>actionDetail(x)})),"No approval actions recorded. This is not proof of authorization.")}
-function renderConnections(){const node=$("connectionsGrid");node.replaceChildren();const data=S.connections;if(!data){node.append(E("div","empty","Connector catalog is unavailable."));return}$("connectionStatus").textContent=Number(data.connected||0)+" verified · "+Number(data.registered||0)+" registered adapters · "+Number(data.total||0)+" catalog entries. Registration alone does not grant access.";const entries=data.connectors||[];for(const c of entries){const card=E("div","conn"),left=E("div"),right=E("div");left.append(E("h3","",c.name),E("p","",c.category||"Integration"));right.append(E("span","pill",c.connected?"Verified":c.status==="runtime-registered"?"Registered":"Catalog"));const button=E("button","secondary","Request");button.type="button";button.style.marginTop="12px";button.onclick=()=>requestConnection(c);right.append(button);card.append(left,right);node.append(card)}}
+function renderConnections(){
+ const node=$("connectionsGrid"),focus=$("connectionFocus");node.replaceChildren();focus.replaceChildren();
+ const data=S.connections;if(!data){focus.append(E("div","empty","Connection status unavailable."));return;}
+ const entries=data.connectors||[],verified=entries.filter(x=>x.connected),registered=entries.filter(x=>x.status==="runtime-registered"&&!x.connected);
+ $("connectionStatus").textContent=verified.length+" verified · "+registered.length+" registered · Other integrations available on request";
+ const visible=[...verified,...registered];
+ if(!visible.length)focus.append(E("div","empty","No verified integrations. Open the catalog to connect a tool."));
+ const create=(c)=>{
+   const card=E("div","conn"),left=E("div"),right=E("div");
+   left.append(E("h3","",c.name),E("p","",c.category||"Integration"));
+   right.append(E("span","pill",c.connected?"Verified":c.status==="runtime-registered"?"Not verified":"Available"));
+   const button=E("button","secondary",c.connected?"Details":"Connect");button.type="button";
+   button.style.marginTop="8px";button.onclick=()=>requestConnection(c);right.append(button);
+   card.append(left,right);return card;
+ };
+ for(const c of visible.slice(0,12))focus.append(create(c));
+ // A long catalog should not produce hundreds of cards until explicitly opened.
+ const details=$("connectionsCatalog");
+ const populate=()=>{
+   if(details.dataset.loaded==="yes")return;
+   details.dataset.loaded="yes";
+   for(const c of entries.filter(x=>!visible.includes(x)))node.append(create(c));
+ };
+ if(details.open)populate();
+ details.addEventListener("toggle",()=>{if(details.open)populate()},{once:true});
+}
 async function runDetail(id){if(!id)return;try{const r=await api("/api/run/"+encodeURIComponent(id));const result=r.result||{},parts=[r.task||"Task", "Status: "+r.status,"Provider: "+(r.provider||"Unknown"),"External actions executed: "+(r.externalActionsExecuted===true?"Yes":"No")];if(r.effectiveProvider)parts.push("Executed with: "+r.effectiveProvider);if(Array.isArray(r.providerAttempts))parts.push("Routing: "+r.providerAttempts.map(a=>a.provider+" ("+a.status+")").join(" → "));if(r.error)parts.push("Error: "+r.error);if(result.soni)parts.push("\nSoni:\n"+result.soni);if(result.specialistResults)parts.push("\nSpecialist review:\n"+Object.entries(result.specialistResults).map(([n,t])=>n+": "+safe(t)).join("\n\n"));notice("Execution record",cleanCopy(parts.join("\n\n")))}catch(e){notice("Record unavailable",e.message)}}
 function actionDetail(a){
 const title="Action · "+(a.kind||"record"),description="Project: "+projectName(a.project)+"\nStatus: "+(a.status||"Unknown")+"\nDetails: "+JSON.stringify(a.details||{},null,2)+"\n\nExternal action requires exact approval and a separate execution confirmation.";
@@ -212,17 +259,23 @@ const soniComposer=$("soniPrompt");
 function sizeComposer(){soniComposer.style.height="34px";soniComposer.style.height=Math.min(175,Math.max(34,soniComposer.scrollHeight))+"px";}
 soniComposer.addEventListener("input",sizeComposer);
 soniComposer.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();$("reviewPrompt").click()}});
-$("soniProjectSelect").onchange=e=>{$("projectSelect").value=e.target.value;$("projectSelect").dispatchEvent(new Event("change"))};
+
 function providerOptions(){const select=$("soniProvider");select.replaceChildren();for(const [val,label] of [["mock","Demo (no paid AI)"],["auto","Automatic · Codex → Claude · no paid API"],["codex-local","Codex · local CLI"],["claude-local","Claude · local CLI"],["openai","OpenAI API"],["anthropic","Anthropic API"],["openrouter","OpenRouter API"],["vercel-gateway","Vercel AI Gateway"],["together","Together API"],["groq","Groq API"]]){const opt=E("option","",label+(S.providers?.ready?.[val]?" · available":""));opt.value=val;select.append(opt)}select.value=S.providerChoice||"auto";providerConsent()}
 function providerConsent(){const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);document.querySelector(".consent").classList.toggle("visible",paid);$("soniConsent").checked=false;}
 $("soniProvider").onchange=()=>{S.providerChoice=$("soniProvider").value;providerConsent()};
 $("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(S.edition==="standard"){notice("License not activated","Standard edition requires trusted license activation before Soni execution.");return}if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<100;i++){await new Promise(ok=>setTimeout(ok,1200));const status=await api("/api/run/"+encodeURIComponent(r.id));if(["completed","failed","interrupted"].includes(status.status)){$("promptHint").textContent="Run "+status.status;await refresh();await renderConversation();if(status.status!=="completed")notice("Task "+status.status,status.error||"Review its activity record");break}if(i===99)$("promptHint").textContent="Still processing; check Activity for the latest status."}}catch(e){$("promptHint").textContent="Task not started";notice("Soni could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
-$("projectSelect").onchange=e=>{S.selected=e.target.value;render();renderConversation()};$("projectSearch").oninput=renderProjects;
-if(S.edition==="custom"){
-const addProject=E("button","secondary","New project");addProject.type="button";addProject.style.margin="0 0 20px 12px";
-addProject.onclick=()=>formModal("New independent project",[{name:"name",label:"Project name",required:true,max:80},{name:"industry",label:"Industry (optional)",max:100},{name:"region",label:"Country / region",max:100}],async d=>{const result=await api("/api/projects/custom",json("POST",{name:d.name,industry:d.industry,region:d.region,corePack:null,addOns:[]}));S.selected=result.project;});
-$("projectSearch").after(addProject);
-}
+$("projectSelect").onchange=e=>{S.selected=e.target.value;render();renderConversation()};
+$("newProjectBtn").onclick=()=>{
+ if(S.edition!=="custom"){notice("License not activated","A verified license is required to create new projects.");return;}
+ formModal("New project",[{name:"name",label:"Project name",required:true,max:80}],async d=>{
+   const result=await api("/api/projects/custom",json("POST",{name:d.name,industry:"",region:"",corePack:null,addOns:[]}));
+   S.selected=result.project;
+   await refresh();
+   show("projects");
+   const created=S.projects.find(p=>p.id===result.project);
+   if(created)await openProject(created);
+ });
+};
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{S.filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderActivity()});
 async function costSettings(){try{const c=await api("/api/cost-controls");formModal("AI use and cost controls",[{name:"maxOutputTokens",label:"Maximum output tokens per call",type:"number",value:c.maxOutputTokens,required:true},{name:"maxModelCalls",label:"Maximum model calls per task",type:"number",value:c.maxModelCalls,required:true},{name:"monthlyBudgetUsd",label:"Advisory monthly budget (USD — not enforced)",type:"number",value:c.monthlyBudgetUsd,required:true},{name:"perTaskBudgetUsd",label:"Advisory per-task budget (USD — not enforced)",type:"number",value:c.perTaskBudgetUsd,required:true}],async d=>{await api("/api/cost-controls",json("PATCH",Object.fromEntries(Object.entries(d).map(([k,v])=>[k,Number(v)]))));});}catch(e){notice("Settings unavailable",e.message)}}
 async function providerSettings(){try{const p=await api("/api/ai-providers");formModal("AI provider routing",[{name:"switchMode",label:"Switching policy",value:p.switchMode,options:[["ask","Automatic CLI failover · no specialist overrides"],["soni","Automatic CLI failover · local specialist preferences"]]}],async d=>{await api("/api/ai-providers",json("PUT",{switchMode:d.switchMode}))});}catch(e){notice("Provider settings unavailable",e.message)}}
@@ -264,11 +317,9 @@ $("settingsBtn").onclick=()=>{notice("Settings","Choose the control area. Permis
 $("accountBtn").onclick=()=>notice("Account and edition","AIBO is running as a local-first workspace. Cross-device identity and signed commercial licensing are not yet verified. Current edition: "+S.edition+".");
 async function refresh(){let projectState;const opts=[api("/api/portfolio/custom"),api("/api/products/"+S.edition),api("/api/actions"),api("/api/connections/catalog"),api("/api/ai-providers")];const all=await Promise.allSettled(opts);const get=i=>all[i].status==="fulfilled"?all[i].value:null;const portfolio=get(0)||{projects:[],recentWork:[]};projectState=get(1);S.projects=S.edition==="custom"?portfolio.projects||[]:(projectState?.slots||[]).map(x=>({id:"slot-"+x.slot,name:x.name||"Project slot "+x.slot,industry:"Licensed slot",readiness:"License not activated",setupComplete:false,tasksOpen:0,tasksCompleted:0,tasksFailed:0}));S.activity=S.edition==="custom"?portfolio.recentWork||[]:[];S.actions=S.edition==="custom"?get(2)?.actions||[]:[];S.connections=get(3);S.providers=get(4);const sel=$("projectSelect"),prior=S.selected;sel.replaceChildren();const allOpt=E("option","","All projects");allOpt.value="";sel.append(allOpt);for(const p of S.projects){const o=E("option","",p.name);o.value=p.id;sel.append(o)}S.selected=S.projects.some(p=>p.id===prior)?prior:"";sel.value=S.selected;$("editionLabel").textContent=(S.edition==="custom"?"Portfolio edition":"Standard edition")+" · "+S.projects.length+" projects";render();renderConnections();providerOptions();if(all[0].status==="rejected")$("homeNeeds").textContent="Local backend unavailable — "+all[0].reason.message;}
 function render(){
-  renderHome();renderProjects();renderActivity();
-  const sel=$("soniProjectSelect"),prior=S.selected;
-  sel.replaceChildren();const placeholder=E("option","","Select project");placeholder.value="";sel.append(placeholder);
-  for(const p of S.projects){const opt=E("option","",p.name);opt.value=p.id;sel.append(opt)}
-  sel.value=prior;$("soniProject").textContent=projectName(S.selected)||"All projects";
+ renderHome();renderProjects();renderActivity();
+ $("soniProject").textContent=projectName(S.selected)||"Select a project above to begin";
+ $("newProjectBtn").hidden=S.edition!=="custom";
 }
 
 (async()=>{await refresh();show(location.hash.slice(1)||"home");})();
