@@ -175,9 +175,9 @@ def _extract(label,content,is_html=False,website=""):
     # Never preserve credential-shaped lines in source excerpts passed to Soni.
     clean="\n".join(line for line in clean.split("\n")
                     if not re.search(r"(?i)(?:api[_ -]?key|password|client_secret|access_token|private[_ -]?key|authorization\s*:)",line))
-    lines=[re.sub(r"\\s+"," ",x).strip(" *#\\t") for x in clean.split("\\n")]
+    lines=[re.sub(r"\s+"," ",x).strip(" *#\t") for x in clean.split("\n")]
     # Normalize common business-brief markdown: **Goal:** and headings.
-    lines=[re.sub(r"^\\*{1,2}([^*]+)\\*{1,2}\\s*:",r"\\1:",line) for line in lines]
+    lines=[re.sub(r"^\*{1,2}([^*]+)\*{1,2}\s*:",r"\1:",line) for line in lines]
     evidence=[]
     for line in lines:
         match=re.match(r"^([A-Za-z][\w /-]{2,30}):\s*(.{4,400})$",line)
