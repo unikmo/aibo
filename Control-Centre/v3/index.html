@@ -74,6 +74,21 @@
 #screen-soni .detail-body[hidden]{display:none}
 #screen-soni .chat-log{max-height:none}
 @media(max-width:700px){#screen-soni.active{height:calc(100dvh - 122px);min-height:320px}#screen-soni .soni-stage{padding:10px 0 0}#screen-soni .conversation{padding:10px 2px}#screen-soni .composer-dock{padding-top:8px}}
+
+/* Source-first onboarding: only missing information needs owner input */
+.source-review{padding:14px 15px;border:1px solid #eceae4;border-radius:12px;background:#faf9f5;margin-bottom:12px}
+.source-review strong{font-size:13px;font-weight:600}
+.source-review p{font-size:12px;line-height:1.5;margin:8px 0 0}
+.source-list{display:grid;gap:5px;margin:11px 0 3px}
+.source-list>div{font-size:11px;color:#697269;overflow-wrap:anywhere}
+.source-list>div::before{content:"✓";font-size:12px;margin-right:9px;color:#3b8067}
+.source-warning{color:#965b43!important}
+.source-credit{font-size:10px;color:#8a8170;line-height:1.5;margin:1px 0 0}
+.source-extra{margin:12px 0;padding:11px 0;border-top:1px solid #e8e7e2;border-bottom:1px solid #e8e7e2}
+.source-extra summary{font-size:12px;color:#4d564f;cursor:pointer;list-style-position:inside;padding:2px 0}
+.source-extra[open]{display:grid;gap:10px}
+.modal-form .source-extra label{display:grid;gap:5px;padding:6px 0}
+#modalBody input[type=file]{padding:9px 0;font-size:12px;max-width:100%}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><span class="eyebrow">Control Centre 3</span><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
