@@ -365,6 +365,12 @@ class Handler(SimpleHTTPRequestHandler):
             except (ValueError,TypeError) as e:self._json(400,{'error':str(e)})
             return
         if path=='/api/portfolio/custom':self._json(200,portfolio.overview());return
+        if path.startswith('/api/setup/custom/') and path.endswith('/inspect'):
+            parts=path.strip('/').split('/')
+            if len(parts)!=5:self._json(404,{'error':'Not found'});return
+            try:self._json(200,workspace.inspect_sources(parts[3],self._read_body()))
+            except (ValueError,TypeError) as exc:self._json(400,{'error':str(exc)[:260]})
+            return
         if path.startswith('/api/setup/custom/'):
             try:self._json(200,workspace.save_setup(path.split('/')[-1],self._read_body()))
             except (ValueError,TypeError) as e:self._json(400,{'error':str(e)})
