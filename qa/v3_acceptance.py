@@ -40,6 +40,22 @@ with tempfile.TemporaryDirectory() as state_dir:
                     result["screens"].append(f"{screen}-{device}")
                 assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),"Horizontal overflow on "+device
                 page.locator('.nav[data-screen="soni"]').click()
+                # An unused Soni workspace must not display an empty dark history
+                # occupying most of the screen. Only the composer stays dark.
+                assert page.locator("#conversation").evaluate("(el)=>el.children.length===0")
+                empty_chat=page.locator("#screen-soni .chat").evaluate("""el => {
+                    const r=el.getBoundingClientRect();
+                    const wrap=el.parentElement.getBoundingClientRect();
+                    const composer=document.querySelector('#soniPrompt').getBoundingClientRect();
+                    return {height:r.height,top:r.top,wrapHeight:wrap.height,
+                            composerBottom:composer.bottom,viewport:innerHeight,
+                            background:getComputedStyle(el).backgroundColor};
+                }""")
+                assert empty_chat["height"]<230,empty_chat
+                assert empty_chat["wrapHeight"]>empty_chat["height"]+60,empty_chat
+                assert empty_chat["composerBottom"]<empty_chat["viewport"]-10,empty_chat
+                assert empty_chat["background"]=="rgba(0, 0, 0, 0)",empty_chat
+                result["functional"].append("Empty Soni history collapses; composer remains bottom-anchored")
                 colors=page.locator("#conversation").evaluate("""el => {
                     const css=getComputedStyle(el);
                     const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
