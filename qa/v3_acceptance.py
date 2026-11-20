@@ -61,7 +61,8 @@ with tempfile.TemporaryDirectory() as state_dir:
                     const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
                     return [css.backgroundColor,css.color,agent.backgroundColor];
                 }""")
-                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgb(36, 41, 39)'],colors
+                # Empty chat intentionally has no dark history container.
+                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgba(0, 0, 0, 0)'],colors
                 assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible"
                 assert len(page.locator("#soniProvider option[value=auto]").inner_text())<=27,"Auto provider label should be compact on mobile"
                 def check_composer():
