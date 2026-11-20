@@ -33,12 +33,12 @@ controls.append(approve,execute);$("modalBody").append(controls);
 async function openProject(p){
   if(S.edition==="standard"){notice("Standard edition","A verified license is required before activating project slots.");return;}
   try{
-    const state=await api("/api/setup/custom/"+encodeURIComponent(p.id));
+    const [state,local]=await Promise.all([api("/api/setup/custom/"+encodeURIComponent(p.id)),api("/api/setup/custom/"+encodeURIComponent(p.id)+"/sources").catch(()=>({suggestions:{}}))]);
     const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
     const intro=E("p","","Start with what already exists. AIBO will inspect permitted sources and suggest a project profile for your review.");
     const form=E("form","modal-form");
     const inputs=[
-      ["website","Website (public HTTPS URL)",state.fields?.website||""],
+      ["website","Website (public HTTPS URL)",state.fields?.website||local.suggestions?.website?.value||""],
       ["repository","GitHub repository (public or upload a README)",""],
       ["drive","Google Doc (public link; private Drive requires connection)",""]
     ];
@@ -116,6 +116,14 @@ function renderSourceReview(project,state,report){
   }
   for(const failure of failures)intro.append(E("p","source-warning","Not inspected · "+failure.kind+": "+failure.reason));
   form.prepend(intro);
+  const optional=E("details","source-extra"),heading=E("summary","","Optional project details");
+  optional.append(heading);
+  for(const key of ["region","audience","website","successMeasure","notes"]){
+    const input=form.querySelector('[name="'+key+'"]');
+    if(input)optional.append(input.closest("label"));
+  }
+  const controls=form.querySelector(".modal-controls");
+  if(controls)form.insertBefore(optional,controls);
   for(const [key,entry] of Object.entries(extracted)){
     const field=form.querySelector('[name="'+key+'"]');
     if(!field)continue;
