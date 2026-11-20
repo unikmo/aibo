@@ -193,7 +193,10 @@ def prompt_for(agent, project, goal, shared):
              'Never claim an external action occurred unless a trusted execution receipt proves it. '
              'Never send communications, publish, spend, book, invoice, modify production or access another project. '
              'Any such request requires a decision package and recorded approval; no action tools are available in this runtime. '
-             'Do not expose secrets. Cite evidence and express uncertainty. Answer concisely.')
+             'Do not expose secrets. Cite evidence and express uncertainty. Answer concisely. ' 
+             'Never expand an ambiguous acronym without evidence. Do not infer no outreach or delivery happened merely because records are absent. ' 
+             'A local file path is not proof of the project\'s external operational status. ' 
+             'Use plain language; no raw Markdown, local file paths or invented source citations.')
     return guard + '\nAGENT: ' + agent['name'] + '\nMISSION: ' + agent['mission'], (
         'PROJECT CONTEXT:\n' + shared + '\n\nUSER OBJECTIVE:\n' + goal)
 
@@ -240,6 +243,10 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
                    'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
                    'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
                    'When asked for a status report, distinguish completed, pending and blocked only where the records support it. '
+                   'Never infer that an external action did not occur from missing local records; say it is unverified. '
+                   'Never guess what an ambiguous acronym means (for example ABAs); ask one brief question instead. '
+                   'Do not invent citations, uninspected business files, repository contents or outreach receipts. '
+                   'Avoid Markdown markers, raw file paths, escaped HTML and internal specialist chains. '
                    'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
     soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
