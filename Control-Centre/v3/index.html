@@ -31,6 +31,32 @@
 #screen-soni .consent.visible{display:flex;max-width:100%;font-size:11px}
 #screen-soni .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:700px){#screen-soni .soni-stage{padding:0}#screen-soni .soni-heading{margin-bottom:25px}#screen-soni .soni-context .context-help{display:none}#screen-soni .prompt{padding:18px 17px 12px}#screen-soni .prompt textarea{font-size:16px;min-height:110px}#screen-soni .soni-actions{gap:9px}#screen-soni .soni-actions .cta{padding:11px 12px}#screen-soni .soni-actions .cta span{display:none}#screen-soni .prompt-controls select{font-size:11px;padding:10px 7px}}
+/* SONI: compact single-purpose communication page */
+.main:has(#screen-soni.active){padding-top:16px}
+#screen-soni .soni-stage{max-width:970px;padding:0;margin:0 auto}
+#screen-soni #soni-title{display:block;font-weight:510;font-size:clamp(21px,2.6vw,36px);letter-spacing:-.047em;white-space:nowrap;line-height:1.23;margin:0 0 14px}
+#screen-soni #soni-title em{font-family:Georgia,serif;font-style:italic;font-weight:400;color:#997e61}
+#screen-soni #soni-title span{font-weight:400;color:#777d76;margin-left:.18em}
+#screen-soni .soni-projectrow{margin:0 0 13px}
+#screen-soni #soniProjectSelect{max-width:260px;border:1px solid #e3e1dc;background:#fff;border-radius:9px;color:#333a36;font-size:12px;padding:9px 28px 9px 12px}
+#screen-soni .chat{display:flex;flex-direction:column;gap:0}
+#screen-soni .prompt{border-radius:22px;padding:15px 18px 12px;background:#fff;box-shadow:0 6px 28px rgba(24,28,24,.035)}
+#screen-soni #soniPrompt{min-height:34px;height:34px;max-height:175px;overflow-y:auto;resize:none;padding:2px 0;line-height:1.55;font-size:15px}
+#screen-soni .soni-actions{border-top:0;margin-top:10px;padding-top:0}
+#screen-soni .prompt-controls select{background:#f6f5f2;border:1px solid #eae9e4;border-radius:9px;padding:8px 10px;font-size:12px}
+#screen-soni .soni-actions .cta{border-radius:28px;padding:9px 17px;min-width:84px}
+#screen-soni .soni-actions .cta span{margin:0 0 0 6px}
+#screen-soni .soni-hint{margin:7px 3px 16px;font-size:11px;color:#989a95}
+#screen-soni .conversation{display:flex;flex-direction:column;gap:14px;width:100%;padding:4px 0 0;max-height:none;overflow:visible;text-align:left;align-items:stretch}
+#screen-soni .conversation>.empty{display:none}
+#screen-soni .log-item{width:fit-content;max-width:min(82%,690px);padding:12px 16px;border-radius:18px;font-size:13px;line-height:1.55;box-shadow:none;white-space:normal;overflow-wrap:anywhere}
+#screen-soni .log-item.user{align-self:flex-end;background:#eae9e5;border:0;color:#242927;border-bottom-right-radius:6px}
+#screen-soni .log-item.agent{align-self:flex-start;background:transparent;border:0;padding:11px 0;color:#202725;max-width:90%}
+#screen-soni .log-item small{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#94978f;margin-bottom:5px}
+#screen-soni .log-item .message-body{white-space:pre-wrap;line-height:1.58}
+#screen-soni .log-item .detail-toggle{display:block;border:0;background:none;color:#8d7459;font-size:11px;margin-top:9px;padding:5px 0}
+#screen-soni .log-item .detail-body{font-size:12px;color:#525c55;background:#f1f0eb;border-radius:12px;padding:13px 16px;white-space:pre-wrap;margin:8px 0 0;max-width:720px}
+@media(max-width:700px){.main:has(#screen-soni.active){padding-top:14px}#screen-soni #soni-title{font-size:clamp(17px,4.5vw,27px);white-space:normal}#screen-soni #soni-title span{margin-left:0}#screen-soni .log-item{max-width:92%}#screen-soni #soniPrompt{font-size:16px}}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><span class="eyebrow">Control Centre 3</span><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
@@ -43,22 +69,16 @@
 <section class="screen active" id="screen-home" aria-labelledby="home-title"><div class="intro"><p class="eyebrow">YOUR WORK · IN PERSPECTIVE</p><h1 id="home-title">Clarity for what <span class="hero-word">matters next.</span></h1><p>A single view of your priorities, decisions and verified progress. No activity theatre.</p></div><div class="kpi-grid"><div class="metric"><small>Projects</small><span class="value" id="countProjects">—</span><small>Registered workspaces</small></div><div class="metric"><small>Active work</small><span class="value" id="countActive">—</span><small>Queued or running</small></div><div class="metric"><small>Needs attention</small><span class="value" id="countNeeds">—</span><small>Recorded failures or interruptions</small></div><div class="metric"><small>Completed</small><span class="value" id="countDone">—</span><small>Recorded outcomes</small></div></div><div class="content-grid"><div class="stack"><div class="panel"><div class="panelhead"><div><p class="eyebrow">DECISIONS & PRIORITIES</p><h2>What needs your attention</h2></div><a href="#activity" data-go="activity">View activity</a></div><div id="homeNeeds" class="empty">Loading your local records…</div></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">RECENT WORK</p><h2>Verified activity</h2></div><a href="#activity" data-go="activity">Full history</a></div><div id="homeRecent" class="empty">No activity loaded.</div></div></div><div class="stack"><div class="quick"><p class="eyebrow">YOUR BUSINESS PARTNER</p><h2>There is one place to begin.</h2><p>Tell Soni what you need. The right specialists work behind the scenes.</p><button class="cta" data-go="soni">Ask Soni</button></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">WORKSPACE HEALTH</p><h2>Known, not assumed</h2></div></div><div id="homeHealth" class="empty">Awaiting local portfolio data.</div></div></div></div></section>
 <section class="screen" id="screen-soni" aria-labelledby="soni-title">
 <div class="soni-stage">
-  <div class="soni-heading"><h1 id="soni-title">Just ask <span class="hero-word">Soni.</span></h1><p>She handles the rest.</p></div>
-  <div class="soni-context"><span class="context-dot" aria-hidden="true"></span><span>Working in <strong id="soniProject">All projects</strong></span><span class="context-help">Select a project above to begin</span></div>
-  <div class="chat-wrap"><div class="chat">
-    <div class="prompt">
-      <label for="soniPrompt" class="visually-hidden">Your request to Soni</label>
-      <textarea id="soniPrompt" placeholder="What would you like to get done?"></textarea>
-      <div class="soni-actions">
-        <div class="prompt-controls"><label class="visually-hidden" for="soniProvider">AI provider</label><select id="soniProvider" aria-label="AI provider"><option value="mock">Demo — no AI cost</option><option value="auto">Auto · Codex → Claude</option></select><label class="consent"><input id="soniConsent" type="checkbox"> I approve sending this task to my selected API provider and any associated model charges.</label></div>
-        <button id="reviewPrompt" class="cta">Run with Soni <span aria-hidden="true">↗</span></button>
-      </div>
-      <p class="soni-hint" id="promptHint">Choose a project and provider to begin</p>
-    </div>
-    <div class="conversation" id="conversation"><div class="empty">Select a project to see its previous work.</div></div>
-  </div></div>
+<h1 id="soni-title">Just ask <em>Soni.</em> <span>She handles the rest.</span></h1>
+<div class="soni-projectrow"><label class="visually-hidden" for="soniProjectSelect">Select project</label><select id="soniProjectSelect" aria-label="Select project"><option value="">Select project</option></select><span id="soniProject" class="visually-hidden">All projects</span></div>
+<div class="chat-wrap"><div class="chat">
+<div class="prompt">
+<label class="visually-hidden" for="soniPrompt">Message Soni</label><textarea id="soniPrompt" rows="1" placeholder="Ask Soni anything about this project…" aria-label="Message Soni"></textarea>
+<div class="soni-actions"><div class="prompt-controls"><label class="visually-hidden" for="soniProvider">AI provider</label><select id="soniProvider" aria-label="AI provider"><option value="auto">Auto · Codex → Claude</option></select><label class="consent"><input id="soniConsent" type="checkbox"> I approve this paid API request and associated model charges.</label></div><button id="reviewPrompt" class="cta" aria-label="Send to Soni">Send <span aria-hidden="true">↑</span></button></div>
 </div>
-</section>
+<p class="soni-hint" id="promptHint" role="status">Select a project to begin</p>
+<div class="conversation" id="conversation" aria-live="polite"></div>
+</div></div></div></section>
 <section class="screen" id="screen-projects" aria-labelledby="projects-title"><div class="intro"><p class="eyebrow">INDEPENDENT WORKSPACES</p><h1 id="projects-title">Every project, <span class="hero-word">its own context.</span></h1><p>Independent goals, knowledge, ownership and outcomes. No cross-project mixing.</p></div><input class="search" id="projectSearch" type="search" aria-label="Search projects" placeholder="Find a project…"><div id="projectCards" class="project-list"><div class="empty">Loading project records…</div></div><p class="notice">Portfolio information reflects the local AIBO project registry where available.</p></section>
 <section class="screen" id="screen-activity" aria-labelledby="activity-title"><div class="intro"><p class="eyebrow">WORK & EVIDENCE</p><h1 id="activity-title">Progress you can <span class="hero-word">account for.</span></h1><p>Tasks, outcomes, interruptions and approvals — sourced from actual records, not demonstration statistics.</p></div><div class="tabs" aria-label="Activity filter"><button class="tab active" data-filter="all">All</button><button class="tab" data-filter="completed">Completed</button><button class="tab" data-filter="running">Active</button><button class="tab" data-filter="failed">Needs attention</button></div><div class="panel" style="margin-bottom:16px"><div class="panelhead"><div><p class="eyebrow">APPROVAL QUEUE</p><h2>Consequential actions</h2></div></div><div id="approvalRows" class="empty">Loading approval records…</div></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">EXECUTION LEDGER</p><h2>Recent work</h2></div><span class="pill" id="activityCount">0 records</span></div><div id="activityRows" class="empty">No activity loaded.</div></div><p class="notice">Actions, approvals and provider receipts need an explicit record before they are described as completed.</p></section>
 <section class="screen" id="screen-connections" aria-labelledby="connections-title"><div class="intro"><p class="eyebrow">TOOLS & INTELLIGENCE</p><h1 id="connections-title">Connected where <span class="hero-word">it counts.</span></h1><p>Provider access and integrations remain explicit, project-scoped and verifiable.</p></div><div class="panel" style="margin-bottom:16px"><div class="panelhead"><div><p class="eyebrow">STATUS</p><h2>Connection overview</h2></div></div><div class="detail-note" id="connectionStatus">A listed integration is not necessarily authenticated. Only verified provider responses establish connection status.</div></div><div id="connectionsGrid" class="conn-list"><div class="empty">Loading connection catalog…</div></div></section>
