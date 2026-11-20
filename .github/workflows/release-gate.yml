@@ -1,0 +1,123 @@
+name: AIBO seven-stage release gate
+on:
+  pull_request:
+    paths:
+      - "runtime/**"
+      - "Control-Centre/**"
+      - "tests/**"
+      - "qa/**"
+      - "build-windows.ps1"
+      - ".github/workflows/release-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage-1-unit-integration:
+    name: 1 Unit and integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Python compile and unit / integration regressions
+        run: |
+          python -m compileall -q runtime tests qa
+          python -m unittest discover -s tests -v
+
+  stage-2-smoke:
+    name: 2 Local server smoke
+    runs-on: ubuntu-latest
+    needs: stage-1-unit-integration
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Local startup and HTTP smoke
+        run: python qa/release_nonfunctional.py
+      - name: Preserve smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aibo-release-local-probes
+          path: qa/release-evidence/
+          retention-days: 30
+
+  stage-3-functional:
+    name: 3 Functional desktop and mobile
+    runs-on: ubuntu-latest
+    needs: stage-2-smoke
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Browser dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Functional acceptance
+        run: python qa/v3_acceptance.py
+      - name: 4 Targeted Soni bug sanity — desktop tablet and mobile
+        run: python qa/soni_sanity.py
+      - name: Preserve screenshots and run records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aibo-release-functional-evidence
+          path: qa/v3-acceptance/
+          retention-days: 30
+
+  stage-5-regression:
+    name: 5 Broad regression
+    runs-on: ubuntu-latest
+    needs: stage-3-functional
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Entire Python suite including provider, permission and onboarding tests
+        run: python -m unittest discover -s tests -v
+
+  stage-6-nonfunctional:
+    name: 6 Nonfunctional and security
+    runs-on: ubuntu-latest
+    needs: stage-5-regression
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run isolated security negative cases and local performance probe
+        run: python qa/release_nonfunctional.py
+      - name: High-severity static security scan
+        run: |
+          python -m pip install bandit
+          bandit -r runtime -ll -ii -q
+      - name: Verify release has no accidental committed Python credentials
+        shell: bash
+        run: |
+          if git grep -nE '(sk-proj-[A-Za-z0-9]{20,}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' -- runtime Control-Centre; then
+            echo "Potential credential literal found. Review before release."
+            exit 1
+          fi
+      - name: Save security and performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aibo-release-security-performance
+          path: qa/release-evidence/
+          retention-days: 30
+
+  # Stage 6 owner acceptance and Stage 7 post-install smoke cannot be
+  # self-certified in CI. These require a real user-installed build.
+  # Never mark production readiness solely on this workflow being green.

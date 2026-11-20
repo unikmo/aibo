@@ -139,9 +139,12 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
                 raise AiboError(f'Choose a model ID for {provider} in AI Providers before using it')
             payload = {'model':chosen_model,'messages':[{'role':'system','content':system},{'role':'user','content':user}], 'max_tokens':output_token_limit}
             headers = {'Authorization':'Bearer ' + key}
+        # URLs are selected from fixed provider constants only, never user input.
+        if not url.startswith('https://'):
+            raise AiboError('Provider endpoint must use HTTPS')
         req = urllib.request.Request(url, json.dumps(payload).encode(), headers={**headers,'Content-Type':'application/json'}, method='POST')
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
+            with urllib.request.urlopen(req, timeout=timeout) as r:  # nosec B310 - fixed HTTPS provider destination
                 data = json.load(r)
         except urllib.error.HTTPError as exc:
             # API error bodies can echo portions of credentials or submitted data.

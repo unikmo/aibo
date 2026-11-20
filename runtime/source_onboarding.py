@@ -137,7 +137,13 @@ def _unpack_text(data,ext):
                 for name in names:
                     if not expected(name):continue
                     if bundle.getinfo(name).file_size>1500000:continue
-                    element=ET.fromstring(bundle.read(name))
+                    raw_xml=bundle.read(name)
+                    # Office files are untrusted. Reject entity/DTD declarations before
+                    # parsing and cap expanded ZIP member size above. No external
+                    # entity or DTD processing is permitted in project imports.
+                    if b'<!DOCTYPE' in raw_xml.upper() or b'<!ENTITY' in raw_xml.upper():
+                        raise SourceError('Document XML entity declarations are not permitted')
+                    element=ET.fromstring(raw_xml)  # nosec B314 - size bounded; DTD and ENTITY explicitly rejected
                     if ext==".docx":
                         paras=[node for node in element.iter() if node.tag.endswith("}p")]
                         blocks=["".join((child.text or "") for child in p.iter() if child.tag.endswith("}t"))
@@ -158,6 +164,8 @@ def _unpack_text(data,ext):
                 raise SourceError("PDF text extraction unavailable in this installation; provide TXT/DOCX or install pypdf") from e
             reader=PdfReader(__import__("io").BytesIO(data),strict=False)
             return "\n".join((page.extract_text() or "") for page in reader.pages[:12])[:MAX_EXTRACT]
+    except SourceError:
+        raise
     except (zipfile.BadZipFile,ET.ParseError,KeyError,ValueError) as e:
         raise SourceError("Document could not be read") from e
     raise SourceError("Unsupported document type")
