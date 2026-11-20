@@ -43,25 +43,52 @@ def _project(project_id):
 
 DRAFTS = products.STATE/'source-previews'
 def source_inventory(project_id):
-    """Inspect bounded known project files; no remote fetch without user action."""
+    """Read a bounded set of non-secret files from this project's own folder."""
     project=_project(project_id)
-    folder=aibo._project_folder(project)
+    folder=aibo._project_folder(project).resolve()
+    preferred=('01-Business-Foundation/01-Business-Profile.md',
+               '01-Business-Foundation/README.md','AIBO-PROJECT-OVERVIEW.md','README.md')
+    candidates=[folder/name for name in preferred]
+    if folder.is_dir():
+        matches=[]
+        for item in folder.rglob('*'):
+            if not item.is_file():continue
+            relative=item.relative_to(folder)
+            if len(relative.parts)>4 or any(part.startswith('.') or part.lower() in (
+                    'node_modules','build','dist','vendor','archive','backup','secrets') for part in relative.parts):
+                continue
+            if item.suffix.lower() not in ('.md','.txt','.json','.csv','.docx','.pptx','.xlsx','.pdf'):
+                continue
+            if not any(term in item.stem.casefold() for term in (
+                    'readme','profile','brief','about','overview','business','strategy','pitch','project')):
+                continue
+            matches.append(item)
+            if len(matches)>=36:break
+        candidates.extend(sorted(matches))
     sources=[]
-    for rel in ('01-Business-Foundation/01-Business-Profile.md',
-                '01-Business-Foundation/README.md',
-                'AIBO-PROJECT-OVERVIEW.md','README.md'):
-        file=(folder/rel).resolve()
-        if not file.is_relative_to(folder.resolve()) or not file.is_file() or file.stat().st_size>500000:
-            continue
+    seen=set()
+    for file in candidates:
+        file=file.resolve()
+        if file in seen or not file.is_relative_to(folder) or not file.is_file():continue
+        seen.add(file)
+        if not 0<file.stat().st_size<=300000:continue
+        rel=file.relative_to(folder).as_posix()
         try:
-            source=source_onboarding.inspect_document(rel,file.read_bytes()[:source_onboarding.MAX_EXTRACT])
-            source['reference']='Project file · '+rel
-            for item in source['evidence']:item['source']=source['reference']
-            sources.append(source)
-        except source_onboarding.SourceError:
+            raw=file.read_bytes()
+            if b'New independent project workspace.' in raw and 'AIBO-PROJECT-OVERVIEW' in rel:
+                continue # Empty generated scaffold is not genuine business evidence.
+            item=source_onboarding.inspect_document(rel,raw)
+            item['reference']='Project file · '+rel
+            for evidence in item['evidence']:evidence['source']=item['reference']
+            sources.append(item)
+        except (source_onboarding.SourceError,OSError,UnicodeError):
             continue
-    return {'project':project_id,'sources':sources,'localOnly':True,
-            'note':'Only existing local project files were inspected. No external connections used.'}
+        if len(sources)>=12:break
+    summary=source_onboarding.consolidate(sources)
+    return {'project':project_id,'sources':sources,
+            'suggestions':summary['suggestions'],'conflicts':summary['conflicts'],
+            'localOnly':True,
+            'note':'Only bounded project-owned local files were inspected. No external connections used.'}
 
 def inspect_sources(project_id,payload):
     """Explicit owner-triggered discovery, with per-source errors and no model calls."""
