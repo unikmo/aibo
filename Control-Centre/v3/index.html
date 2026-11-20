@@ -170,6 +170,45 @@
 #screen-projects .page-heading{margin-bottom:12px}
 .modal{padding:24px}.modal h2{font-size:20px;margin:0 0 12px}
 .project-summary .meta{font-size:11px;margin-bottom:13px}
+
+/* Soni: true viewport-bound chat, not a page-scrolling form. */
+.workspace:has(#screen-soni.active){height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.workspace:has(#screen-soni.active)>.topbar{flex:0 0 66px;height:66px;min-height:66px}
+.workspace:has(#screen-soni.active)>.main{flex:1 1 auto;min-height:0;width:100%;max-width:1260px;overflow:hidden;padding:10px clamp(18px,3vw,44px) 0}
+#screen-soni.active{height:100%!important;min-height:0!important;overflow:hidden!important}
+#screen-soni .soni-stage{height:100%;min-height:0;display:flex;flex-direction:column;max-width:970px;margin:0 auto;padding:0}
+#screen-soni #soni-title{flex:0 0 auto;color:#222826;margin:4px 0 9px}
+#screen-soni .chat-wrap{display:flex!important;flex:1 1 0;min-height:0;overflow:hidden}
+#screen-soni .chat{display:flex!important;flex:1 1 0;min-height:0;overflow:hidden;flex-direction:column;background:#242927;border:1px solid #353d39;border-radius:17px;padding:0;gap:0}
+#screen-soni .conversation,#screen-soni .conversation.chat-log{
+  display:flex!important;flex:1 1 0;min-height:0;max-height:none!important;overflow-y:auto!important;
+  overflow-x:hidden!important;overscroll-behavior:contain;flex-direction:column;
+  padding:22px 24px 20px;background:#242927!important;color:#f4f3ee!important;
+  scrollbar-color:#5f6963 #242927;align-items:stretch;justify-content:flex-start
+}
+#screen-soni .log-item.agent{color:#f4f3ee!important;background:transparent!important;border:0}
+#screen-soni .log-item.user{color:#f4f3ee!important;background:#3b4540!important;border:0}
+#screen-soni .log-item small{color:#b2bdb5!important}
+#screen-soni .log-item .message-body{color:inherit!important}
+#screen-soni .log-item .detail-toggle{color:#e3c7a3!important}
+#screen-soni .log-item .detail-body{background:#323b35!important;color:#f4f3ee!important;border:1px solid #525c54}
+#screen-soni .composer-dock{flex:0 0 auto;position:relative;z-index:2;order:1;background:#242927!important;border-top:1px solid #414944!important;padding:13px 18px max(14px,env(safe-area-inset-bottom))}
+#screen-soni .prompt{background:#343c37!important;border:1px solid #5a645d!important;box-shadow:none;border-radius:15px}
+#screen-soni #soniPrompt{color:#f4f3ee!important;background:transparent;max-height:min(155px,23dvh)}
+#screen-soni #soniPrompt::placeholder{color:#adb9b0!important}
+#screen-soni .prompt-controls select{color:#f4f3ee!important;background:#424c45!important;border:1px solid #667066!important}
+#screen-soni .soni-hint{color:#b7c0b8!important;margin:7px 3px 0}
+#screen-soni .consent{color:#f4f3ee!important}
+#screen-soni .soni-actions .cta{color:#242927;background:#eeeae0}
+@media(max-width:700px){
+ .workspace:has(#screen-soni.active){height:100dvh}
+ .workspace:has(#screen-soni.active)>.topbar{flex-basis:60px;height:60px;min-height:60px}
+ .workspace:has(#screen-soni.active)>.main{padding:8px 12px 0}
+ #screen-soni.active{height:100%!important}
+ #screen-soni .soni-stage{padding:0}
+ #screen-soni .conversation{padding:13px 12px 15px}
+ #screen-soni .composer-dock{padding:10px 11px max(12px,env(safe-area-inset-bottom))}
+}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
