@@ -45,8 +45,38 @@ with tempfile.TemporaryDirectory() as state_dir:
                     const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
                     return [css.backgroundColor,css.color,agent.backgroundColor];
                 }""")
-                assert colors==['rgb(250, 250, 250)','rgb(32, 33, 36)','rgb(255, 255, 255)'],colors
-                assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible without scrolling"
+                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgb(36, 41, 39)'],colors
+                assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible"
+                def check_composer():
+                    result=page.evaluate("""() => {
+                      const composer=document.querySelector('#soniPrompt').getBoundingClientRect();
+                      const history=document.querySelector('#conversation').getBoundingClientRect();
+                      const outer=document.querySelector('#screen-soni').getBoundingClientRect();
+                      return {composerTop:composer.top,composerBottom:composer.bottom,
+                        historyTop:history.top,historyBottom:history.bottom,
+                        viewHeight:window.innerHeight, outerBottom:outer.bottom,
+                        scrollHeight:document.querySelector('#conversation').scrollHeight,
+                        clientHeight:document.querySelector('#conversation').clientHeight};
+                    }""")
+                    assert result["composerTop"]>=result["historyBottom"]-2,result
+                    assert result["composerBottom"]<result["viewHeight"]-12,result
+                    assert result["outerBottom"]<=result["viewHeight"]+2,result
+                    return result
+                check_composer()
+                # A project with extensive historical chat must scroll messages, not the whole page.
+                page.locator("#conversation").evaluate("""el => {
+                  for(let i=0;i<45;i++){
+                    const msg=document.createElement('div');
+                    msg.className='log-item agent';
+                    msg.textContent='Previous conversation ' + i + ' — status and verified project records.';
+                    el.append(msg);
+                  }
+                }""")
+                sizes=check_composer()
+                assert sizes["scrollHeight"]>sizes["clientHeight"]+80,"Old messages must scroll independently"
+                page.locator("#conversation").evaluate("(el)=>{el.scrollTop=el.scrollHeight}")
+                check_composer()
+                page.locator("#conversation").evaluate("(el)=>el.replaceChildren()")
                 page.locator('.nav[data-screen="projects"]').click()
                 # Copy-density and hierarchy contract: no promotional filler or duplicate controls.
                 visible_headings=[page.locator("#screen-"+screen+" h1").inner_text() for screen in ("home","soni","projects","activity","connections")]
