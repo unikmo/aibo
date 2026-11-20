@@ -72,10 +72,27 @@ def key_for(provider):
     try:return _dpapi(base64.b64decode(encoded,validate=True),False).decode('utf-8')
     except Exception:raise products.ProductError('Stored provider key cannot be decrypted for this Windows user')
 
+def local_cli_path(provider):
+    """Return a directly invocable CLI entrypoint (not a PowerShell alias)."""
+    if provider not in ('codex-local', 'claude-local'):
+        return None
+    name = 'codex' if provider == 'codex-local' else 'claude'
+    # npm installs Windows PowerShell .ps1 and cmd.exe .cmd shims. Python
+    # subprocess must use the executable .cmd shim, not a PowerShell alias.
+    candidates = (name + '.cmd', name + '.exe', name) if os.name == 'nt' else (name,)
+    for candidate in candidates:
+        found = shutil.which(candidate)
+        if found:
+            if os.name == 'nt' and found.lower().endswith('.ps1'):
+                continue
+            return found
+    return None
+
+
 def public():
     settings=_saved()
     saved_keys=products.read_json(KEY_PATH,{})
-    available={v:bool(shutil.which('codex' if v=='codex-local' else 'claude')) if v in ('codex-local','claude-local') else bool(os.environ.get(ENV_KEYS[v]) or saved_keys.get(v)) for v in ORDER}
+    available={v:bool(local_cli_path(v)) if v in ('codex-local','claude-local') else bool(os.environ.get(ENV_KEYS[v]) or saved_keys.get(v)) for v in ORDER}
     return {**settings,'ready':available,'credentialStorage':'Windows DPAPI per-user encryption for API keys',
             'note':'Provider availability is a local prerequisite check, not proof of authentication. No automatic paid fallback in ask mode.'}
 
