@@ -43,6 +43,17 @@ class CreationTests(unittest.TestCase):
         self.assertTrue(local['projects'][0]['stateProject'])
         self.assertTrue((products.STATE/'Projects'/'new-branch'/'PROJECT-KNOWLEDGE.json').exists())
         self.assertEqual(len(products.custom_projects()),2)
+    def test_custom_cap_20_preserves_existing_projects(self):
+        for i in range(1,20):
+            result=products.create_custom_project({'name':f'Cap Test {i:02}'})
+        self.assertEqual(result['totalProjects'],20)
+        before=products.read_json(products.STATE/'custom-projects.json',{})
+        with self.assertRaisesRegex(products.ProductError,'limit reached'):
+            products.create_custom_project({'name':'Cap Test 21'})
+        self.assertEqual(products.read_json(products.STATE/'custom-projects.json',{}),before)
+        self.assertFalse((products.STATE/'Projects'/'cap-test-21').exists())
+        self.assertEqual(len(products.standard_state()['slots']),5)
+
     def test_no_existing_folder_replacement(self):
         (self.p/'Projects'/'in-use').mkdir()
         (self.p/'Projects'/'in-use'/'keep').write_text('safe')

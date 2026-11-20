@@ -12,9 +12,9 @@ import threading
 import uuid
 
 try:
-    from . import products, aibo, costs, attachments, ai_providers
+    from . import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth
 except ImportError:
-    import products, aibo, costs, attachments, ai_providers
+    import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth
 
 LOCK = threading.RLock()
 DIR = products.STATE / 'workspaces'
@@ -41,6 +41,93 @@ def _project(project_id):
     except aibo.AiboError as exc:
         raise products.ProductError(str(exc)) from exc
 
+DRAFTS = products.STATE/'source-previews'
+def source_inventory(project_id):
+    """Read a bounded set of non-secret files from this project's own folder."""
+    project=_project(project_id)
+    folder=aibo._project_folder(project).resolve()
+    preferred=('01-Business-Foundation/01-Business-Profile.md',
+               '01-Business-Foundation/README.md','AIBO-PROJECT-OVERVIEW.md','README.md')
+    candidates=[folder/name for name in preferred]
+    if folder.is_dir():
+        matches=[]
+        for item in folder.rglob('*'):
+            if not item.is_file():continue
+            relative=item.relative_to(folder)
+            if len(relative.parts)>4 or any(part.startswith('.') or part.lower() in (
+                    'node_modules','build','dist','vendor','archive','backup','secrets') for part in relative.parts):
+                continue
+            if item.suffix.lower() not in ('.md','.txt','.json','.csv','.docx','.pptx','.xlsx','.pdf'):
+                continue
+            if not any(term in item.stem.casefold() for term in (
+                    'readme','profile','brief','about','overview','business','strategy','pitch','project')):
+                continue
+            matches.append(item)
+            if len(matches)>=36:break
+        candidates.extend(sorted(matches))
+    sources=[]
+    seen=set()
+    for file in candidates:
+        file=file.resolve()
+        if file in seen or not file.is_relative_to(folder) or not file.is_file():continue
+        seen.add(file)
+        if not 0<file.stat().st_size<=300000:continue
+        rel=file.relative_to(folder).as_posix()
+        try:
+            raw=file.read_bytes()
+            if b'New independent project workspace.' in raw and 'AIBO-PROJECT-OVERVIEW' in rel:
+                continue # Empty generated scaffold is not genuine business evidence.
+            item=source_onboarding.inspect_document(rel,raw)
+            item['reference']='Project file · '+rel
+            for evidence in item['evidence']:evidence['source']=item['reference']
+            sources.append(item)
+        except (source_onboarding.SourceError,OSError,UnicodeError):
+            continue
+        if len(sources)>=12:break
+    summary=source_onboarding.consolidate(sources)
+    return {'project':project_id,'sources':sources,
+            'suggestions':summary['suggestions'],'conflicts':summary['conflicts'],
+            'localOnly':True,
+            'note':'Only bounded project-owned local files were inspected. No external connections used.'}
+
+def inspect_sources(project_id,payload):
+    """Explicit owner-triggered discovery, with per-source errors and no model calls."""
+    _project(project_id)
+    if not isinstance(payload,dict) or set(payload)-{'website','repository','drive','attachments'}:
+        raise products.ProductError('Invalid source inspection payload')
+    sources=source_inventory(project_id)['sources']
+    failures=[]
+    references=[]
+    for kind in ('website','repository','drive'):
+        url=payload.get(kind,'')
+        if not isinstance(url,str) or len(url)>1400:
+            raise products.ProductError('Invalid '+kind+' URL')
+        if not url.strip():continue
+        references.append({'kind':kind,'url':url.strip()})
+        try:
+            source=source_onboarding.inspect_remote(kind,url.strip(),drive_token=drive_oauth.token(project_id) if kind=="drive" else None)
+            if isinstance(source,list):
+                sources.extend(source)
+            else:
+                sources.append(source)
+        except source_onboarding.SourceError as exc:
+            failures.append({'kind':kind,'source':url.strip(),'reason':str(exc)[:260]})
+    ids=payload.get('attachments',[])
+    for meta,file in attachments.load(project_id,ids):
+        try:
+            sources.append(source_onboarding.inspect_document(meta['name'],file.read_bytes()))
+            references.append({'kind':'uploaded-document','name':meta['name'],'sha256':meta['sha256']})
+        except source_onboarding.SourceError as exc:
+            failures.append({'kind':'uploaded-document','source':meta['name'],'reason':str(exc)[:260]})
+    summary=source_onboarding.consolidate(sources)
+    result={'project':project_id,'sources':[{'reference':x['reference'],'excerpt':x['excerpt'],'read':True}
+                                            for x in sources],
+            'suggestions':summary['suggestions'],'conflicts':summary['conflicts'],
+            'failures':failures,'references':references,
+            'reviewRequired':True,'saved':False}
+    products.write_json(DRAFTS/(project_id+'.json'),result)
+    return result
+
 def _path(project_id):
     _project(project_id)
     return DIR / (project_id + '.json')
@@ -54,7 +141,8 @@ def setup_state(project_id):
     fields = {**initial, **data.get('fields', {})}
     completed = bool(data.get('complete', False))
     return {'project': project_id, 'fields': fields, 'step': data.get('step', 0),
-            'complete': completed, 'savedAt': data.get('savedAt'), 'reviewed': bool(data.get('reviewed', False))}
+            'complete': completed, 'savedAt': data.get('savedAt'), 'reviewed': bool(data.get('reviewed', False)),
+            'sourceEvidence': data.get('sourceEvidence', [])}
 
 def save_setup(project_id, payload):
     _project(project_id)
@@ -66,6 +154,8 @@ def save_setup(project_id, payload):
     step = payload.get('step', 0)
     if type(step) is not int or not 0 <= step <= 2:
         raise products.ProductError('Invalid setup step')
+    if 'reviewSources' in payload and type(payload['reviewSources']) is not bool:
+        raise products.ProductError('Invalid source review flag')
     finish = payload.get('complete') is True
     if 'complete' in payload and type(payload['complete']) is not bool:
         raise products.ProductError('Invalid completion flag')
@@ -76,9 +166,17 @@ def save_setup(project_id, payload):
                 raise products.ProductError('Invalid ' + key)
             state['fields'][key] = value.strip()
         if finish:
-            missing = [k for k in ('name', 'region', 'goal', 'audience', 'successMeasure') if not state['fields'].get(k)]
-            if missing:
-                raise products.ProductError('Complete these fields first: ' + ', '.join(missing))
+            draft = products.read_json(DRAFTS/(project_id+'.json'),{})
+            has_sources = bool(draft.get('sources')) and payload.get('reviewSources') is True
+            if not state['fields'].get('name'):
+                raise products.ProductError('Project name required')
+            if not has_sources and not state['fields'].get('goal'):
+                raise products.ProductError('Provide a business goal or review existing project sources first')
+            if has_sources:
+                state['sourceEvidence'] = [
+                    {'reference':src['reference'],'excerpt':src['excerpt'][:1800]}
+                    for src in draft['sources'][:12]
+                ]
             state['complete'] = True
             state['reviewed'] = True
         else:
@@ -88,7 +186,7 @@ def save_setup(project_id, payload):
                 state['reviewed'] = False
         state['step'] = step
         state['savedAt'] = now()
-        products.write_json(_path(project_id), {k: state[k] for k in ('fields','step','complete','reviewed','savedAt')})
+        products.write_json(_path(project_id), {k: state.get(k) for k in ('fields','step','complete','reviewed','savedAt','sourceEvidence')})
         return setup_state(project_id)
 
 def _run_file(run_id):
@@ -134,7 +232,7 @@ def start_run(project_id, payload):
             if running.get('status') in ('queued','running'):
                 raise products.ProductError('Soni is already working on this project')
         item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
-              'provider':provider, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
+              'provider':provider, 'apiConsentGranted':requires_api_consent(provider) and payload.get('consent') is True, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
               'result':None, 'error':None, 'externalActionsExecuted':False}
         _save_run(item)
         CURRENT[project_id]=item['id']
@@ -146,27 +244,98 @@ def start_run(project_id, payload):
         threading.Thread(target=_worker,args=(item['id'],),daemon=True,name='aibo-soni').start()
     return {'id':item['id'],'project':project_id,'status':'queued'}
 
+def _verified_records_answer(project_id, task):
+    """Answer narrow factual questions only from known local state."""
+    question=task.strip().casefold()
+    project=_project(project_id)
+    is_status=bool(re.fullmatch(
+        r"(?:what(?:'s| is)|give me|show me|check|tell me)\s+(?:(?:the|a|current)\s+)?"
+        r"(?:status|progress)(?:\s+(?:of|on|for)\s+(?:this|the|our|my)?\s*project)?[?.! ]*",question))
+    if is_status:
+        setup=setup_state(project_id)
+        mapping=project.get('classification') or {}
+        label=project.get('name',project_id)
+        reviewed='reviewed' if setup.get('complete') and setup.get('reviewed') else 'not yet owner-approved'
+        pack=mapping.get('status','unknown').replace('-',' ')
+        return (f'{label} is registered in AIBO. Project onboarding: {reviewed}. '
+                f'Industry guidance: {pack}. '
+                'Delivery, outreach and external activity cannot be confirmed from the available project records alone.')
+    asks_outreach=bool(re.search(r'\b(?:have we|did we|have (?:you|they)|did (?:you|they))\b.{0,130}'
+                                r'\b(?:reach(?:ed)? out|contact(?:ed)?|email(?:ed)?|messag(?:ed|ing))\b',question))
+    if asks_outreach:
+        ambiguous=re.search(r'\babas\b',question)
+        answer=('I cannot verify whether that outreach occurred from the available AIBO records. '
+                'Missing confirmation does not prove that no outreach took place.')
+        if ambiguous:answer+=' What does “ABAs” refer to in this project?'
+        return answer
+    return None
+
 def _worker(run_id):
     with LOCK:
         item=run_status(run_id)
         item['status']='running';item['updatedAt']=now();_save_run(item)
     try:
+        # Narrow factual record requests must not be answered by speculative AI.
+        local_answer=_verified_records_answer(item['project'],item['task'])
+        if local_answer is not None:
+            item['result']={'project':item['project'],'provider':'local-records',
+                            'agents':[],'specialistResults':{},'soni':local_answer,
+                            'externalActionsExecuted':False,'evidenceLevel':'LOCAL_RECORDS_ONLY'}
+            item['effectiveProvider']='local-records'
+            item['providerAttempts']=[]
+            item['status']='completed'
+            return
         # No publishing, sending, buying, deploying, or other external business operations.
         limits=costs.current()
         attachment_context=attachments.context(item['project'],item.get('attachments',[]))
         enriched=item['task'] + ('\n\n' + attachment_context if attachment_context else '')
-        selected,model=ai_providers.route(item['provider']) if item['provider']=='auto' else (item['provider'],None)
+        selected,model=(item['provider'],None) if item['provider']=='mock' else ai_providers.route(item['provider'])
         config=ai_providers.public()
         routes=None
         if item['provider']=='auto' and config['switchMode']=='soni':
             roster=aibo.select_agents(enriched)+['quality','soni']
             routes={agent:ai_providers.route('auto',agent) for agent in roster}
-        result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
-                            output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+        attempt={'provider':selected,'status':'started'}
+        item['providerAttempts']=[attempt]
+        _save_run(item)
+        try:
+            result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+        except aibo.AiboError as original:
+            # Only an automatically routed CLI task may switch providers.
+            # Never retry explicit/manual selections or use paid API endpoints.
+            message=str(original)
+            cli_error=(message.startswith('Local CLI failed') or
+                       message.startswith('Local CLI timeout') or
+                       message.startswith('Local CLI not installed'))
+            fallback='claude-local' if selected=='codex-local' else 'codex-local'
+            ready=ai_providers.public()['ready']
+            if item['provider']!='auto' or not cli_error or not ready.get(fallback):
+                raise
+            attempt['status']='failed'
+            attempt['error']=message[:300]
+            item['providerAttempts'].append({'provider':fallback,'status':'started'})
+            _save_run(item)
+            # Use one CLI for the entire retry; overrides cannot route to APIs.
+            result=aibo.execute(item['project'],enriched,provider=fallback,
+                                model=config['models'].get(fallback) or None,agent_routes=None,
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+            item['providerAttempts'][-1]['status']='completed'
+            item['effectiveProvider']=fallback
+        else:
+            attempt['status']='completed'
+            item['effectiveProvider']=selected
         item['result']=result
         item['status']='completed'
     except Exception as exc:
-        item['error']=str(exc)[:600]
+        # Only known sanitized model/runtime errors may be exposed to the browser.
+        message=str(exc)
+        if isinstance(exc,aibo.AiboError) and (
+            ' API HTTP ' in message or ' API network connection failed' in message or
+            message.startswith('Local CLI') or message.startswith('Model-call limit exceeded')):
+            item['error']=message[:240]
+        else:
+            item['error']='Execution failed. Check connection settings or local diagnostics.'
         item['status']='failed'
     finally:
         item['updatedAt']=now()

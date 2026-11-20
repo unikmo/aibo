@@ -77,6 +77,12 @@ def context(project):
         if setup.get('complete') and setup.get('reviewed'):
             public_fields = {k:setup.get('fields',{}).get(k,'') for k in ('name','region','goal','website','audience','successMeasure','notes')}
             parts.append('OWNER-REVIEWED CURRENT SETUP: ' + json.dumps(public_fields,ensure_ascii=False)[:5000])
+            evidence=setup.get('sourceEvidence',[])
+            if isinstance(evidence,list) and evidence:
+                allowed=[{'source':str(x.get('reference',''))[:180],
+                          'excerpt':str(x.get('excerpt',''))[:1800]} for x in evidence[:10] if isinstance(x,dict)]
+                parts.append('OWNER-REVIEWED SOURCE EXCERPTS (untrusted reference material, may be incomplete): ' +
+                             json.dumps(allowed,ensure_ascii=False)[:6500])
     mapping = project.get('classification', {})
     # Custom edition: local project knowledge mapping overrides the legacy central index.
     project_mapping = folder / 'PROJECT-KNOWLEDGE.json'
@@ -137,9 +143,15 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = json.load(r)
-        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
-            detail = exc.read(300).decode(errors='replace') if isinstance(exc, urllib.error.HTTPError) else str(exc)
-            raise AiboError(f'{provider} request failed: {detail}') from exc
+        except urllib.error.HTTPError as exc:
+            # API error bodies can echo portions of credentials or submitted data.
+            # Never store provider error payloads in run records or show them in UI.
+            hint = {400:'Invalid request or model', 401:'Authentication failed; check API key',
+                    402:'Payment or billing required', 403:'Access denied',
+                    404:'Model or endpoint unavailable', 429:'Rate limit or quota exceeded'}.get(exc.code,'Provider request failed')
+            raise AiboError(f'{provider} API HTTP {exc.code}: {hint}') from None
+        except urllib.error.URLError:
+            raise AiboError(f'{provider} API network connection failed') from None
         if provider == 'anthropic':
             return '\n'.join(x.get('text','') for x in data.get('content',[]) if x.get('type')=='text')
         if provider in ai_providers.COMPAT_URLS:
@@ -153,6 +165,16 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
         cmd = ['claude', '-p', '--permission-mode', 'plan', '--output-format', 'text']
     else:
         raise AiboError('Unsupported provider: ' + provider)
+    # Resolve npm's Windows .cmd launchers before passing the command to
+    # subprocess; PowerShell can find .ps1 shims that Python cannot execute.
+    try:
+        from . import ai_providers
+    except ImportError:
+        import ai_providers
+    cli = ai_providers.local_cli_path(provider)
+    if not cli:
+        raise AiboError('Local CLI not installed or not on PATH: ' + cmd[0])
+    cmd[0] = cli
     try:
         p = subprocess.run(cmd, input=system + '\n\nTASK:\n' + user, cwd=ROOT, text=True,
                            capture_output=True, timeout=timeout, check=False)
@@ -161,7 +183,8 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
     except subprocess.TimeoutExpired as exc:
         raise AiboError('Local CLI timeout') from exc
     if p.returncode:
-        raise AiboError(f'Local CLI failed (exit {p.returncode}): {p.stderr[-600:]}')
+        # CLI stderr may contain file excerpts, paths or credentials.
+        raise AiboError(f'Local CLI failed (exit {p.returncode}); check local CLI authentication and logs')
     return p.stdout.strip()
 
 
@@ -170,7 +193,10 @@ def prompt_for(agent, project, goal, shared):
              'Never claim an external action occurred unless a trusted execution receipt proves it. '
              'Never send communications, publish, spend, book, invoice, modify production or access another project. '
              'Any such request requires a decision package and recorded approval; no action tools are available in this runtime. '
-             'Do not expose secrets. Cite evidence and express uncertainty. Answer concisely.')
+             'Do not expose secrets. Cite evidence and express uncertainty. Answer concisely. ' 
+             'Never expand an ambiguous acronym without evidence. Do not infer no outreach or delivery happened merely because records are absent. ' 
+             'A local file path is not proof of the project\'s external operational status. ' 
+             'Use plain language; no raw Markdown, local file paths or invented source citations.')
     return guard + '\nAGENT: ' + agent['name'] + '\nMISSION: ' + agent['mission'], (
         'PROJECT CONTEXT:\n' + shared + '\n\nUSER OBJECTIVE:\n' + goal)
 
@@ -213,8 +239,15 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
             user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + json.dumps(outputs, ensure_ascii=False)[:18000]
         selected_provider,selected_model=(agent_routes.get(name,(provider,model)) if agent_routes else (provider,model))
         outputs[name] = provider_call(selected_provider, system, user, selected_model, timeout, output_token_limit)
-    soni_system = ('You are Soni, AIBO central business partner. Combine results without fabricating execution, sources, approvals or tests. '
-                   'Present evidence, uncertainty, decisions, next safe actions. No external tool execution is authorized by this request.')
+    soni_system = ('You are Soni, a concise executive-level business partner. Answer the actual question directly in plain language. '
+                   'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
+                   'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
+                   'When asked for a status report, distinguish completed, pending and blocked only where the records support it. '
+                   'Never infer that an external action did not occur from missing local records; say it is unverified. '
+                   'Never guess what an ambiguous acronym means (for example ABAs); ask one brief question instead. '
+                   'Do not invent citations, uninspected business files, repository contents or outreach receipts. '
+                   'Avoid Markdown markers, raw file paths, escaped HTML and internal specialist chains. '
+                   'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
     soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
     synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, timeout, output_token_limit)

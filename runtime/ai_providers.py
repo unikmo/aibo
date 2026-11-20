@@ -1,6 +1,7 @@
 """Owner-configured local AI providers. Credentials use Windows DPAPI user encryption."""
 from __future__ import annotations
 import base64
+import json
 import os
 from pathlib import Path
 import re
@@ -71,12 +72,78 @@ def key_for(provider):
     try:return _dpapi(base64.b64decode(encoded,validate=True),False).decode('utf-8')
     except Exception:raise products.ProductError('Stored provider key cannot be decrypted for this Windows user')
 
+def local_cli_path(provider):
+    """Return a directly invocable CLI entrypoint (not a PowerShell alias)."""
+    if provider not in ('codex-local', 'claude-local'):
+        return None
+    name = 'codex' if provider == 'codex-local' else 'claude'
+    # npm installs Windows PowerShell .ps1 and cmd.exe .cmd shims. Python
+    # subprocess must use the executable .cmd shim, not a PowerShell alias.
+    candidates = (name + '.cmd', name + '.exe', name) if os.name == 'nt' else (name,)
+    for candidate in candidates:
+        found = shutil.which(candidate)
+        if found:
+            if os.name == 'nt' and found.lower().endswith('.ps1'):
+                continue
+            return found
+    return None
+
+
 def public():
     settings=_saved()
     saved_keys=products.read_json(KEY_PATH,{})
-    available={v:bool(shutil.which('codex' if v=='codex-local' else 'claude')) if v in ('codex-local','claude-local') else bool(os.environ.get(ENV_KEYS[v]) or saved_keys.get(v)) for v in ORDER}
+    available={v:bool(local_cli_path(v)) if v in ('codex-local','claude-local') else bool(os.environ.get(ENV_KEYS[v]) or saved_keys.get(v)) for v in ORDER}
     return {**settings,'ready':available,'credentialStorage':'Windows DPAPI per-user encryption for API keys',
             'note':'Provider availability is a local prerequisite check, not proof of authentication. No automatic paid fallback in ask mode.'}
+
+# Account models are fetched only when the owner opens Model configuration.
+# Provider URLs are fixed: user data is never used to construct a credential host.
+def available_models(provider):
+    if provider not in API:
+        raise products.ProductError('Unknown API provider')
+    fallback = []
+    selected = _saved()['models'].get(provider)
+    if selected:
+        fallback.append(selected)
+    if provider == 'openrouter':
+        fallback.append('openrouter/auto')
+    hosts = {
+        'openai': 'https://api.openai.com/v1/models',
+        'anthropic': 'https://api.anthropic.com/v1/models',
+        'openrouter': 'https://openrouter.ai/api/v1/models',
+    }
+    endpoint = hosts.get(provider)
+    if not endpoint:
+        return {'provider': provider, 'models': list(dict.fromkeys(fallback)),
+                'verified': False, 'note': 'No live model catalog for this provider'}
+    token = key_for(provider)
+    if not token and provider != 'openrouter':
+        return {'provider': provider, 'models': list(dict.fromkeys(fallback)),
+                'verified': False, 'note': 'Connect your API key to list account models'}
+    import urllib.request
+    headers = {'Accept': 'application/json', 'User-Agent': 'AIBO-Control-Centre/3'}
+    if provider == 'anthropic':
+        headers.update({'x-api-key': token, 'anthropic-version': '2023-06-01'})
+    elif token:
+        headers['Authorization'] = 'Bearer ' + token
+    try:
+        req = urllib.request.Request(endpoint, headers=headers, method='GET')
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            payload = json.loads(resp.read(1000000))
+        items = payload.get('data', [])
+        ids = [x.get('id', '') for x in items if isinstance(x, dict)]
+        ids = [x for x in ids if isinstance(x, str) and
+               len(x) <= 100 and re.fullmatch(r'[a-zA-Z0-9._:/-]+', x)]
+        if provider == 'openai':
+            ids = [x for x in ids if x.startswith(('gpt-', 'o1', 'o3', 'o4', 'o5'))]
+        if not ids:
+            raise ValueError('Model catalog has no usable IDs')
+        return {'provider': provider, 'models': list(dict.fromkeys(fallback + sorted(ids)))[:250],
+                'verified': True, 'note': 'Live provider catalog; model capability varies'}
+    except (OSError, ValueError, KeyError):
+        return {'provider': provider, 'models': list(dict.fromkeys(fallback)),
+                'verified': False, 'note': 'Live catalog unavailable; no models were invented'}
+
 
 def update(data):
     if not isinstance(data,dict) or set(data)-{'priority','switchMode','models','agentOverrides'}:
@@ -137,6 +204,9 @@ def route(explicit='auto',agent=None):
     preferred=local[0]
     if settings['switchMode']=='soni' and agent:
         choice=settings['agentOverrides'].get(agent)
-        if choice in ORDER:preferred=choice
+        # Specialist overrides are never implicit consent to a paid API.
+        # Auto routing remains restricted to authenticated local CLI sessions.
+        if choice in local:
+            preferred=choice
     # No silent selection of a different paid provider when a CLI is unavailable.
     return preferred, settings['models'].get(preferred) or None

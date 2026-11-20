@@ -9,7 +9,7 @@ from runtime import ai_providers, products
 class ProviderConfigTests(unittest.TestCase):
     def setUp(self):
         # Test routing independent of CLI installations on CI runners.
-        self.local_cli_probe=patch('runtime.ai_providers.shutil.which', side_effect=lambda name: 'C:/test/'+name if name in ('codex','claude') else None)
+        self.local_cli_probe=patch('runtime.ai_providers.shutil.which', side_effect=lambda name: 'C:/test/'+name if name in ('codex','claude','codex.cmd','claude.cmd') else None)
         self.local_cli_probe.start()
         self.addCleanup(self.local_cli_probe.stop)
         self.tmp=tempfile.TemporaryDirectory()
@@ -21,14 +21,27 @@ class ProviderConfigTests(unittest.TestCase):
         ai_providers.PATH=self.saved_path
         ai_providers.KEY_PATH=self.saved_key
         self.tmp.cleanup()
+    def test_windows_npm_cmd_shims_selected(self):
+        from types import SimpleNamespace
+        with patch.object(ai_providers,'os',SimpleNamespace(name='nt')):
+            with patch('runtime.ai_providers.shutil.which',side_effect=lambda name: 'C:/npm/'+name if name.endswith('.cmd') else None):
+                self.assertEqual(ai_providers.local_cli_path('codex-local'),'C:/npm/codex.cmd')
+                self.assertEqual(ai_providers.local_cli_path('claude-local'),'C:/npm/claude.cmd')
+        self.assertIsNone(ai_providers.local_cli_path('openrouter'))
+
     def test_initial_default_priority(self):
         self.assertEqual(ai_providers.public()['priority'][:4],['codex-local','claude-local','openai','anthropic'])
         self.assertEqual(ai_providers.public()['switchMode'],'ask')
         self.assertEqual(ai_providers.route('auto')[0],'codex-local')
     def test_reorder_and_specialist_override(self):
         ai_providers.update({'priority':['claude-local','codex-local','anthropic','openai','openrouter','vercel-gateway','together','groq'], 'switchMode':'soni','agentOverrides':{'research':'openai'},'models':{'openai':'gpt-4.1-mini'}})
-        self.assertEqual(ai_providers.route('auto','research'),('openai','gpt-4.1-mini'))
+        self.assertEqual(ai_providers.route('auto','research')[0],'claude-local')  # paid API override ignored
         self.assertEqual(ai_providers.route('auto','quality')[0],'claude-local')
+    def test_auto_never_selects_paid_api_even_with_override(self):
+        ai_providers.update({'switchMode':'soni','agentOverrides':{'soni':'openai','research':'openrouter'}})
+        self.assertEqual(ai_providers.route('auto','soni')[0],'codex-local')
+        self.assertEqual(ai_providers.route('auto','research')[0],'codex-local')
+
     def test_ask_mode_ignores_specialist_override(self):
         ai_providers.update({'switchMode':'ask','agentOverrides':{'research':'anthropic'}})
         self.assertEqual(ai_providers.route('auto','research')[0],'codex-local')

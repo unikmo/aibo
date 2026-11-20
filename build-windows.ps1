@@ -7,6 +7,9 @@ $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSCommandPath
 Set-Location $root
 if($Clean){Remove-Item -LiteralPath (Join-Path $root 'build') -Recurse -Force -ErrorAction SilentlyContinue;Remove-Item -LiteralPath (Join-Path $root 'dist') -Recurse -Force -ErrorAction SilentlyContinue}
+# Ensure locally uploaded PDFs are actually readable in the shipped application.
+python -m pip install "pypdf>=5,<8"
+if ($LASTEXITCODE -ne 0) { throw "PDF extraction dependency installation failed" }
 python -m PyInstaller --noconfirm --clean --onedir --name AIBO `
   --specpath build `
   --add-data "$root\Control-Centre;Control-Centre" `

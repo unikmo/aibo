@@ -171,6 +171,8 @@ def create_custom_project(data):
         if not isinstance(extra,dict) or not isinstance(extra.get('projects'),list):
             raise ProductError('Invalid local project registry')
         existing=bundled['projects']+extra['projects']
+        if len(existing) >= 20:
+            raise ProductError('Custom project limit reached (20)')
         if any(x.get('id','').lower()==slug or x.get('name','').casefold()==name.casefold() or
                 x.get('projectHome','').casefold()==('Projects/'+slug).casefold()
                 for x in existing):
