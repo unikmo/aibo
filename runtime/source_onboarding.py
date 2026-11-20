@@ -179,12 +179,20 @@ def _extract(label,content,is_html=False,website=""):
     # Normalize common business-brief markdown: **Goal:** and headings.
     lines=[re.sub(r"^\*{1,2}([^*]+)\*{1,2}\s*:",r"\1:",line) for line in lines]
     evidence=[]
-    for line in lines:
+    for i,line in enumerate(lines):
         match=re.match(r"^([A-Za-z][\w /-]{2,30}):\s*(.{4,400})$",line)
-        if not match:continue
-        key=LABELS.get(match.group(1).casefold().strip())
-        if key:
-            evidence.append({"field":key,"value":match.group(2)[:400],"source":label,"confidence":"explicit"})
+        if match:
+            key=LABELS.get(match.group(1).casefold().strip())
+            if key:
+                evidence.append({"field":key,"value":match.group(2)[:400],"source":label,"confidence":"explicit"})
+            continue
+        # Documents commonly give a heading and explanation on separate lines.
+        heading=re.sub(r"^\*{1,2}(.+?)\*{1,2}$",r"\1",line).strip().rstrip(":")
+        key=LABELS.get(heading.casefold())
+        if not key:continue
+        following=next((candidate for candidate in lines[i+1:i+4] if candidate), "")
+        if 4<=len(following)<=400 and not LABELS.get(following.lower().rstrip(":")):
+            evidence.append({"field":key,"value":following,"source":label,"confidence":"explicit-heading"})
     if website:
         evidence.append({"field":"website","value":website,"source":label,"confidence":"explicit"})
     if title:
