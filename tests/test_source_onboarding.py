@@ -51,6 +51,15 @@ class SourceOnboardingTests(unittest.TestCase):
         self.assertEqual(fields['goal']['value'],'Improve sales')
         self.assertEqual(fields['audience']['value'],'Teams')
 
+    def test_uploaded_office_xml_entity_declarations_are_rejected(self):
+        payload=io.BytesIO()
+        malicious=(b'<!DOCTYPE doc [<!ENTITY x "boom">]>'
+                   b'<doc><p>&x;</p></doc>')
+        with ZipFile(payload,'w') as bundle:
+            bundle.writestr('word/document.xml',malicious)
+        with self.assertRaisesRegex(source.SourceError,'entity declarations'):
+            source.inspect_document('brief.docx',payload.getvalue())
+
     def test_github_readme_via_fixed_public_api(self):
         result=json.dumps({'encoding':'base64','content':base64.b64encode(b'Goal: Improve customer retention').decode('ascii')})
         with patch.object(source,'_remote',return_value=result) as fetch:
