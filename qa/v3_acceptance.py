@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#soniPrompt").fill("Review selected project positioning")
                     # Enter sends; Shift+Enter must add a line without submitting.
                     page.locator("#soniPrompt").press("Shift+Enter")
-                    assert "\\n" in page.locator("#soniPrompt").input_value()
+                    assert chr(10) in page.locator("#soniPrompt").input_value()
                     page.locator("#soniPrompt").fill("Review selected project positioning")
                     assert page.locator("#soniPrompt").evaluate("(e) => e.scrollHeight <= 190"), "Composer is not compact"
                     assert page.locator("#soniProvider").input_value()=="mock", "Provider selection reset before submit"
