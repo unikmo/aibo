@@ -145,7 +145,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     # New state-owned projects must work through Soni, not merely appear in a card.
                     new_id="v3-acceptance-initiative"
                     upload=page.request.post(BASE+"/api/attachments/custom/"+new_id,
-                        data=b"Goal: Verify new project execution\\nAudience: Test owner\\n",
+                        data=b"Goal: Verify new project execution\nAudience: Test owner\n",
                         headers={"Content-Type":"application/octet-stream","X-AIBO-Filename":"project-brief.md"})
                     assert upload.ok,upload.text()
                     inspected=page.request.post(BASE+"/api/setup/custom/"+new_id+"/inspect",
