@@ -144,13 +144,25 @@ with tempfile.TemporaryDirectory() as state_dir:
                     result["functional"].append("new project safely created")
                     # New state-owned projects must work through Soni, not merely appear in a card.
                     new_id="v3-acceptance-initiative"
+                    upload=page.request.post(BASE+"/api/attachments/custom/"+new_id,
+                        data=b"Goal: Verify new project execution\\nAudience: Test owner\\n",
+                        headers={"Content-Type":"application/octet-stream","X-AIBO-Filename":"project-brief.md"})
+                    assert upload.ok,upload.text()
+                    inspected=page.request.post(BASE+"/api/setup/custom/"+new_id+"/inspect",
+                        data={"attachments":[upload.json()["id"]]},
+                        headers={"Content-Type":"application/json"})
+                    assert inspected.ok,inspected.text()
+                    candidates=inspected.json()["suggestions"]
+                    assert candidates["goal"]["value"]=="Verify new project execution",candidates
+                    assert candidates["audience"]["value"]=="Test owner",candidates
                     setup=page.request.post(BASE+"/api/setup/custom/"+new_id,data={
-                        "fields":{"name":"V3 Acceptance Initiative","region":"Germany",
-                                  "goal":"Verify new project execution","audience":"Test owner",
-                                  "successMeasure":"Verified local run"},
-                        "step":2,"complete":True
+                        "fields":{"name":"V3 Acceptance Initiative","goal":candidates["goal"]["value"],
+                                  "audience":candidates["audience"]["value"]},
+                        "step":2,"complete":True,"reviewSources":True
                     },headers={"Content-Type":"application/json"})
                     assert setup.ok,setup.text()
+                    assert setup.json()["sourceEvidence"],"Owner-reviewed uploaded evidence not retained"
+                    result["functional"].append("uploaded document ingested into project context before owner review")
                     run=page.request.post(BASE+"/api/work/custom/"+new_id,data={
                         "task":"Check new project routing","provider":"mock","consent":False
                     },headers={"Content-Type":"application/json"})
