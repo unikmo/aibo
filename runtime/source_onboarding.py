@@ -175,7 +175,9 @@ def _extract(label,content,is_html=False,website=""):
     # Never preserve credential-shaped lines in source excerpts passed to Soni.
     clean="\n".join(line for line in clean.split("\n")
                     if not re.search(r"(?i)(?:api[_ -]?key|password|client_secret|access_token|private[_ -]?key|authorization\s*:)",line))
-    lines=[re.sub(r"\s+"," ",x).strip(" *#\t") for x in clean.split("\n")]
+    lines=[re.sub(r"\\s+"," ",x).strip(" *#\\t") for x in clean.split("\\n")]
+    # Normalize common business-brief markdown: **Goal:** and headings.
+    lines=[re.sub(r"^\\*{1,2}([^*]+)\\*{1,2}\\s*:",r"\\1:",line) for line in lines]
     evidence=[]
     for line in lines:
         match=re.match(r"^([A-Za-z][\w /-]{2,30}):\s*(.{4,400})$",line)
@@ -189,7 +191,7 @@ def _extract(label,content,is_html=False,website=""):
         evidence.append({"field":"description","value":title,"source":label,"confidence":"context"})
     if desc:
         evidence.append({"field":"description","value":desc,"source":label,"confidence":"context"})
-    return {"reference":label,"evidence":evidence[:50],"excerpt":clean[:650],"read":True}
+    return {"reference":label,"evidence":evidence[:50],"excerpt":clean[:1800],"read":True}
 
 def _github_token():
     token=os.environ.get("GITHUB_TOKEN","").strip()
