@@ -161,8 +161,36 @@ def _worker(run_id):
         if item['provider']=='auto' and config['switchMode']=='soni':
             roster=aibo.select_agents(enriched)+['quality','soni']
             routes={agent:ai_providers.route('auto',agent) for agent in roster}
-        result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
-                            output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+        attempt={'provider':selected,'status':'started'}
+        item['providerAttempts']=[attempt]
+        _save_run(item)
+        try:
+            result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+        except aibo.AiboError as original:
+            # Only an automatically routed CLI task may switch providers.
+            # Never retry explicit/manual selections or use paid API endpoints.
+            message=str(original)
+            cli_error=(message.startswith('Local CLI failed') or
+                       message.startswith('Local CLI timeout') or
+                       message.startswith('Local CLI not installed'))
+            fallback='claude-local' if selected=='codex-local' else 'codex-local'
+            ready=ai_providers.public()['ready']
+            if item['provider']!='auto' or not cli_error or not ready.get(fallback):
+                raise
+            attempt['status']='failed'
+            attempt['error']=message[:300]
+            item['providerAttempts'].append({'provider':fallback,'status':'started'})
+            _save_run(item)
+            # Use one CLI for the entire retry; overrides cannot route to APIs.
+            result=aibo.execute(item['project'],enriched,provider=fallback,
+                                model=config['models'].get(fallback) or None,agent_routes=None,
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'])
+            item['providerAttempts'][-1]['status']='completed'
+            item['effectiveProvider']=fallback
+        else:
+            attempt['status']='completed'
+            item['effectiveProvider']=selected
         item['result']=result
         item['status']='completed'
     except Exception as exc:
