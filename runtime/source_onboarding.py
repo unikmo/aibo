@@ -164,6 +164,8 @@ def _unpack_text(data,ext):
                 raise SourceError("PDF text extraction unavailable in this installation; provide TXT/DOCX or install pypdf") from e
             reader=PdfReader(__import__("io").BytesIO(data),strict=False)
             return "\n".join((page.extract_text() or "") for page in reader.pages[:12])[:MAX_EXTRACT]
+    except SourceError:
+        raise
     except (zipfile.BadZipFile,ET.ParseError,KeyError,ValueError) as e:
         raise SourceError("Document could not be read") from e
     raise SourceError("Unsupported document type")
