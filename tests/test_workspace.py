@@ -59,6 +59,56 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIn('quality', result['result']['agents'])
         self.assertTrue(workspace.recent_runs(self.id))
 
+    def test_auto_fails_over_codex_to_claude_without_api(self):
+        self._ready()
+        import time
+        calls=[]
+        def execute(project,task,**kwargs):
+            calls.append(kwargs['provider'])
+            if len(calls)==1:
+                raise aibo.AiboError('Local CLI failed (exit 1): unavailable')
+            return {'soni':'CLAUDE_OK','externalActionsExecuted':False}
+        ready={'ready':{'codex-local':True,'claude-local':True},
+               'switchMode':'ask','models':{}}
+        with patch('runtime.workspace.ai_providers.route',return_value=('codex-local',None)), \
+             patch('runtime.workspace.ai_providers.public',return_value=ready), \
+             patch('runtime.workspace.aibo.execute',side_effect=execute):
+            created=workspace.start_run(self.id,{'task':'Review positioning','provider':'auto'})
+            for _ in range(100):
+                final=workspace.run_status(created['id'])
+                if final['status'] not in ('queued','running'):break
+                time.sleep(.02)
+        self.assertEqual(final['status'],'completed',final.get('error'))
+        self.assertEqual(calls,['codex-local','claude-local'])
+        self.assertEqual(final['effectiveProvider'],'claude-local')
+        self.assertEqual([a['status'] for a in final['providerAttempts']],['failed','completed'])
+
+    def test_manual_codex_failure_does_not_fail_over(self):
+        self._ready()
+        import time
+        with patch('runtime.workspace.aibo.execute',side_effect=aibo.AiboError('Local CLI failed (exit 1): unavailable')) as execution:
+            created=workspace.start_run(self.id,{'task':'Review positioning','provider':'codex-local'})
+            for _ in range(100):
+                final=workspace.run_status(created['id'])
+                if final['status'] not in ('queued','running'):break
+                time.sleep(.02)
+        self.assertEqual(final['status'],'failed')
+        self.assertEqual(execution.call_count,1)
+
+    def test_auto_does_not_use_api_as_fallback(self):
+        self._ready()
+        import time
+        with patch('runtime.workspace.ai_providers.route',return_value=('codex-local',None)), \
+             patch('runtime.workspace.ai_providers.public',return_value={'ready':{'codex-local':True,'claude-local':False},'switchMode':'ask','models':{}}), \
+             patch('runtime.workspace.aibo.execute',side_effect=aibo.AiboError('Local CLI timeout')) as execution:
+            created=workspace.start_run(self.id,{'task':'Review positioning','provider':'auto'})
+            for _ in range(100):
+                final=workspace.run_status(created['id'])
+                if final['status'] not in ('queued','running'):break
+                time.sleep(.02)
+        self.assertEqual(final['status'],'failed')
+        self.assertEqual(execution.call_count,1)
+
     def test_cannot_modify_pack_during_setup(self):
         with self.assertRaisesRegex(products.ProductError,'Unknown setup field'):
             workspace.save_setup(self.id,{'step':1,'fields':{'corePack':'unauthorized'}})
