@@ -204,6 +204,9 @@ def route(explicit='auto',agent=None):
     preferred=local[0]
     if settings['switchMode']=='soni' and agent:
         choice=settings['agentOverrides'].get(agent)
-        if choice in ORDER:preferred=choice
+        # Specialist overrides are never implicit consent to a paid API.
+        # Auto routing remains restricted to authenticated local CLI sessions.
+        if choice in local:
+            preferred=choice
     # No silent selection of a different paid provider when a CLI is unavailable.
     return preferred, settings['models'].get(preferred) or None
