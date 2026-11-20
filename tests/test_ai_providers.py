@@ -35,8 +35,13 @@ class ProviderConfigTests(unittest.TestCase):
         self.assertEqual(ai_providers.route('auto')[0],'codex-local')
     def test_reorder_and_specialist_override(self):
         ai_providers.update({'priority':['claude-local','codex-local','anthropic','openai','openrouter','vercel-gateway','together','groq'], 'switchMode':'soni','agentOverrides':{'research':'openai'},'models':{'openai':'gpt-4.1-mini'}})
-        self.assertEqual(ai_providers.route('auto','research'),('openai','gpt-4.1-mini'))
+        self.assertEqual(ai_providers.route('auto','research')[0],'claude-local')  # paid API override ignored
         self.assertEqual(ai_providers.route('auto','quality')[0],'claude-local')
+    def test_auto_never_selects_paid_api_even_with_override(self):
+        ai_providers.update({'switchMode':'soni','agentOverrides':{'soni':'openai','research':'openrouter'}})
+        self.assertEqual(ai_providers.route('auto','soni')[0],'codex-local')
+        self.assertEqual(ai_providers.route('auto','research')[0],'codex-local')
+
     def test_ask_mode_ignores_specialist_override(self):
         ai_providers.update({'switchMode':'ask','agentOverrides':{'research':'anthropic'}})
         self.assertEqual(ai_providers.route('auto','research')[0],'codex-local')
