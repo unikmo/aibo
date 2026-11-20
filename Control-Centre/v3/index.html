@@ -57,6 +57,23 @@
 #screen-soni .log-item .detail-toggle{display:block;border:0;background:none;color:#8d7459;font-size:11px;margin-top:9px;padding:5px 0}
 #screen-soni .log-item .detail-body{font-size:12px;color:#525c55;background:#f1f0eb;border-radius:12px;padding:13px 16px;white-space:pre-wrap;margin:8px 0 0;max-width:720px}
 @media(max-width:700px){.main:has(#screen-soni.active){padding-top:14px}#screen-soni #soni-title{font-size:clamp(17px,4.5vw,27px);white-space:normal}#screen-soni #soni-title span{margin-left:0}#screen-soni .log-item{max-width:92%}#screen-soni #soniPrompt{font-size:16px}}
+
+/* Soni conversation above a persistent, keyboard-safe bottom composer */
+.main:has(#screen-soni.active){padding-top:0;padding-bottom:0}
+#screen-soni.active{height:calc(100dvh - 85px);min-height:360px;overflow:hidden}
+#screen-soni .soni-stage{height:100%;display:flex;flex-direction:column;padding:14px 0 0}
+#screen-soni #soni-title{flex:none;margin:0 0 10px}
+#screen-soni .soni-projectrow{flex:none;margin:0 0 6px}
+#screen-soni .chat-wrap{display:flex;flex:1;min-height:0}
+#screen-soni .chat{display:flex;flex:1;min-height:0;flex-direction:column;gap:0}
+#screen-soni .conversation{order:0;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;justify-content:flex-start;gap:16px;padding:22px 8px 18px}
+#screen-soni .composer-dock{order:1;flex:none;background:var(--canvas);padding:12px 0 max(16px,env(safe-area-inset-bottom));position:relative;z-index:1}
+#screen-soni .soni-hint{margin:7px 6px 0}
+#screen-soni .log-item.user{flex-shrink:0}
+#screen-soni .log-item.agent{flex-shrink:0}
+#screen-soni .detail-body[hidden]{display:none}
+#screen-soni .chat-log{max-height:none}
+@media(max-width:700px){#screen-soni.active{height:calc(100dvh - 122px);min-height:320px}#screen-soni .soni-stage{padding:10px 0 0}#screen-soni .conversation{padding:10px 2px}#screen-soni .composer-dock{padding-top:8px}}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><span class="eyebrow">Control Centre 3</span><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
@@ -72,12 +89,13 @@
 <h1 id="soni-title">Just ask <em>Soni.</em> <span>She handles the rest.</span></h1>
 <div class="soni-projectrow"><label class="visually-hidden" for="soniProjectSelect">Select project</label><select id="soniProjectSelect" aria-label="Select project"><option value="">Select project</option></select><span id="soniProject" class="visually-hidden">All projects</span></div>
 <div class="chat-wrap"><div class="chat">
-<div class="prompt">
+<div class="conversation" id="conversation" aria-live="polite"></div>
+<div class="composer-dock"><div class="prompt">
 <label class="visually-hidden" for="soniPrompt">Message Soni</label><textarea id="soniPrompt" rows="1" placeholder="Ask Soni anything about this project…" aria-label="Message Soni"></textarea>
 <div class="soni-actions"><div class="prompt-controls"><label class="visually-hidden" for="soniProvider">AI provider</label><select id="soniProvider" aria-label="AI provider"><option value="auto">Auto · Codex → Claude</option></select><label class="consent"><input id="soniConsent" type="checkbox"> I approve this paid API request and associated model charges.</label></div><button id="reviewPrompt" class="cta" aria-label="Send to Soni">Send <span aria-hidden="true">↑</span></button></div>
 </div>
 <p class="soni-hint" id="promptHint" role="status">Select a project to begin</p>
-<div class="conversation" id="conversation" aria-live="polite"></div>
+</div>
 </div></div></div></section>
 <section class="screen" id="screen-projects" aria-labelledby="projects-title"><div class="intro"><p class="eyebrow">INDEPENDENT WORKSPACES</p><h1 id="projects-title">Every project, <span class="hero-word">its own context.</span></h1><p>Independent goals, knowledge, ownership and outcomes. No cross-project mixing.</p></div><input class="search" id="projectSearch" type="search" aria-label="Search projects" placeholder="Find a project…"><div id="projectCards" class="project-list"><div class="empty">Loading project records…</div></div><p class="notice">Portfolio information reflects the local AIBO project registry where available.</p></section>
 <section class="screen" id="screen-activity" aria-labelledby="activity-title"><div class="intro"><p class="eyebrow">WORK & EVIDENCE</p><h1 id="activity-title">Progress you can <span class="hero-word">account for.</span></h1><p>Tasks, outcomes, interruptions and approvals — sourced from actual records, not demonstration statistics.</p></div><div class="tabs" aria-label="Activity filter"><button class="tab active" data-filter="all">All</button><button class="tab" data-filter="completed">Completed</button><button class="tab" data-filter="running">Active</button><button class="tab" data-filter="failed">Needs attention</button></div><div class="panel" style="margin-bottom:16px"><div class="panelhead"><div><p class="eyebrow">APPROVAL QUEUE</p><h2>Consequential actions</h2></div></div><div id="approvalRows" class="empty">Loading approval records…</div></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">EXECUTION LEDGER</p><h2>Recent work</h2></div><span class="pill" id="activityCount">0 records</span></div><div id="activityRows" class="empty">No activity loaded.</div></div><p class="notice">Actions, approvals and provider receipts need an explicit record before they are described as completed.</p></section>
