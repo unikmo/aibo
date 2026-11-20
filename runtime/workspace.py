@@ -12,9 +12,9 @@ import threading
 import uuid
 
 try:
-    from . import products, aibo, costs, attachments, ai_providers, source_onboarding, source_onboarding
+    from . import products, aibo, costs, attachments, ai_providers, source_onboarding
 except ImportError:
-    import products, aibo, costs, attachments, ai_providers
+    import products, aibo, costs, attachments, ai_providers, source_onboarding
 
 LOCK = threading.RLock()
 DIR = products.STATE / 'workspaces'
