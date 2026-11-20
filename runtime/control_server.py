@@ -174,6 +174,12 @@ class Handler(SimpleHTTPRequestHandler):
         if path=='/api/connections/catalog':self._json(200,connector_catalog.catalog());return
         if path=='/api/cost-controls':self._json(200,{**costs.current(),'budgetEnforcement':'not-available','usageMetering':'not-connected'});return
         if path=='/api/portfolio/custom':self._json(200,portfolio.overview());return
+        if path.startswith('/api/setup/custom/') and path.endswith('/sources'):
+            parts=path.strip('/').split('/')
+            if len(parts)!=5:self._json(404,{'error':'Not found'});return
+            try:self._json(200,workspace.source_inventory(parts[3]))
+            except products.ProductError as ex:self._json(404,{'error':str(ex)})
+            return
         if path.startswith('/api/setup/custom/'):
             try:self._json(200,workspace.setup_state(path.split('/')[-1]))
             except products.ProductError as ex:self._json(404,{'error':str(ex)})
