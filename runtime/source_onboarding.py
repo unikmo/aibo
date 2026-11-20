@@ -204,7 +204,7 @@ def _github_token():
         pass
     return ""
 
-def inspect_remote(kind,raw_url):
+def inspect_remote(kind,raw_url,drive_token=None):
     if not raw_url:return None
     parsed=urlsplit(raw_url)
     host=(parsed.hostname or "").lower()
@@ -232,11 +232,17 @@ def inspect_remote(kind,raw_url):
             raise SourceError("Enter a Google Docs or public Drive link")
         match=re.fullmatch(r"/document/d/([A-Za-z0-9_-]{10,})/?.*",parsed.path)
         if host=="docs.google.com" and match:
-            endpoint="https://docs.google.com/document/d/"+match.group(1)+"/export?format=txt"
+            doc_id=match.group(1)
+            token=drive_token or os.environ.get("GOOGLE_DRIVE_ACCESS_TOKEN","").strip()
+            if token:
+                endpoint="https://www.googleapis.com/drive/v3/files/"+doc_id+"/export?mimeType=text%2Fplain"
+                return _extract(raw_url,_remote(endpoint,{"www.googleapis.com"},
+                                headers={"Authorization":"Bearer "+token}))
+            endpoint="https://docs.google.com/document/d/"+doc_id+"/export?format=txt"
             return _extract(raw_url,_remote(endpoint,{"docs.google.com"}))
         folder=re.fullmatch(r"/drive/folders/([A-Za-z0-9_-]{10,})/?",parsed.path)
         if host=="drive.google.com" and folder:
-            token=os.environ.get("GOOGLE_DRIVE_ACCESS_TOKEN","").strip()
+            token=drive_token or os.environ.get("GOOGLE_DRIVE_ACCESS_TOKEN","").strip()
             if not token:
                 raise SourceError("Private Drive folder requires a connected Google Drive account or exported file uploads")
             folder_id=folder.group(1)
