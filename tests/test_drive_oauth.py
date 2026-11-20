@@ -26,7 +26,7 @@ class DriveAuthTests(unittest.TestCase):
             completed=drive_oauth.callback({'state':[state],'code':['authorized']})
             self.assertEqual(completed['status'],'authorized-for-session')
             self.assertEqual(drive_oauth.token(self.pid),'test-token')
-            self.assertEqual(exchange.call_args.args[0]['code_verifier'],drive_oauth.TOKENS[self.pid].get('code_verifier','') if False else exchange.call_args.args[0]['code_verifier'])
+            self.assertGreater(len(exchange.call_args.args[0]['code_verifier']),20)
         with self.assertRaises(products.ProductError):
             drive_oauth.callback({'state':[state],'code':['replayed']})
 
