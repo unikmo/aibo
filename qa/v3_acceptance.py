@@ -76,7 +76,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".nav[data-screen='projects']").click()
                     page.locator("#projectSelect").select_option(index=1)
                     page.locator("#projectCards .project-summary button",has_text="Import sources").click()
-                    assert page.locator("#modalBody input[name='sourceLink']").is_visible()
+                    page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible",timeout=15000)
                     assert page.locator("#modalBody input[type=file]").is_visible()
                     assert page.locator("#modalBody details.source-extra").evaluate("(x) => !x.open")
                     assert page.locator("#modalBody input[name='repository']").is_hidden()
