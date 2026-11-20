@@ -39,6 +39,15 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.screenshot(path=str(OUT/f"{screen}-{device}.png"),full_page=True)
                     result["screens"].append(f"{screen}-{device}")
                 assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),"Horizontal overflow on "+device
+                page.locator('.nav[data-screen="soni"]').click()
+                colors=page.locator("#conversation").evaluate("""el => {
+                    const css=getComputedStyle(el);
+                    const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
+                    return [css.backgroundColor,css.color,agent.backgroundColor];
+                }""")
+                assert colors==['rgb(250, 250, 250)','rgb(32, 33, 36)','rgb(255, 255, 255)'],colors
+                assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible without scrolling"
+                page.locator('.nav[data-screen="projects"]').click()
                 assert page.locator("#projectSelect").count()==1
                 assert page.locator("#newProjectBtn").count()==1
                 assert page.locator("#projectSearch").count()==0,"Duplicate project search returned"
