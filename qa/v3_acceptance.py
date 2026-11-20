@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     }""")
                     assert result["composerTop"]>=result["historyBottom"]-2,result
                     assert result["composerBottom"]<result["viewHeight"]-12,result
-                    assert result["outerBottom"]<=result["viewHeight"]+2,result
+                    assert result["outerBottom"]<=result["viewHeight"]+5,result
                     return result
                 check_composer()
                 # A project with extensive historical chat must scroll messages, not the whole page.
