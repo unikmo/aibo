@@ -138,6 +138,23 @@
  .project-card .category{display:none}
  #screen-soni.active{height:calc(100dvh - 110px)}
 }
+
+/* Reading-first Soni chat: neutral white canvas, high contrast ink */
+#screen-soni .chat-wrap,
+#screen-soni .chat{background:#ffffff}
+#screen-soni .chat{border:1px solid #e4e5e6;border-radius:17px;overflow:hidden}
+#screen-soni .conversation{background:#fafafa;color:#202124;padding:18px 24px;scrollbar-color:#d1d3d5 transparent}
+#screen-soni .log-item.agent{color:#202124;background:transparent;border:0;max-width:88%;font-size:14px;line-height:1.65}
+#screen-soni .log-item.user{background:#e9edf1;color:#202124;border:0;border-radius:16px 16px 5px 16px;font-size:14px;line-height:1.6}
+#screen-soni .log-item .message-body{color:inherit}
+#screen-soni .log-item small{color:#636b72;font-size:10px}
+#screen-soni .log-item .detail-toggle{color:#375c82;text-decoration:underline;text-underline-offset:3px}
+#screen-soni .log-item .detail-body{background:#f0f2f4;color:#29313a;border:1px solid #e3e5e8}
+#screen-soni .composer-dock{background:#ffffff;padding:12px 18px max(14px,env(safe-area-inset-bottom));border-top:1px solid #ebebea}
+#screen-soni .prompt{background:#fff;border:1px solid #d6d9dc;box-shadow:none}
+#screen-soni #soniPrompt{color:#202124}
+#screen-soni #soniPrompt::placeholder{color:#777f88}
+@media(max-width:700px){#screen-soni .conversation{padding:12px 11px}#screen-soni .composer-dock{padding:9px 10px max(12px,env(safe-area-inset-bottom))}}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><span class="eyebrow">Control Centre 3</span><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
