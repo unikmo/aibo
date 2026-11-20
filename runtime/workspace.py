@@ -244,7 +244,15 @@ def run_status(run_id):
     return item
 
 def _save_run(item):
-    products.write_json(_run_file(item['id']), item)
+    with LOCK:
+        path=_run_file(item['id'])
+        existing=products.read_json(path,{})
+        if (existing.get('status') in ('failed','interrupted') and
+                existing.get('updatedAt')!=item.get('updatedAt') and
+                item.get('status') in ('queued','running')):
+            # A stale worker must not resurrect a watchdog-expired run.
+            return
+        products.write_json(path,item)
 
 def start_run(project_id, payload):
     _project(project_id)
