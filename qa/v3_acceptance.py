@@ -55,7 +55,24 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#soniProvider").select_option("mock")
                     page.locator("#soniPrompt").fill("Review selected project positioning")
                     page.locator("#reviewPrompt").click()
-                    page.wait_for_function("document.querySelector('#promptHint').textContent.includes('completed')",timeout=45000)
+                    # Wait for a terminal status, including failures. Windows may expose
+                    # an explicit modal error that an 'includes completed' wait hides.
+                    try:
+                        page.wait_for_function("""() => {
+                            const hint=document.querySelector('#promptHint')?.textContent||'';
+                            return /completed|failed|interrupted|not started/i.test(hint);
+                        }""",timeout=20000)
+                    except Exception as exc:
+                        hint=page.locator("#promptHint").inner_text()
+                        modal=page.locator("#modalBody").inner_text() if page.locator("#overlay.open").count() else ""
+                        portfolio=page.request.get(BASE+"/api/portfolio/custom").json()
+                        recent=portfolio.get("recentWork",[])[:3]
+                        raise AssertionError(f"Soni UI did not reach a terminal state. Hint={hint!r}; modal={modal!r}; recentRuns={recent!r}; browserErrors={result['errors']!r}") from exc
+                    hint=page.locator("#promptHint").inner_text()
+                    if "completed" not in hint:
+                        modal=page.locator("#modalBody").inner_text() if page.locator("#overlay.open").count() else ""
+                        recent=page.request.get(BASE+"/api/portfolio/custom").json().get("recentWork",[])[:3]
+                        raise AssertionError(f"Soni failed. Hint={hint!r}; modal={modal!r}; recentRuns={recent!r}")
                     page.locator(".log-item.agent").first.wait_for(state="visible",timeout=15000)
                     assert "MOCK" in page.locator(".log-item.agent").last.inner_text()
                     result["functional"].append("Soni mock execution persisted and rendered")
