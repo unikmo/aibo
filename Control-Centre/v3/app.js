@@ -32,21 +32,26 @@ controls.append(approve,execute);$("modalBody").append(controls);
 }
 async function openProject(p){if(S.edition==="standard"){notice("Standard edition","Standard activation requires a verified license issuer. The five licensed project slots cannot be activated by local UI settings.");return}try{const data=await api("/api/setup/custom/"+encodeURIComponent(p.id));const f=data.fields||{};formModal("Project setup · "+p.name,[{name:"name",label:"Name",value:f.name||p.name,required:true,max:80},{name:"region",label:"Country / region",value:f.region,required:true,max:100},{name:"goal",label:"Business goal",value:f.goal,multiline:true,required:true,max:500},{name:"audience",label:"Target audience",value:f.audience,required:true,max:250},{name:"website",label:"Website (optional)",value:f.website,max:200},{name:"successMeasure",label:"Measure of success",value:f.successMeasure,required:true,max:250},{name:"notes",label:"Project constraints (optional)",value:f.notes,multiline:true,max:800}],async fields=>{await api("/api/setup/custom/"+encodeURIComponent(p.id),json("POST",{fields,step:2,complete:true}));S.selected=p.id;$("projectSelect").value=p.id;});}catch(e){notice("Project unavailable",e.message)}}
 async function requestConnection(c){if(!S.selected){notice("Choose a project first","Select a project from the top bar before requesting "+c.name+".");return}try{const result=await api("/api/connections/request",json("POST",{connector:c.id,project:S.selected}));notice("Request recorded",result.alreadyRequested?"A setup request already exists for this project.":"A project-scoped setup request was recorded. Authentication and connection verification remain separate.");S.connections=await api("/api/connections/catalog");renderConnections()}catch(e){notice("Connection request failed",e.message)}}
+function cleanCopy(value){
+  return safe(value).replace(/^\s{0,3}#{1,6}\s+/gm,"").replace(/\*\*([^*]+)\*\*/g,"$1")
+    .replace(/__([^_]+)__/g,"$1").replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g,"$1")
+    .replace(/^\s*[-*]\s+/gm,"• ").replace(/\n{3,}/g,"\n\n").trim();
+}
 function shortAnswer(text){
-  const content=safe(text).trim();if(!content)return "No verified response was recorded.";
-  // Display a compact extract of the *recorded answer*. Never claim a new summary was generated.
-  const first=content.split(/\n\s*\n/)[0].replace(/^#+\s*/,"").trim();
-  if(first.length<=280)return first;
-  const cut=first.slice(0,280),boundary=Math.max(cut.lastIndexOf(". "),cut.lastIndexOf("! "),cut.lastIndexOf("? "));
-  return boundary>85?cut.slice(0,boundary+1):cut.slice(0,245).trimEnd()+"…";
+  const clean=cleanCopy(text);
+  if(!clean)return "No verified response was recorded.";
+  const first=clean.split(/\n\s*\n/)[0].trim();
+  if(first.length<=320)return first;
+  const slice=first.slice(0,320),boundary=Math.max(slice.lastIndexOf(". "),slice.lastIndexOf("! "),slice.lastIndexOf("? "));
+  return boundary>110?slice.slice(0,boundary+1):slice.slice(0,288).trimEnd()+"…";
 }
 function logMessage(type,title,body,detail){
   const root=$("conversation"),item=E("div","log-item "+(type==="agent"?"agent":"user"));
-  item.append(E("small","",title),E("div","message-body",body));
-  if(type==="agent"&&detail&&detail.trim()!==body.trim()){
-    const toggle=E("button","detail-toggle","Details");
-    toggle.type="button";toggle.setAttribute("aria-expanded","false");
-    const more=E("div","detail-body",detail);more.hidden=true;
+  item.append(E("small","",title),E("div","message-body",cleanCopy(body)));
+  if(type==="agent"&&detail&&cleanCopy(detail)!==cleanCopy(body)){
+    const toggle=E("button","detail-toggle","Details");toggle.type="button";
+    toggle.setAttribute("aria-expanded","false");
+    const more=E("div","detail-body",cleanCopy(detail));more.hidden=true;
     toggle.onclick=()=>{more.hidden=!more.hidden;toggle.textContent=more.hidden?"Details":"Hide details";toggle.setAttribute("aria-expanded",String(!more.hidden));};
     item.append(toggle,more);
   }
@@ -67,6 +72,7 @@ async function renderConversation(){
       logMessage("agent","Soni · "+r.status,shortAnswer(answer),extended);
     }
   }catch(e){root.append(E("div","empty","Conversation unavailable: "+e.message))}
+  root.scrollTop=root.scrollHeight;
 }
 const soniComposer=$("soniPrompt");
 function sizeComposer(){soniComposer.style.height="34px";soniComposer.style.height=Math.min(175,Math.max(34,soniComposer.scrollHeight))+"px";}
