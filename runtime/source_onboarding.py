@@ -6,6 +6,8 @@ No credentials, private Drive bypasses, site crawling or automatic source execut
 from __future__ import annotations
 import html
 import base64
+import csv
+import io
 import os
 import shutil
 import subprocess
@@ -170,6 +172,9 @@ def _extract(label,content,is_html=False,website=""):
         desc=parser.description.strip()
         content="".join(parser.text)
     clean=html.unescape(re.sub(r"\r","\n",content))[:MAX_EXTRACT]
+    # Never preserve credential-shaped lines in source excerpts passed to Soni.
+    clean="\n".join(line for line in clean.split("\n")
+                    if not re.search(r"(?i)(?:api[_ -]?key|password|client_secret|access_token|private[_ -]?key|authorization\s*:)",line))
     lines=[re.sub(r"\s+"," ",x).strip(" *#\t") for x in clean.split("\n")]
     evidence=[]
     for line in lines:
@@ -258,7 +263,30 @@ def inspect_document(filename,raw):
     contents=_unpack_text(raw,ext)
     if not contents.strip():
         raise SourceError("Document contains no extractable text")
-    return _extract("Uploaded document · "+Path(filename).name,contents)
+    item=_extract("Uploaded document · "+Path(filename).name,contents)
+    if ext==".json":
+        try:
+            data=json.loads(contents)
+            objects=[data] if isinstance(data,dict) else []
+            for obj in objects:
+                for key,value in list(obj.items())[:100]:
+                    field=LABELS.get(str(key).replace("_"," ").replace("-"," ").lower())
+                    if field and isinstance(value,(str,int,float)) and 4<=len(str(value))<=400:
+                        item["evidence"].append({"field":field,"value":str(value),
+                                                 "source":item["reference"],"confidence":"explicit"})
+        except (ValueError,TypeError):pass
+    elif ext==".csv":
+        try:
+            rows=iter(csv.reader(io.StringIO(contents)))
+            headers=next(rows,[])
+            first=next(rows,[])
+            for key,value in zip(headers,first):
+                field=LABELS.get(key.strip().replace("_"," ").lower())
+                if field and 4<=len(value)<=400:
+                    item["evidence"].append({"field":field,"value":value.strip(),
+                                             "source":item["reference"],"confidence":"explicit"})
+        except (ValueError,csv.Error,StopIteration):pass
+    return item
 
 def consolidate(evidence):
     proposed={}
