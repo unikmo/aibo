@@ -64,6 +64,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Functional acceptance
         run: python qa/v3_acceptance.py
+      - name: 4 Targeted Soni bug sanity — desktop tablet and mobile
+        run: python qa/soni_sanity.py
       - name: Preserve screenshots and run records
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,27 +74,10 @@ jobs:
           path: qa/v3-acceptance/
           retention-days: 30
 
-  stage-4-sanity:
-    name: 4 Targeted Soni bug sanity
-    runs-on: ubuntu-latest
-    needs: stage-3-functional
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - name: Browser dependencies
-        run: |
-          python -m pip install playwright
-          python -m playwright install --with-deps chromium
-      - name: Reproduce long conversation on desktop tablet and mobile
-        run: python qa/soni_sanity.py
-
   stage-5-regression:
     name: 5 Broad regression
     runs-on: ubuntu-latest
-    needs: stage-4-sanity
+    needs: stage-3-functional
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
