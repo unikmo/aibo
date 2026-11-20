@@ -59,6 +59,44 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIn('quality', result['result']['agents'])
         self.assertTrue(workspace.recent_runs(self.id))
 
+    def test_other_project_reference_is_blocked_without_queuing_or_ai(self):
+        self._ready()
+        with patch('runtime.workspace.aibo.execute') as ai:
+            with self.assertRaisesRegex(products.ProductError,'Project mismatch: Politangle'):
+                workspace.start_run(self.id,{'task':"Review Politangle's current development status using its actual project sources.",'provider':'auto'})
+        self.assertFalse(workspace.recent_runs(self.id))
+        ai.assert_not_called()
+
+    def test_selected_project_name_is_allowed(self):
+        self._ready()
+        self.assertEqual(workspace._cross_project_names(self.id,"Review Auditdefend's source records"),[])
+
+    def test_old_queued_job_expires_instead_of_waiting_forever(self):
+        self._ready()
+        import datetime as dt
+        from datetime import timezone, timedelta
+        run_id='22222222-2222-4222-8222-222222222222'
+        queued={'id':run_id,'project':self.id,'task':'Review records','provider':'codex-local',
+            'status':'queued','sessionId':workspace.SESSION_ID,
+            'createdAt':(dt.datetime.now(timezone.utc)-timedelta(hours=1)).isoformat(),
+            'updatedAt':workspace.now(),'result':None,'error':None}
+        workspace._save_run(queued)
+        workspace.CURRENT[self.id]=run_id
+        result=workspace.run_status(run_id)
+        self.assertEqual(result['status'],'failed')
+        self.assertIn('task limit',result['error'])
+        self.assertNotIn(self.id,workspace.CURRENT)
+
+    def test_watchdog_does_not_overwrite_completed_or_interrupted_jobs(self):
+        self._ready()
+        run_id='33333333-3333-4333-8333-333333333333'
+        for status in ('completed','interrupted'):
+            record={'id':run_id,'project':self.id,'status':status,
+                'sessionId':workspace.SESSION_ID,'updatedAt':workspace.now()}
+            workspace._save_run(record)
+            self.assertFalse(workspace._expire_run(run_id))
+            self.assertEqual(workspace.run_status(run_id)['status'],status)
+
     def test_factual_status_does_not_invent_project_progress(self):
         self._ready()
         with patch('runtime.workspace.aibo.execute') as external_ai:
