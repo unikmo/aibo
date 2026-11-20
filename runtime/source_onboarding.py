@@ -134,9 +134,17 @@ def _unpack_text(data,ext):
                     if not expected(name):continue
                     if bundle.getinfo(name).file_size>1500000:continue
                     element=ET.fromstring(bundle.read(name))
-                    values=[node.text for node in element.iter() if node.text and node.tag.endswith((
-                        "}t", "}v"))]
-                    parts.append(" ".join(values))
+                    if ext==".docx":
+                        paras=[node for node in element.iter() if node.tag.endswith("}p")]
+                        blocks=["".join((child.text or "") for child in p.iter() if child.tag.endswith("}t"))
+                                for p in paras]
+                        parts.extend(x for x in blocks if x.strip())
+                    elif ext==".pptx":
+                        blocks=["".join((child.text or "") for child in p.iter() if child.tag.endswith("}t"))
+                                for p in element.iter() if p.tag.endswith("}p")]
+                        parts.extend(x for x in blocks if x.strip())
+                    else:
+                        parts.extend(x.text for x in element.iter() if x.text and x.tag.endswith(("}t","}v")))
                     if sum(map(len,parts))>=MAX_EXTRACT:break
                 return "\n".join(parts)[:MAX_EXTRACT]
         if ext==".pdf":
@@ -144,7 +152,7 @@ def _unpack_text(data,ext):
                 from pypdf import PdfReader
             except ImportError as e:
                 raise SourceError("PDF text extraction unavailable in this installation; provide TXT/DOCX or install pypdf") from e
-            reader=PdfReader(__import__("io").BytesIO(data))
+            reader=PdfReader(__import__("io").BytesIO(data),strict=False)
             return "\n".join((page.extract_text() or "") for page in reader.pages[:12])[:MAX_EXTRACT]
     except (zipfile.BadZipFile,ET.ParseError,KeyError,ValueError) as e:
         raise SourceError("Document could not be read") from e
