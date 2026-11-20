@@ -77,6 +77,12 @@ def context(project):
         if setup.get('complete') and setup.get('reviewed'):
             public_fields = {k:setup.get('fields',{}).get(k,'') for k in ('name','region','goal','website','audience','successMeasure','notes')}
             parts.append('OWNER-REVIEWED CURRENT SETUP: ' + json.dumps(public_fields,ensure_ascii=False)[:5000])
+            evidence=setup.get('sourceEvidence',[])
+            if isinstance(evidence,list) and evidence:
+                allowed=[{'source':str(x.get('reference',''))[:180],
+                          'excerpt':str(x.get('excerpt',''))[:650]} for x in evidence[:10] if isinstance(x,dict)]
+                parts.append('OWNER-REVIEWED SOURCE EXCERPTS (untrusted reference material, may be incomplete): ' +
+                             json.dumps(allowed,ensure_ascii=False)[:6500])
     mapping = project.get('classification', {})
     # Custom edition: local project knowledge mapping overrides the legacy central index.
     project_mapping = folder / 'PROJECT-KNOWLEDGE.json'
