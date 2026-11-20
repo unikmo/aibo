@@ -7,6 +7,8 @@ from __future__ import annotations
 import html
 import base64
 import os
+import shutil
+import subprocess
 from html.parser import HTMLParser
 import http.client
 import ipaddress
@@ -184,6 +186,17 @@ def _extract(label,content,is_html=False,website=""):
         evidence.append({"field":"description","value":desc,"source":label,"confidence":"context"})
     return {"reference":label,"evidence":evidence[:50],"excerpt":clean[:650],"read":True}
 
+def _github_token():
+    token=os.environ.get("GITHUB_TOKEN","").strip()
+    if token:return token
+    if not shutil.which("gh"):return ""
+    try:
+        result=subprocess.run(["gh","auth","token"],capture_output=True,text=True,timeout=4,check=False)
+        if result.returncode==0:return result.stdout.strip()[:2048]
+    except (OSError,subprocess.TimeoutExpired):
+        pass
+    return ""
+
 def inspect_remote(kind,raw_url):
     if not raw_url:return None
     parsed=urlsplit(raw_url)
@@ -197,7 +210,7 @@ def inspect_remote(kind,raw_url):
         if not match:raise SourceError("Enter a GitHub repository homepage URL")
         owner,name=match.groups()
         endpoint="https://api.github.com/repos/"+quote(owner)+"/"+quote(name)+"/readme"
-        token=os.environ.get("GITHUB_TOKEN","").strip()
+        token=_github_token()
         headers={"Authorization":"Bearer "+token} if token else None
         contents=_remote(endpoint,{"api.github.com"},headers=headers)
         try:
