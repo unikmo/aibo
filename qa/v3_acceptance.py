@@ -152,7 +152,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                         recent=portfolio.get("recentWork",[])[:3]
                         raise AssertionError(f"Soni UI did not reach a terminal state. Hint={hint!r}; modal={modal!r}; recentRuns={recent!r}; browserErrors={result['errors']!r}") from exc
                     hint=page.locator("#promptHint").inner_text()
-                    if "completed" not in hint:
+                    if "completed" not in hint.lower():
                         modal=page.locator("#modalBody").inner_text() if page.locator("#overlay.open").count() else ""
                         recent=page.request.get(BASE+"/api/portfolio/custom").json().get("recentWork",[])[:3]
                         raise AssertionError(f"Soni failed. Hint={hint!r}; modal={modal!r}; recentRuns={recent!r}")
