@@ -46,6 +46,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".project-card").first.click()
                     page.locator("#modalBody form button",has_text="Inspect sources").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
+                    page.locator("#modalBody details.source-extra summary").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
                     page.locator("#modalBody form textarea[name='goal']").fill("Validate local workflow")
                     page.locator("#modalBody form input[name='audience']").fill("Business users")
