@@ -47,6 +47,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                 }""")
                 assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgb(36, 41, 39)'],colors
                 assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible"
+                assert len(page.locator("#soniProvider option[value=auto]").inner_text())<=27,"Auto provider label should be compact on mobile"
                 def check_composer():
                     result=page.evaluate("""() => {
                       const composer=document.querySelector('#soniPrompt').getBoundingClientRect();
