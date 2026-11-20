@@ -32,12 +32,51 @@ controls.append(approve,execute);$("modalBody").append(controls);
 }
 async function openProject(p){if(S.edition==="standard"){notice("Standard edition","Standard activation requires a verified license issuer. The five licensed project slots cannot be activated by local UI settings.");return}try{const data=await api("/api/setup/custom/"+encodeURIComponent(p.id));const f=data.fields||{};formModal("Project setup · "+p.name,[{name:"name",label:"Name",value:f.name||p.name,required:true,max:80},{name:"region",label:"Country / region",value:f.region,required:true,max:100},{name:"goal",label:"Business goal",value:f.goal,multiline:true,required:true,max:500},{name:"audience",label:"Target audience",value:f.audience,required:true,max:250},{name:"website",label:"Website (optional)",value:f.website,max:200},{name:"successMeasure",label:"Measure of success",value:f.successMeasure,required:true,max:250},{name:"notes",label:"Project constraints (optional)",value:f.notes,multiline:true,max:800}],async fields=>{await api("/api/setup/custom/"+encodeURIComponent(p.id),json("POST",{fields,step:2,complete:true}));S.selected=p.id;$("projectSelect").value=p.id;});}catch(e){notice("Project unavailable",e.message)}}
 async function requestConnection(c){if(!S.selected){notice("Choose a project first","Select a project from the top bar before requesting "+c.name+".");return}try{const result=await api("/api/connections/request",json("POST",{connector:c.id,project:S.selected}));notice("Request recorded",result.alreadyRequested?"A setup request already exists for this project.":"A project-scoped setup request was recorded. Authentication and connection verification remain separate.");S.connections=await api("/api/connections/catalog");renderConnections()}catch(e){notice("Connection request failed",e.message)}}
-function logMessage(type,title,body){const root=$("conversation"),item=E("div","log-item"+(type==="agent"?" agent":""));item.append(E("small","",title),E("div","",body));root.append(item);root.scrollTop=root.scrollHeight}
-async function renderConversation(){const root=$("conversation");root.replaceChildren();root.classList.add("chat-log");if(!S.selected){root.append(E("div","empty","Select a project from the top bar to work with Soni."));return}try{const data=await api("/api/runs/custom/"+encodeURIComponent(S.selected));const runs=(data.runs||[]).slice().reverse().slice(-12);if(!runs.length){root.append(E("div","empty","No previous Soni work recorded for this project."));return}for(const r of runs){logMessage("user",projectName(S.selected),r.task||"Task");let detail=r;if(r.status==="completed"){try{detail=await api("/api/run/"+encodeURIComponent(r.id))}catch{}}const result=detail.result||{};logMessage("agent","Soni · "+r.status,result.soni||detail.error||"Execution record: "+r.status);}}catch(e){root.append(E("div","empty","Unable to load Soni history: "+e.message))}}
+function shortAnswer(text){
+  const content=safe(text).trim();if(!content)return "No verified response was recorded.";
+  // Display a compact extract of the *recorded answer*. Never claim a new summary was generated.
+  const first=content.split(/\\n\\s*\\n/)[0].replace(/^#+\\s*/,"").trim();
+  if(first.length<=280)return first;
+  const cut=first.slice(0,280),boundary=Math.max(cut.lastIndexOf(". "),cut.lastIndexOf("! "),cut.lastIndexOf("? "));
+  return boundary>85?cut.slice(0,boundary+1):cut.slice(0,245).trimEnd()+"…";
+}
+function logMessage(type,title,body,detail){
+  const root=$("conversation"),item=E("div","log-item "+(type==="agent"?"agent":"user"));
+  item.append(E("small","",title),E("div","message-body",body));
+  if(type==="agent"&&detail&&detail.trim()!==body.trim()){
+    const toggle=E("button","detail-toggle","Details");
+    toggle.type="button";toggle.setAttribute("aria-expanded","false");
+    const more=E("div","detail-body",detail);more.hidden=true;
+    toggle.onclick=()=>{more.hidden=!more.hidden;toggle.textContent=more.hidden?"Details":"Hide details";toggle.setAttribute("aria-expanded",String(!more.hidden));};
+    item.append(toggle,more);
+  }
+  root.append(item);
+}
+async function renderConversation(){
+  const root=$("conversation");root.replaceChildren();root.classList.add("chat-log");
+  if(!S.selected)return;
+  try{
+    const data=await api("/api/runs/custom/"+encodeURIComponent(S.selected));
+    const runs=(data.runs||[]).slice().reverse().slice(-12);
+    for(const r of runs){
+      logMessage("user","You",r.task||"Task");
+      let detail=r;
+      if(r.status==="completed"){try{detail=await api("/api/run/"+encodeURIComponent(r.id))}catch{}}
+      const result=detail.result||{},answer=result.soni||detail.error||"Run "+r.status;
+      const extended=[answer,...Object.entries(result.specialistResults||{}).map(([name,body])=>name.toUpperCase()+":\\n"+safe(body))].join("\\n\\n");
+      logMessage("agent","Soni · "+r.status,shortAnswer(answer),extended);
+    }
+  }catch(e){root.append(E("div","empty","Conversation unavailable: "+e.message))}
+}
+const soniComposer=$("soniPrompt");
+function sizeComposer(){soniComposer.style.height="34px";soniComposer.style.height=Math.min(175,Math.max(34,soniComposer.scrollHeight))+"px";}
+soniComposer.addEventListener("input",sizeComposer);
+soniComposer.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();$("reviewPrompt").click()}});
+$("soniProjectSelect").onchange=e=>{$("projectSelect").value=e.target.value;$("projectSelect").dispatchEvent(new Event("change"))};
 function providerOptions(){const select=$("soniProvider");select.replaceChildren();for(const [val,label] of [["mock","Demo (no paid AI)"],["auto","Automatic · Codex → Claude · no paid API"],["codex-local","Codex · local CLI"],["claude-local","Claude · local CLI"],["openai","OpenAI API"],["anthropic","Anthropic API"],["openrouter","OpenRouter API"],["vercel-gateway","Vercel AI Gateway"],["together","Together API"],["groq","Groq API"]]){const opt=E("option","",label+(S.providers?.ready?.[val]?" · available":""));opt.value=val;select.append(opt)}select.value=S.providerChoice||"auto";providerConsent()}
 function providerConsent(){const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);document.querySelector(".consent").classList.toggle("visible",paid);$("soniConsent").checked=false;}
 $("soniProvider").onchange=()=>{S.providerChoice=$("soniProvider").value;providerConsent()};
-$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(S.edition==="standard"){notice("License not activated","Standard edition requires trusted license activation before Soni execution.");return}if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<100;i++){await new Promise(ok=>setTimeout(ok,1200));const status=await api("/api/run/"+encodeURIComponent(r.id));if(["completed","failed","interrupted"].includes(status.status)){$("promptHint").textContent="Run "+status.status;await refresh();await renderConversation();if(status.status!=="completed")notice("Task "+status.status,status.error||"Review its activity record");break}if(i===99)$("promptHint").textContent="Still processing; check Activity for the latest status."}}catch(e){$("promptHint").textContent="Task not started";notice("Soni could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
+$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(S.edition==="standard"){notice("License not activated","Standard edition requires trusted license activation before Soni execution.");return}if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<100;i++){await new Promise(ok=>setTimeout(ok,1200));const status=await api("/api/run/"+encodeURIComponent(r.id));if(["completed","failed","interrupted"].includes(status.status)){$("promptHint").textContent="Run "+status.status;await refresh();await renderConversation();if(status.status!=="completed")notice("Task "+status.status,status.error||"Review its activity record");break}if(i===99)$("promptHint").textContent="Still processing; check Activity for the latest status."}}catch(e){$("promptHint").textContent="Task not started";notice("Soni could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
 $("projectSelect").onchange=e=>{S.selected=e.target.value;render();renderConversation()};$("projectSearch").oninput=renderProjects;
 if(S.edition==="custom"){
 const addProject=E("button","secondary","New project");addProject.type="button";addProject.style.margin="0 0 20px 12px";
@@ -84,6 +123,13 @@ $("settingsBtn").onclick=()=>{notice("Settings","Choose the control area. Permis
 
 $("accountBtn").onclick=()=>notice("Account and edition","AIBO is running as a local-first workspace. Cross-device identity and signed commercial licensing are not yet verified. Current edition: "+S.edition+".");
 async function refresh(){let projectState;const opts=[api("/api/portfolio/custom"),api("/api/products/"+S.edition),api("/api/actions"),api("/api/connections/catalog"),api("/api/ai-providers")];const all=await Promise.allSettled(opts);const get=i=>all[i].status==="fulfilled"?all[i].value:null;const portfolio=get(0)||{projects:[],recentWork:[]};projectState=get(1);S.projects=S.edition==="custom"?portfolio.projects||[]:(projectState?.slots||[]).map(x=>({id:"slot-"+x.slot,name:x.name||"Project slot "+x.slot,industry:"Licensed slot",readiness:"License not activated",setupComplete:false,tasksOpen:0,tasksCompleted:0,tasksFailed:0}));S.activity=S.edition==="custom"?portfolio.recentWork||[]:[];S.actions=S.edition==="custom"?get(2)?.actions||[]:[];S.connections=get(3);S.providers=get(4);const sel=$("projectSelect"),prior=S.selected;sel.replaceChildren();const allOpt=E("option","","All projects");allOpt.value="";sel.append(allOpt);for(const p of S.projects){const o=E("option","",p.name);o.value=p.id;sel.append(o)}S.selected=S.projects.some(p=>p.id===prior)?prior:"";sel.value=S.selected;$("editionLabel").textContent=(S.edition==="custom"?"Portfolio edition":"Standard edition")+" · "+S.projects.length+" projects";render();renderConnections();providerOptions();if(all[0].status==="rejected")$("homeNeeds").textContent="Local backend unavailable — "+all[0].reason.message;}
-function render(){renderHome();renderProjects();renderActivity();$("soniProject").textContent=projectName(S.selected)||"All projects";if(!S.selected)$("soniProject").textContent="All projects"}
+function render(){
+  renderHome();renderProjects();renderActivity();
+  const sel=$("soniProjectSelect"),prior=S.selected;
+  sel.replaceChildren();const placeholder=E("option","","Select project");placeholder.value="";sel.append(placeholder);
+  for(const p of S.projects){const opt=E("option","",p.name);opt.value=p.id;sel.append(opt)}
+  sel.value=prior;$("soniProject").textContent=projectName(S.selected)||"All projects";
+}
+
 (async()=>{await refresh();show(location.hash.slice(1)||"home");})();
 })();
