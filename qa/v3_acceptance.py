@@ -89,7 +89,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#settingsBtn").click()
                     page.locator("#modalBody button",has_text="Select model").click()
                     page.locator("#modalBody select[name='provider']").select_option("openrouter")
-                    page.locator("#modalBody select[name='model'] option[value='openrouter/auto']").wait_for(timeout=15000)
+                    page.wait_for_function("Array.from(document.querySelectorAll('#modalBody select[name=model] option')).some(o => o.value === 'openrouter/auto')",timeout=15000)
                     page.locator("#modalBody select[name='model']").select_option("openrouter/auto")
                     page.locator("#modalBody form button[type=submit]").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
