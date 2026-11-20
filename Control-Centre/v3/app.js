@@ -31,32 +31,97 @@ execute.onclick=()=>formModal("Execute approved action · "+(a.kind||""),[{name:
 controls.append(approve,execute);$("modalBody").append(controls);
 }
 async function openProject(p){
- if(S.edition==="standard"){notice("Standard edition","A verified license is required before activating project slots.");return}
- try{
-  const [state,sources]=await Promise.all([
-    api("/api/setup/custom/"+encodeURIComponent(p.id)),
-    api("/api/setup/custom/"+encodeURIComponent(p.id)+"/sources").catch(()=>({sources:[],suggestions:{},note:"Local source inspection unavailable"}))
-  ]);
-  const existing=state.fields||{},inferred=sources.suggestions||{},f={...inferred,...Object.fromEntries(Object.entries(existing).filter(([,v])=>v))};
-  const found=(sources.sources||[]).length;
-  formModal("Project setup · "+p.name,[
-    {name:"name",label:"Name",value:f.name||p.name,required:true,max:80},
-    {name:"region",label:"Country / region",value:f.region||"",required:true,max:100},
-    {name:"goal",label:"Business goal",value:f.goal||"",multiline:true,required:true,max:500},
-    {name:"audience",label:"Target audience",value:f.audience||"",required:true,max:250},
-    {name:"website",label:"Website",value:f.website||"",max:200},
-    {name:"successMeasure",label:"Measure of success",value:f.successMeasure||"",required:true,max:250},
-    {name:"notes",label:"Project constraints",value:f.notes||"",multiline:true,max:800}
-  ],async fields=>{
-    await api("/api/setup/custom/"+encodeURIComponent(p.id),json("POST",{fields,step:2,complete:true}));
-    S.selected=p.id;$("projectSelect").value=p.id;
-  });
-  const root=$("modalBody"),form=root.querySelector("form");
-  const note=E("p","source-summary",found?
-    "Reviewed "+found+" existing local project file"+(found===1?"":"s")+". Available facts were suggested below; verify before saving.":
-    "No supported local project profile was found. Existing website, repo, Drive or document ingestion needs a connected source; fill only what is missing.");
-  form.prepend(note);
- }catch(e){notice("Project unavailable",e.message)}
+  if(S.edition==="standard"){notice("Standard edition","A verified license is required before activating project slots.");return;}
+  try{
+    const state=await api("/api/setup/custom/"+encodeURIComponent(p.id));
+    const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
+    const intro=E("p","","Start with what already exists. AIBO will inspect permitted sources and suggest a project profile for your review.");
+    const form=E("form","modal-form");
+    const inputs=[
+      ["website","Website (public HTTPS URL)",state.fields?.website||""],
+      ["repository","GitHub repository (public or upload a README)",""],
+      ["drive","Google Doc (public link; private Drive requires connection)",""]
+    ];
+    for(const [key,title,value] of inputs){
+      const label=E("label","",title),input=E("input","field");input.name=key;input.type="url";
+      input.placeholder=key==="repository"?"https://github.com/owner/repository":key==="drive"?"https://docs.google.com/document/d/…":"https://example.com";
+      input.value=value;label.append(input);form.append(label);
+    }
+    const fileLabel=E("label","","Or upload documents (PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, JSON)");
+    const files=E("input");files.type="file";files.multiple=true;
+    files.accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json";fileLabel.append(files);form.append(fileLabel);
+    const status=E("p","notice","Existing local project files are inspected automatically. No model calls or paid API charges.");
+    status.setAttribute("role","status");form.append(status);
+    const actions=E("div","modal-controls");
+    const scan=E("button","cta","Inspect sources");scan.type="submit";
+    const cancel=E("button","secondary","Cancel");cancel.type="button";cancel.onclick=closeModal;
+    actions.append(scan,cancel);form.append(actions);root.append(intro,form);
+    $("overlay").classList.add("open");
+    form.onsubmit=async e=>{
+      e.preventDefault();scan.disabled=true;status.textContent="Inspecting approved sources…";
+      try{
+        const ids=[];
+        if(files.files.length>5)throw Error("Select up to five documents");
+        for(const file of files.files){
+          if(file.size>12*1024*1024)throw Error(file.name+" exceeds 12 MB");
+          const response=await fetch("/api/attachments/custom/"+encodeURIComponent(p.id),{
+            method:"POST",headers:{"Content-Type":"application/octet-stream","X-AIBO-Filename":encodeURIComponent(file.name)},
+            body:file});
+          const result=await response.json();if(!response.ok)throw Error(result.error||"Upload failed");
+          ids.push(result.id);
+        }
+        const data=Object.fromEntries(new FormData(form).entries());
+        const report=await api("/api/setup/custom/"+encodeURIComponent(p.id)+"/inspect",
+          json("POST",{website:data.website||"",repository:data.repository||"",drive:data.drive||"",attachments:ids}));
+        renderSourceReview(p,state,report);
+      }catch(error){status.className="notice error";status.textContent=error.message;scan.disabled=false;}
+    };
+  }catch(e){notice("Project unavailable",e.message);}
+}
+function renderSourceReview(project,state,report){
+  const extracted=report.suggestions||{};
+  const fields=state.fields||{};
+  const derived={};
+  for(const [key,entry] of Object.entries(extracted))if(entry&&entry.value)derived[key]=entry.value;
+  // An explicit prior owner-reviewed value always wins over an extracted suggestion.
+  const values={...derived,...Object.fromEntries(Object.entries(fields).filter(([,value])=>value))};
+  const sources=report.sources||[],failures=report.failures||[],conflicts=report.conflicts||{};
+  const sourceReviewed=sources.length>0;
+  const missingSource=sourceReviewed?"":"No readable source found; add a business goal manually.";
+  const definitions=[
+    ["name","Project name",true,80,false],
+    ["region","Country / region",false,100,false],
+    ["goal","Business goal"+(extracted.goal?" · suggested":""),!sourceReviewed,500,true],
+    ["audience","Target buyer or audience",false,250,false],
+    ["website","Website",false,200,false],
+    ["successMeasure","Success measure",false,250,false],
+    ["notes","Additional constraints",false,800,true]
+  ];
+  formModal("Review project profile · "+project.name,
+    definitions.map(([name,label,required,max,multiline])=>({name,label,value:values[name]||"",required,max,multiline})),
+    async values=>{
+      await api("/api/setup/custom/"+encodeURIComponent(project.id),
+        json("POST",{fields:values,step:2,complete:true,reviewSources:sourceReviewed}));
+      S.selected=project.id;$("projectSelect").value=project.id;
+    });
+  const form=$("modalBody").querySelector("form");
+  const intro=E("div","source-review");
+  intro.append(E("strong","",sources.length+" readable source"+(sources.length===1?"":"s")+" found"));
+  intro.append(E("p","",missingSource||"Suggested facts are editable. AIBO will preserve source excerpts as project evidence, not treat them as instructions."));
+  const list=E("div","source-list");
+  for(const entry of sources.slice(0,8))list.append(E("div","",entry.reference));
+  if(sources.length)intro.append(list);
+  for(const [key,alternatives] of Object.entries(conflicts)){
+    if(alternatives?.length)intro.append(E("p","source-warning","Conflicting "+key+": "+alternatives.map(x=>x.source).join(", ")+". Please verify."));
+  }
+  for(const failure of failures)intro.append(E("p","source-warning","Not inspected · "+failure.kind+": "+failure.reason));
+  form.prepend(intro);
+  for(const [key,entry] of Object.entries(extracted)){
+    const field=form.querySelector('[name="'+key+'"]');
+    if(!field)continue;
+    const label=field.closest("label");
+    label.append(E("small","source-credit","Suggested from "+entry.source+" · "+entry.confidence));
+  }
 }
 async function requestConnection(c){if(!S.selected){notice("Choose a project first","Select a project from the top bar before requesting "+c.name+".");return}try{const result=await api("/api/connections/request",json("POST",{connector:c.id,project:S.selected}));notice("Request recorded",result.alreadyRequested?"A setup request already exists for this project.":"A project-scoped setup request was recorded. Authentication and connection verification remain separate.");S.connections=await api("/api/connections/catalog");renderConnections()}catch(e){notice("Connection request failed",e.message)}}
 function cleanCopy(value){
