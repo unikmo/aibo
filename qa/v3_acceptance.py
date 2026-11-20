@@ -39,11 +39,36 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.screenshot(path=str(OUT/f"{screen}-{device}.png"),full_page=True)
                     result["screens"].append(f"{screen}-{device}")
                 assert page.evaluate("document.documentElement.scrollWidth<=innerWidth+1"),"Horizontal overflow on "+device
+                page.locator('.nav[data-screen="soni"]').click()
+                colors=page.locator("#conversation").evaluate("""el => {
+                    const css=getComputedStyle(el);
+                    const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
+                    return [css.backgroundColor,css.color,agent.backgroundColor];
+                }""")
+                assert colors==['rgb(250, 250, 250)','rgb(32, 33, 36)','rgb(255, 255, 255)'],colors
+                assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible without scrolling"
+                page.locator('.nav[data-screen="projects"]').click()
+                assert page.locator("#projectSelect").count()==1
+                assert page.locator("#newProjectBtn").count()==1
+                assert page.locator("#projectSearch").count()==0,"Duplicate project search returned"
+                assert page.locator("#soniProjectSelect").count()==0,"Duplicate Soni project selector returned"
+                page.locator('.nav[data-screen="projects"]').click()
+                assert page.locator("#projects-title").inner_text()=="Projects"
+                assert page.locator("#projectCards .project-card").count()>=15
+                assert page.locator("#projectCards").evaluate("(x) => x.getBoundingClientRect().top < innerHeight-50"),"Project list pushed below fold"
+                page.locator("#projectSelect").select_option(index=1)
+                assert page.locator("#projectCards .project-summary").count()==1
+                assert page.locator("#projectSearch").count()==0
+                page.locator('.nav[data-screen="connections"]').click()
+                assert page.locator("#connectionsCatalog").evaluate("(x)=>!x.open"),"Integration catalog should be collapsed"
+                page.locator("#projectSelect").select_option("")
+
                 assert page.locator("#projectCards .project-card").count()>=15
                 if device=="desktop":
                     # Work with existing project, recording setup and Soni mock result in isolated state.
                     page.locator(".nav[data-screen='projects']").click()
-                    page.locator(".project-card").first.click()
+                    page.locator("#projectSelect").select_option(index=1)
+                    page.locator("#projectCards .project-summary button",has_text="Import project sources").click()
                     page.locator("#modalBody form button",has_text="Inspect sources").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
                     page.locator("#modalBody details.source-extra summary").click()
@@ -120,6 +145,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     result["functional"].append("settings are saved")
                     page.locator(".nav[data-screen='connections']").click()
                     page.locator("#projectSelect").select_option(index=1)
+                    page.locator("#connectionsCatalog summary").click()
                     page.locator("#connectionsGrid button").first.click()
                     page.locator("#overlay.open").wait_for()
                     assert "request" in page.locator("#modalTitle").inner_text().lower()
@@ -146,10 +172,11 @@ with tempfile.TemporaryDirectory() as state_dir:
 
                     # Additive project creation must not overwrite existing workspaces.
                     page.locator(".nav[data-screen='projects']").click()
-                    page.locator("#projectSearch + button").click()
+                    page.locator("#newProjectBtn").click()
                     page.locator("#modalBody input[name='name']").fill("V3 Acceptance Initiative")
-                    page.locator("#modalBody input[name='industry']").fill("Internal test")
                     page.locator("#modalBody form button[type=submit]").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.startsWith('Set up ')",timeout=15000)
+                    page.locator("#closeModal").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
                     projects_response=page.request.get(BASE+"/api/products/custom").json()
                     assert len(projects_response["projects"])>=16

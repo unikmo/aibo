@@ -89,6 +89,72 @@
 .source-extra[open]{display:grid;gap:10px}
 .modal-form .source-extra label{display:grid;gap:5px;padding:6px 0}
 #modalBody input[type=file]{padding:9px 0;font-size:12px;max-width:100%}
+
+/* Compact control centre: no decorative hero or duplicate project controls */
+:root{--canvas:#f8f8f6;--line:#e7e6e2}
+.main{padding:24px clamp(18px,3vw,44px) 38px;max-width:1260px}
+.topbar{height:66px;padding:0 clamp(18px,3vw,44px)}
+.topproject{gap:10px;min-width:0}
+.topproject select{max-width:260px;width:clamp(130px,19vw,250px);padding:9px 24px 9px 8px;border:1px solid var(--line);background:#fff;border-radius:9px}
+.top-create{white-space:nowrap;padding:9px 13px;font-weight:550;font-size:12px}
+.page-heading{margin:0 0 20px}
+.page-heading h1{font-size:clamp(22px,2.6vw,32px);font-weight:570;letter-spacing:-.045em;line-height:1.2;margin:0 0 4px}
+.page-heading p{font-size:13px;color:var(--sub);margin:0;line-height:1.4}
+.kpi-grid{margin:16px 0;gap:10px}.metric{min-height:100px;padding:16px}.metric .value{margin-top:9px;font-size:27px}
+.content-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.panel{padding:18px;border-radius:13px}.panelhead{margin-bottom:10px}.panelhead h2{margin:0;font-size:15px}
+.rowitem{padding:13px 0}.rowitem:first-child{border-top:0}
+.project-list{display:grid;grid-template-columns:1fr;gap:0;max-width:760px}
+.project-card{min-height:0;padding:13px 15px;border-radius:0;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;margin-top:-1px}
+.project-card:first-child{border-radius:12px 12px 0 0;margin-top:0}
+.project-card:last-child{border-radius:0 0 12px 12px}
+.project-card:only-child{border-radius:12px}
+.project-card h3{margin:2px 0;font-size:13px}.project-card .eyebrow{letter-spacing:0;text-transform:none;font-size:11px;font-weight:400;color:#858983;margin-bottom:2px}
+.project-card .footer{margin:0;gap:12px}.project-card .category{letter-spacing:0;white-space:nowrap}.project-card .arrow{font-size:14px}
+.project-summary{max-width:760px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:19px}
+.project-summary h2{font-size:18px;margin:0 0 7px}.project-summary p{font-size:13px;color:var(--sub);margin:0 0 16px}
+.project-summary .meta{font-size:12px;color:var(--sub);margin-bottom:12px}
+.project-summary .project-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.project-summary button{padding:10px 15px}
+.disclosure-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:0 16px;margin-top:12px}
+.disclosure-panel summary{cursor:pointer;font-size:13px;font-weight:600;padding:15px 0}
+.disclosure-panel[open]{padding-bottom:15px}
+#connectionsCatalog .conn-list{margin-top:8px}
+.connections-focus{display:flex;flex-direction:column;gap:7px;max-width:760px}
+.connections-focus .conn{padding:14px 16px}
+#screen-soni.active{height:calc(100dvh - 66px)}
+#screen-soni .soni-stage{padding:13px 0 0}
+#screen-soni .soni-projectrow{margin:0 0 4px}
+#screen-soni .soni-context-label{font-size:11px;color:#838980}
+#screen-soni .conversation{padding-top:12px}
+#screen-soni #soni-title{margin-bottom:5px}
+#screen-activity .panel{max-width:900px}
+@media(max-width:700px){
+ .topbar{height:60px;padding:0 12px;gap:8px}.topproject{gap:5px}
+ .topproject label{display:none}.topproject select{width:clamp(108px,34vw,190px);max-width:190px;font-size:12px}
+ .top-create{font-size:11px;padding:9px 8px}.topright{gap:5px}
+ .main{padding:18px 13px 28px}
+ .content-grid{grid-template-columns:1fr}
+ .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .project-card .category{display:none}
+ #screen-soni.active{height:calc(100dvh - 110px)}
+}
+
+/* Reading-first Soni chat: neutral white canvas, high contrast ink */
+#screen-soni .chat-wrap,
+#screen-soni .chat{background:#ffffff}
+#screen-soni .chat{border:1px solid #e4e5e6;border-radius:17px;overflow:hidden}
+#screen-soni .conversation{background:#fafafa;color:#202124;padding:18px 24px;scrollbar-color:#d1d3d5 transparent}
+#screen-soni .log-item.agent{color:#202124;background:transparent;border:0;max-width:88%;font-size:14px;line-height:1.65}
+#screen-soni .log-item.user{background:#e9edf1;color:#202124;border:0;border-radius:16px 16px 5px 16px;font-size:14px;line-height:1.6}
+#screen-soni .log-item .message-body{color:inherit}
+#screen-soni .log-item small{color:#636b72;font-size:10px}
+#screen-soni .log-item .detail-toggle{color:#375c82;text-decoration:underline;text-underline-offset:3px}
+#screen-soni .log-item .detail-body{background:#f0f2f4;color:#29313a;border:1px solid #e3e5e8}
+#screen-soni .composer-dock{background:#ffffff;padding:12px 18px max(14px,env(safe-area-inset-bottom));border-top:1px solid #ebebea}
+#screen-soni .prompt{background:#fff;border:1px solid #d6d9dc;box-shadow:none}
+#screen-soni #soniPrompt{color:#202124}
+#screen-soni #soniPrompt::placeholder{color:#777f88}
+@media(max-width:700px){#screen-soni .conversation{padding:12px 11px}#screen-soni .composer-dock{padding:9px 10px max(12px,env(safe-area-inset-bottom))}}
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><span class="eyebrow">Control Centre 3</span><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
 <button class="nav active" data-screen="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg>Home</button>
@@ -97,12 +163,18 @@
 <button class="nav" data-screen="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Activity</button>
 <button class="nav" data-screen="connections"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 4v5m8-5v5M7 9h10v5a5 5 0 0 1-10 0V9Zm5 10v3"/></svg>Connections</button>
 </nav><div class="aside-foot"><span class="footline"><i class="live"></i> Local-first workspace</span><p>Decisions stay with you. Work stays attributable.</p></div></aside>
-<div class="workspace"><header class="topbar"><div class="topproject"><label for="projectSelect">Project</label><select id="projectSelect" aria-label="Selected project"><option value="">All projects</option></select></div><div class="topright"><button id="settingsBtn" class="buttonlike">Settings</button><div class="account"><div class="avatar">TM</div><button id="accountBtn" class="buttonlike">Account</button></div></div></header><main class="main">
-<section class="screen active" id="screen-home" aria-labelledby="home-title"><div class="intro"><p class="eyebrow">YOUR WORK · IN PERSPECTIVE</p><h1 id="home-title">Clarity for what <span class="hero-word">matters next.</span></h1><p>A single view of your priorities, decisions and verified progress. No activity theatre.</p></div><div class="kpi-grid"><div class="metric"><small>Projects</small><span class="value" id="countProjects">—</span><small>Registered workspaces</small></div><div class="metric"><small>Active work</small><span class="value" id="countActive">—</span><small>Queued or running</small></div><div class="metric"><small>Needs attention</small><span class="value" id="countNeeds">—</span><small>Recorded failures or interruptions</small></div><div class="metric"><small>Completed</small><span class="value" id="countDone">—</span><small>Recorded outcomes</small></div></div><div class="content-grid"><div class="stack"><div class="panel"><div class="panelhead"><div><p class="eyebrow">DECISIONS & PRIORITIES</p><h2>What needs your attention</h2></div><a href="#activity" data-go="activity">View activity</a></div><div id="homeNeeds" class="empty">Loading your local records…</div></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">RECENT WORK</p><h2>Verified activity</h2></div><a href="#activity" data-go="activity">Full history</a></div><div id="homeRecent" class="empty">No activity loaded.</div></div></div><div class="stack"><div class="quick"><p class="eyebrow">YOUR BUSINESS PARTNER</p><h2>There is one place to begin.</h2><p>Tell Soni what you need. The right specialists work behind the scenes.</p><button class="cta" data-go="soni">Ask Soni</button></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">WORKSPACE HEALTH</p><h2>Known, not assumed</h2></div></div><div id="homeHealth" class="empty">Awaiting local portfolio data.</div></div></div></div></section>
+<div class="workspace"><header class="topbar"><div class="topproject"><label for="projectSelect">Project</label><select id="projectSelect" aria-label="Selected project"><option value="">All projects</option></select><button id="newProjectBtn" class="secondary top-create" type="button">+ New project</button></div><div class="topright"><button id="settingsBtn" class="buttonlike">Settings</button><div class="account"><div class="avatar">TM</div><button id="accountBtn" class="buttonlike">Account</button></div></div></header><main class="main">
+<section class="screen active" id="screen-home" aria-labelledby="home-title">
+<div class="page-heading"><h1 id="home-title">Overview</h1><p>Verified work, decisions and outcomes.</p></div>
+<div class="kpi-grid"><div class="metric"><small>Projects</small><span class="value" id="countProjects">—</span></div><div class="metric"><small>Active</small><span class="value" id="countActive">—</span></div><div class="metric"><small>Needs attention</small><span class="value" id="countNeeds">—</span></div><div class="metric"><small>Completed</small><span class="value" id="countDone">—</span></div></div>
+<div class="content-grid"><div class="panel"><div class="panelhead"><h2>Needs attention</h2><a href="#activity" data-go="activity">Activity</a></div><div id="homeNeeds" class="empty">Loading…</div></div>
+<div class="panel"><div class="panelhead"><h2>Recent work</h2><a href="#activity" data-go="activity">View all</a></div><div id="homeRecent" class="empty">No work recorded.</div></div></div>
+<div id="homeHealth" hidden></div>
+</section>
 <section class="screen" id="screen-soni" aria-labelledby="soni-title">
 <div class="soni-stage">
 <h1 id="soni-title">Just ask <em>Soni.</em> <span>She handles the rest.</span></h1>
-<div class="soni-projectrow"><label class="visually-hidden" for="soniProjectSelect">Select project</label><select id="soniProjectSelect" aria-label="Select project"><option value="">Select project</option></select><span id="soniProject" class="visually-hidden">All projects</span></div>
+<div class="soni-projectrow"><span id="soniProject" class="soni-context-label" aria-live="polite">Select a project above to begin</span></div>
 <div class="chat-wrap"><div class="chat">
 <div class="conversation" id="conversation" aria-live="polite"></div>
 <div class="composer-dock"><div class="prompt">
@@ -112,9 +184,12 @@
 <p class="soni-hint" id="promptHint" role="status">Select a project to begin</p>
 </div>
 </div></div></div></section>
-<section class="screen" id="screen-projects" aria-labelledby="projects-title"><div class="intro"><p class="eyebrow">INDEPENDENT WORKSPACES</p><h1 id="projects-title">Every project, <span class="hero-word">its own context.</span></h1><p>Independent goals, knowledge, ownership and outcomes. No cross-project mixing.</p></div><input class="search" id="projectSearch" type="search" aria-label="Search projects" placeholder="Find a project…"><div id="projectCards" class="project-list"><div class="empty">Loading project records…</div></div><p class="notice">Portfolio information reflects the local AIBO project registry where available.</p></section>
-<section class="screen" id="screen-activity" aria-labelledby="activity-title"><div class="intro"><p class="eyebrow">WORK & EVIDENCE</p><h1 id="activity-title">Progress you can <span class="hero-word">account for.</span></h1><p>Tasks, outcomes, interruptions and approvals — sourced from actual records, not demonstration statistics.</p></div><div class="tabs" aria-label="Activity filter"><button class="tab active" data-filter="all">All</button><button class="tab" data-filter="completed">Completed</button><button class="tab" data-filter="running">Active</button><button class="tab" data-filter="failed">Needs attention</button></div><div class="panel" style="margin-bottom:16px"><div class="panelhead"><div><p class="eyebrow">APPROVAL QUEUE</p><h2>Consequential actions</h2></div></div><div id="approvalRows" class="empty">Loading approval records…</div></div><div class="panel"><div class="panelhead"><div><p class="eyebrow">EXECUTION LEDGER</p><h2>Recent work</h2></div><span class="pill" id="activityCount">0 records</span></div><div id="activityRows" class="empty">No activity loaded.</div></div><p class="notice">Actions, approvals and provider receipts need an explicit record before they are described as completed.</p></section>
-<section class="screen" id="screen-connections" aria-labelledby="connections-title"><div class="intro"><p class="eyebrow">TOOLS & INTELLIGENCE</p><h1 id="connections-title">Connected where <span class="hero-word">it counts.</span></h1><p>Provider access and integrations remain explicit, project-scoped and verifiable.</p></div><div class="panel" style="margin-bottom:16px"><div class="panelhead"><div><p class="eyebrow">STATUS</p><h2>Connection overview</h2></div></div><div class="detail-note" id="connectionStatus">A listed integration is not necessarily authenticated. Only verified provider responses establish connection status.</div></div><div id="connectionsGrid" class="conn-list"><div class="empty">Loading connection catalog…</div></div></section>
+<section class="screen" id="screen-projects" aria-labelledby="projects-title">
+<div class="page-heading"><h1 id="projects-title">Projects</h1><p id="projectSubheading">Choose a project above to inspect its sources and setup.</p></div>
+<div id="projectCards" class="project-list" aria-live="polite"><div class="empty">Loading projects…</div></div>
+</section>
+<section class="screen" id="screen-activity" aria-labelledby="activity-title"><div class="page-heading"><h1 id="activity-title">Activity</h1><p>Recorded actions and outcomes for the selected project.</p></div><div class="tabs" aria-label="Activity filter"><button class="tab active" data-filter="all">All</button><button class="tab" data-filter="completed">Completed</button><button class="tab" data-filter="running">Active</button><button class="tab" data-filter="failed">Needs attention</button></div><div class="panel"><div class="panelhead"><h2>Recent work</h2><span class="pill" id="activityCount">0 records</span></div><div id="activityRows" class="empty">No recorded activity.</div></div><details class="disclosure-panel"><summary>Approvals</summary><div id="approvalRows" class="empty">No approvals recorded.</div></details></section>
+<section class="screen" id="screen-connections" aria-labelledby="connections-title"><div class="page-heading"><h1 id="connections-title">Connections</h1><p id="connectionStatus">Checking connected tools…</p></div><div class="connections-focus" id="connectionFocus"></div><details id="connectionsCatalog" class="disclosure-panel"><summary>Browse available integrations</summary><div id="connectionsGrid" class="conn-list"><div class="empty">Loading…</div></div></details></section>
 </main></div></div>
 <div class="overlay" id="overlay" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><p class="eyebrow">AIBO CONTROL CENTRE</p><h2 id="modalTitle">Preview only</h2><div id="modalBody">This control does not change data.</div><button id="closeModal" class="secondary">Close</button></div></div>
 <script src="app.js" defer></script></body></html>
