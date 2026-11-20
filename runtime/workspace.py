@@ -134,7 +134,7 @@ def start_run(project_id, payload):
             if running.get('status') in ('queued','running'):
                 raise products.ProductError('Soni is already working on this project')
         item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
-              'provider':provider, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
+              'provider':provider, 'apiConsentGranted':requires_api_consent(provider) and payload.get('consent') is True, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
               'result':None, 'error':None, 'externalActionsExecuted':False}
         _save_run(item)
         CURRENT[project_id]=item['id']
@@ -155,7 +155,7 @@ def _worker(run_id):
         limits=costs.current()
         attachment_context=attachments.context(item['project'],item.get('attachments',[]))
         enriched=item['task'] + ('\n\n' + attachment_context if attachment_context else '')
-        selected,model=ai_providers.route(item['provider']) if item['provider']=='auto' else (item['provider'],None)
+        selected,model=(item['provider'],None) if item['provider']=='mock' else ai_providers.route(item['provider'])
         config=ai_providers.public()
         routes=None
         if item['provider']=='auto' and config['switchMode']=='soni':
