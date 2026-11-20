@@ -54,9 +54,14 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".nav[data-screen='soni']").click()
                     page.locator("#soniProvider").select_option("mock")
                     page.locator("#soniPrompt").fill("Review selected project positioning")
+                    # Enter sends; Shift+Enter must add a line without submitting.
+                    page.locator("#soniPrompt").press("Shift+Enter")
+                    assert "\\n" in page.locator("#soniPrompt").input_value()
+                    page.locator("#soniPrompt").fill("Review selected project positioning")
+                    assert page.locator("#soniPrompt").evaluate("(e) => e.scrollHeight <= 190"), "Composer is not compact"
                     assert page.locator("#soniProvider").input_value()=="mock", "Provider selection reset before submit"
                     with page.expect_response(lambda resp: "/api/work/custom/" in resp.url and resp.request.method=="POST") as sent:
-                        page.locator("#reviewPrompt").click()
+                        page.locator("#soniPrompt").press("Enter")
                     request_data=sent.value.request.post_data_json
                     assert request_data["provider"]=="mock", f"Provider changed during refresh: {request_data['provider']}"
                     result["functional"].append("explicit provider selection respected during concurrent refresh")
