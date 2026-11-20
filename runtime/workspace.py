@@ -244,11 +244,47 @@ def start_run(project_id, payload):
         threading.Thread(target=_worker,args=(item['id'],),daemon=True,name='aibo-soni').start()
     return {'id':item['id'],'project':project_id,'status':'queued'}
 
+def _verified_records_answer(project_id, task):
+    """Handle narrow factual questions without inventing outreach or delivery history."""
+    question=task.strip().casefold()
+    project=_project(project_id)
+    is_status=bool(re.fullmatch(
+        r'(?:what(?:\\'s| is)|give me|show me|check|tell me)\\s+(?:(?:the|a|current)\\s+)?'
+        r'(?:status|progress)(?:\\s+(?:of|on|for)\\s+(?:this|the|our|my)?\\s*project)?[?.! ]*',question))
+    if is_status:
+        setup=setup_state(project_id)
+        mapping=project.get('classification') or {}
+        label=project.get('name',project_id)
+        reviewed='reviewed' if setup.get('complete') and setup.get('reviewed') else 'not yet owner-approved'
+        pack=mapping.get('status','unknown').replace('-',' ')
+        return (f'{label} is registered in AIBO. Project onboarding: {reviewed}. '
+                f'Industry guidance: {pack}. '
+                'Delivery, outreach and external activity cannot be confirmed from the available project records alone.')
+    asks_outreach=bool(re.search(r'\\b(?:have we|did we|have (?:you|they)|did (?:you|they))\\b.{0,130}'
+                                r'\\b(?:reach(?:ed)? out|contact(?:ed)?|email(?:ed)?|messag(?:ed|ing))\\b',question))
+    if asks_outreach:
+        ambiguous=re.search(r'\\babas\\b',question)
+        answer=('I cannot verify whether that outreach occurred from the available AIBO records. '
+                'Missing confirmation does not prove that no outreach took place.')
+        if ambiguous:answer+=' What does “ABAs” refer to in this project?'
+        return answer
+    return None
+
 def _worker(run_id):
     with LOCK:
         item=run_status(run_id)
         item['status']='running';item['updatedAt']=now();_save_run(item)
     try:
+        # Narrow factual record requests must not be answered by speculative AI.
+        local_answer=_verified_records_answer(item['project'],item['task'])
+        if local_answer is not None:
+            item['result']={'project':item['project'],'provider':'local-records',
+                            'agents':[],'specialistResults':{},'soni':local_answer,
+                            'externalActionsExecuted':False,'evidenceLevel':'LOCAL_RECORDS_ONLY'}
+            item['effectiveProvider']='local-records'
+            item['providerAttempts']=[]
+            item['status']='completed'
+            return
         # No publishing, sending, buying, deploying, or other external business operations.
         limits=costs.current()
         attachment_context=attachments.context(item['project'],item.get('attachments',[]))
@@ -292,7 +328,14 @@ def _worker(run_id):
         item['result']=result
         item['status']='completed'
     except Exception as exc:
-        item['error']=str(exc)[:600]
+        # Only known sanitized model/runtime errors may be exposed to the browser.
+        message=str(exc)
+        if isinstance(exc,aibo.AiboError) and (
+            ' API HTTP ' in message or ' API network connection failed' in message or
+            message.startswith('Local CLI') or message.startswith('Model-call limit exceeded')):
+            item['error']=message[:240]
+        else:
+            item['error']='Execution failed. Check connection settings or local diagnostics.'
         item['status']='failed'
     finally:
         item['updatedAt']=now()
