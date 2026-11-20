@@ -29,6 +29,19 @@ class SourceOnboardingTests(unittest.TestCase):
         self.assertEqual(data['website']['value'],'https://acme.example')
         self.assertNotIn('steal data',item['excerpt'])
 
+    def test_section_headings_and_markdown_bold_are_extracted(self):
+        document=b"## Business goal\nBuild reliable compliance software.\n\n**Target audience**\nSmall business owners\n\n**Measure of success:** 20 paid pilots\n"
+        evidence=source.consolidate([source.inspect_document("brief.md",document)])["suggestions"]
+        self.assertEqual(evidence["goal"]["value"],"Build reliable compliance software.")
+        self.assertEqual(evidence["audience"]["value"],"Small business owners")
+        self.assertEqual(evidence["successMeasure"]["value"],"20 paid pilots")
+
+    def test_password_lines_are_not_in_source_evidence(self):
+        profile=b"Goal: Increase leads\nAPI_KEY: should-not-leak\nPassword: another-secret\n"
+        result=source.inspect_document("brief.md",profile)
+        self.assertNotIn("should-not-leak",result["excerpt"])
+        self.assertNotIn("another-secret",result["excerpt"])
+
     def test_docx_paragraphs(self):
         data=io.BytesIO()
         xml=b'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Goal: Improve sales</w:t></w:r></w:p><w:p><w:r><w:t>Audience: Teams</w:t></w:r></w:p></w:body></w:document>'
