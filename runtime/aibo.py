@@ -143,9 +143,15 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = json.load(r)
-        except (urllib.error.HTTPError, urllib.error.URLError) as exc:
-            detail = exc.read(300).decode(errors='replace') if isinstance(exc, urllib.error.HTTPError) else str(exc)
-            raise AiboError(f'{provider} request failed: {detail}') from exc
+        except urllib.error.HTTPError as exc:
+            # API error bodies can echo portions of credentials or submitted data.
+            # Never store provider error payloads in run records or show them in UI.
+            hint = {400:'Invalid request or model', 401:'Authentication failed; check API key',
+                    402:'Payment or billing required', 403:'Access denied',
+                    404:'Model or endpoint unavailable', 429:'Rate limit or quota exceeded'}.get(exc.code,'Provider request failed')
+            raise AiboError(f'{provider} API HTTP {exc.code}: {hint}') from None
+        except urllib.error.URLError:
+            raise AiboError(f'{provider} API network connection failed') from None
         if provider == 'anthropic':
             return '\n'.join(x.get('text','') for x in data.get('content',[]) if x.get('type')=='text')
         if provider in ai_providers.COMPAT_URLS:
@@ -177,7 +183,8 @@ def provider_call(provider, system, user, model, timeout, output_token_limit=180
     except subprocess.TimeoutExpired as exc:
         raise AiboError('Local CLI timeout') from exc
     if p.returncode:
-        raise AiboError(f'Local CLI failed (exit {p.returncode}): {p.stderr[-600:]}')
+        # CLI stderr may contain file excerpts, paths or credentials.
+        raise AiboError(f'Local CLI failed (exit {p.returncode}); check local CLI authentication and logs')
     return p.stdout.strip()
 
 
