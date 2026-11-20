@@ -156,6 +156,7 @@
 #screen-soni #soniPrompt::placeholder{color:#777f88}
 @media(max-width:700px){#screen-soni .conversation{padding:12px 11px}#screen-soni .composer-dock{padding:9px 10px max(12px,env(safe-area-inset-bottom))}}
 .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+#modalBody .notice:empty{display:none}
 /* Strict content hierarchy — remove legacy decorative and redundant chrome */
 .aside{gap:27px;padding-top:22px}.edition{padding:0 13px}.edition strong{font-size:11px;color:#7b817c;font-weight:500;margin:0}
 .page-heading{margin-bottom:15px}
@@ -192,7 +193,7 @@
 <div class="chat-wrap"><div class="chat">
 <div class="conversation" id="conversation" aria-live="polite"></div>
 <div class="composer-dock"><div class="prompt">
-<label class="visually-hidden" for="soniPrompt">Message Soni</label><textarea id="soniPrompt" rows="1" placeholder="Ask Soni anything about this project…" aria-label="Message Soni"></textarea>
+<label class="visually-hidden" for="soniPrompt">Message Soni</label><textarea id="soniPrompt" rows="1" placeholder="Message Soni…" aria-label="Message Soni"></textarea>
 <div class="soni-actions"><div class="prompt-controls"><label class="visually-hidden" for="soniProvider">AI provider</label><select id="soniProvider" aria-label="AI provider"><option value="auto">Auto · Codex → Claude</option></select><label class="consent"><input id="soniConsent" type="checkbox"> I approve this paid API request and associated model charges.</label></div><button id="reviewPrompt" class="cta" aria-label="Send to Soni">Send <span aria-hidden="true">↑</span></button></div>
 </div>
 <p class="soni-hint" id="promptHint" role="status" aria-live="polite"></p>
