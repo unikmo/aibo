@@ -60,7 +60,8 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert "MOCK" in page.locator(".log-item.agent").last.inner_text()
                     result["functional"].append("Soni mock execution persisted and rendered")
                     page.locator(".nav[data-screen='activity']").click()
-                    assert page.locator("#activityRows .rowitem").count()>0
+                    page.wait_for_function("document.querySelectorAll('#activityRows .rowitem').length > 0",timeout=15000)
+                    assert any(x["status"]=="completed" for x in page.request.get(BASE+"/api/portfolio/custom").json()["recentWork"])
                     result["functional"].append("activity records reflect real run")
                     page.locator("#settingsBtn").click()
                     page.locator("#modalBody button",has_text="Cost controls").click()
@@ -86,12 +87,13 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.request.get(BASE+"/api/ai-providers").json()["switchMode"]=="soni"
                     result["functional"].append("model routing settings persisted")
                     page.locator("#settingsBtn").click()
-                    page.locator("#modalBody button",has_text="Model IDs").click()
+                    page.locator("#modalBody button",has_text="Select model").click()
                     page.locator("#modalBody select[name='provider']").select_option("openrouter")
-                    page.locator("#modalBody input[name='model']").fill("example/model")
+                    page.locator("#modalBody select[name='model'] option[value='openrouter/auto']").wait_for(timeout=15000)
+                    page.locator("#modalBody select[name='model']").select_option("openrouter/auto")
                     page.locator("#modalBody form button[type=submit]").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
-                    assert page.request.get(BASE+"/api/ai-providers").json()["models"]["openrouter"]=="example/model"
+                    assert page.request.get(BASE+"/api/ai-providers").json()["models"]["openrouter"]=="openrouter/auto"
                     result["functional"].append("provider model selection persisted")
 
                     # Additive project creation must not overwrite existing workspaces.
