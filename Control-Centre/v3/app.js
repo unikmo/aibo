@@ -148,9 +148,28 @@ function renderSourceReview(project,state,report){
 }
 async function requestConnection(c){if(!S.selected){notice("Choose a project first","Select a project from the top bar before requesting "+c.name+".");return}try{const result=await api("/api/connections/request",json("POST",{connector:c.id,project:S.selected}));notice("Request recorded",result.alreadyRequested?"A setup request already exists for this project.":"A project-scoped setup request was recorded. Authentication and connection verification remain separate.");S.connections=await api("/api/connections/catalog");renderConnections()}catch(e){notice("Connection request failed",e.message)}}
 function cleanCopy(value){
-  return safe(value).replace(/^\s{0,3}#{1,6}\s+/gm,"").replace(/\*\*([^*]+)\*\*/g,"$1")
-    .replace(/__([^_]+)__/g,"$1").replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g,"$1")
-    .replace(/^\s*[-*]\s+/gm,"• ").replace(/\n{3,}/g,"\n\n").trim();
+  let text=safe(value);
+  // Legacy run records may contain API provider error payloads.
+  if(/invalid_api_key|Incorrect API key provided|sk-(?:proj-)?[A-Za-z0-9]/i.test(text))
+    return "OpenAI API authentication failed. Check your API key in Connections. No result was generated.";
+  text=text.replace(/\r\n?/g,"\n")
+    .replace(/â€”|â€“/g,"—").replace(/â€™/g,"’").replace(/â€œ/g,"“").replace(/â€�/g,"”")
+    .replace(/Â /g," ").replace(/Â(?=\s)/g,"")
+    .replace(/&nbsp;|&#160;/gi," ").replace(/&lt;/gi,"<").replace(/&gt;/gi,">")
+    .replace(/<br\b[^>]*\/?>/gi,"\n").replace(/<\/(?:div|p|li|section)>/gi,"\n")
+    .replace(/<[^>]{1,1000}>/g,"")
+    .replace(/\\([*\x60_])/g,"$1")
+    .replace(/\[([^\]]{1,200})\]\((?:file:\/\/|\/[A-Za-z]:\/|[A-Za-z]:\\)[^)]+\)/g,"$1")
+    .replace(/\[([^\]]{1,200})\]\(([^)]+)\)/g,"$1 ($2)")
+    .replace(/^\s{0,3}#{1,6}\s+/gm,"")
+    .replace(/\*\*([^*]+)\*\*/g,"$1").replace(/__([^_]+)__/g,"$1")
+    .replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g,"$1")
+    .replace(/\x60([^\x60]+)\x60/g,"$1")
+    .replace(/^\s*[-*]\s+/gm,"• ")
+    .replace(/\n{3,}/g,"\n\n")
+    .replace(/\b(?:OPENAI|ANTHROPIC|GITHUB|GOOGLE)_API_KEY\s*[:=]\s*\S+/gi,"[credential hidden]")
+    .trim();
+  return text;
 }
 function shortAnswer(text){
   const clean=cleanCopy(text);
