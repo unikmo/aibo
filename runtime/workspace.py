@@ -174,7 +174,7 @@ def save_setup(project_id, payload):
                 raise products.ProductError('Provide a business goal or review existing project sources first')
             if has_sources:
                 state['sourceEvidence'] = [
-                    {'reference':src['reference'],'excerpt':src['excerpt'][:650]}
+                    {'reference':src['reference'],'excerpt':src['excerpt'][:1800]}
                     for src in draft['sources'][:12]
                 ]
             state['complete'] = True
