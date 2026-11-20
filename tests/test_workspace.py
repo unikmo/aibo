@@ -109,6 +109,22 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(final['status'],'failed')
         self.assertEqual(execution.call_count,1)
 
+    def test_explicit_api_uses_selected_model_only_with_consent(self):
+        self._ready()
+        import time
+        with patch('runtime.workspace.ai_providers.route',return_value=('openai','gpt-4.1-mini')), \
+             patch('runtime.workspace.aibo.execute',return_value={'soni':'API_OK','externalActionsExecuted':False}) as execution:
+            created=workspace.start_run(self.id,{'task':'Analyze positioning','provider':'openai','consent':True})
+            for _ in range(100):
+                final=workspace.run_status(created['id'])
+                if final['status'] not in ('queued','running'):break
+                time.sleep(.02)
+        self.assertEqual(final['status'],'completed',final.get('error'))
+        self.assertTrue(final['apiConsentGranted'])
+        self.assertEqual(execution.call_args.kwargs['provider'],'openai')
+        self.assertEqual(execution.call_args.kwargs['model'],'gpt-4.1-mini')
+        self.assertEqual(final['providerAttempts'][0]['provider'],'openai')
+
     def test_cannot_modify_pack_during_setup(self):
         with self.assertRaisesRegex(products.ProductError,'Unknown setup field'):
             workspace.save_setup(self.id,{'step':1,'fields':{'corePack':'unauthorized'}})
