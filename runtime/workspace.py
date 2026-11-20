@@ -270,7 +270,7 @@ def start_run(project_id, payload):
     attachments.load(project_id,attachment_ids)
     with LOCK:
         if project_id in CURRENT:
-            running=products.read_json(_run_file(CURRENT[project_id]),{})
+            running=run_status(CURRENT[project_id])
             if running.get('status') in ('queued','running'):
                 raise products.ProductError('Soni is already working on this project')
         item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
@@ -404,5 +404,7 @@ def recent_runs(project_id):
     for file in RUNS_DIR.glob('*.json'):
         value=products.read_json(file,{})
         if value.get('project')==project_id:
+            if value.get('status') in ('queued','running'):
+                value=run_status(value['id'])
             items.append({k:value.get(k) for k in ('id','project','task','provider','status','createdAt','updatedAt','error')})
     return sorted(items,key=lambda x:x.get('createdAt') or '',reverse=True)[:12]
