@@ -136,6 +136,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     result["functional"].append("settings are saved")
                     page.locator(".nav[data-screen='connections']").click()
                     page.locator("#projectSelect").select_option(index=1)
+                    page.locator("#connectionsCatalog summary").click()
                     page.locator("#connectionsGrid button").first.click()
                     page.locator("#overlay.open").wait_for()
                     assert "request" in page.locator("#modalTitle").inner_text().lower()
