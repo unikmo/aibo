@@ -245,12 +245,12 @@ def start_run(project_id, payload):
     return {'id':item['id'],'project':project_id,'status':'queued'}
 
 def _verified_records_answer(project_id, task):
-    """Handle narrow factual questions without inventing outreach or delivery history."""
+    """Answer narrow factual questions only from known local state."""
     question=task.strip().casefold()
     project=_project(project_id)
     is_status=bool(re.fullmatch(
-        r'(?:what(?:\\'s| is)|give me|show me|check|tell me)\\s+(?:(?:the|a|current)\\s+)?'
-        r'(?:status|progress)(?:\\s+(?:of|on|for)\\s+(?:this|the|our|my)?\\s*project)?[?.! ]*',question))
+        r"(?:what(?:'s| is)|give me|show me|check|tell me)\s+(?:(?:the|a|current)\s+)?"
+        r"(?:status|progress)(?:\s+(?:of|on|for)\s+(?:this|the|our|my)?\s*project)?[?.! ]*",question))
     if is_status:
         setup=setup_state(project_id)
         mapping=project.get('classification') or {}
@@ -260,10 +260,10 @@ def _verified_records_answer(project_id, task):
         return (f'{label} is registered in AIBO. Project onboarding: {reviewed}. '
                 f'Industry guidance: {pack}. '
                 'Delivery, outreach and external activity cannot be confirmed from the available project records alone.')
-    asks_outreach=bool(re.search(r'\\b(?:have we|did we|have (?:you|they)|did (?:you|they))\\b.{0,130}'
-                                r'\\b(?:reach(?:ed)? out|contact(?:ed)?|email(?:ed)?|messag(?:ed|ing))\\b',question))
+    asks_outreach=bool(re.search(r'\b(?:have we|did we|have (?:you|they)|did (?:you|they))\b.{0,130}'
+                                r'\b(?:reach(?:ed)? out|contact(?:ed)?|email(?:ed)?|messag(?:ed|ing))\b',question))
     if asks_outreach:
-        ambiguous=re.search(r'\\babas\\b',question)
+        ambiguous=re.search(r'\babas\b',question)
         answer=('I cannot verify whether that outreach occurred from the available AIBO records. '
                 'Missing confirmation does not prove that no outreach took place.')
         if ambiguous:answer+=' What does “ABAs” refer to in this project?'
