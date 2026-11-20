@@ -55,7 +55,22 @@ async function openProject(p){
     const actions=E("div","modal-controls");
     const scan=E("button","cta","Inspect sources");scan.type="submit";
     const cancel=E("button","secondary","Cancel");cancel.type="button";cancel.onclick=closeModal;
-    actions.append(scan,cancel);form.append(actions);root.append(intro,form);
+    actions.append(scan,cancel);
+    const driveStatus=await api("/api/oauth/google-drive/status/"+encodeURIComponent(p.id)).catch(()=>({available:false,status:"not-connected"}));
+    if(driveStatus.available){
+      const connect=E("button","secondary",driveStatus.status==="authorized-for-session"?"Drive connected":"Connect Google Drive");
+      connect.type="button";connect.disabled=driveStatus.status==="authorized-for-session";
+      connect.onclick=async()=>{
+        try{
+          const consent=await api("/api/oauth/google-drive/start",json("POST",{project:p.id}));
+          if(!consent.authorizationUrl.startsWith("https://accounts.google.com/"))throw Error("Unexpected authorization host");
+          window.open(consent.authorizationUrl,"_blank","noopener,noreferrer");
+          status.textContent="Authorize read-only Drive access in the new browser tab, then select Inspect sources.";
+        }catch(error){status.className="notice error";status.textContent=error.message;}
+      };
+      actions.insertBefore(connect,cancel);
+    }
+    form.append(actions);root.append(intro,form);
     $("overlay").classList.add("open");
     form.onsubmit=async e=>{
       e.preventDefault();scan.disabled=true;status.textContent="Inspecting approved sources…";
