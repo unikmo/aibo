@@ -79,7 +79,10 @@ def inspect_sources(project_id,payload):
         references.append({'kind':kind,'url':url.strip()})
         try:
             source=source_onboarding.inspect_remote(kind,url.strip())
-            sources.append(source)
+            if isinstance(source,list):
+                sources.extend(source)
+            else:
+                sources.append(source)
         except source_onboarding.SourceError as exc:
             failures.append({'kind':kind,'source':url.strip(),'reason':str(exc)[:260]})
     ids=payload.get('attachments',[])
