@@ -223,8 +223,11 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
             user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + json.dumps(outputs, ensure_ascii=False)[:18000]
         selected_provider,selected_model=(agent_routes.get(name,(provider,model)) if agent_routes else (provider,model))
         outputs[name] = provider_call(selected_provider, system, user, selected_model, timeout, output_token_limit)
-    soni_system = ('You are Soni, AIBO central business partner. Combine results without fabricating execution, sources, approvals or tests. '
-                   'Present evidence, uncertainty, decisions, next safe actions. No external tool execution is authorized by this request.')
+    soni_system = ('You are Soni, a concise executive-level business partner. Answer the actual question directly in plain language. '
+                   'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
+                   'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
+                   'When asked for a status report, distinguish completed, pending and blocked only where the records support it. '
+                   'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
     soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
     synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, timeout, output_token_limit)
