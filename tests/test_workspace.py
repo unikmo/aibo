@@ -59,6 +59,38 @@ class WorkspaceTests(unittest.TestCase):
         self.assertIn('quality', result['result']['agents'])
         self.assertTrue(workspace.recent_runs(self.id))
 
+    def test_factual_status_does_not_invent_project_progress(self):
+        self._ready()
+        with patch('runtime.workspace.aibo.execute') as external_ai:
+            result=workspace.start_run(self.id,{'task':'What is the status of this project?','provider':'mock'})
+            completed=workspace.run_status(result['id'])
+        self.assertEqual(completed['status'],'completed')
+        self.assertEqual(completed['effectiveProvider'],'local-records')
+        self.assertIn('cannot be confirmed',completed['result']['soni'])
+        self.assertNotIn('blocked',completed['result']['soni'])
+        external_ai.assert_not_called()
+
+    def test_ambiguous_outreach_does_not_invent_abas_or_claim_no_outreach(self):
+        self._ready()
+        with patch('runtime.workspace.aibo.execute') as external_ai:
+            result=workspace.start_run(self.id,{'task':'Have we reached out to some ABAs?','provider':'mock'})
+            completed=workspace.run_status(result['id'])
+        self.assertEqual(completed['status'],'completed')
+        self.assertIn('What does “ABAs” refer to',completed['result']['soni'])
+        self.assertNotIn('Applied Behavior Analysts',completed['result']['soni'])
+        self.assertNotIn('no outreach has',completed['result']['soni'].lower())
+        external_ai.assert_not_called()
+
+    def test_unexpected_exception_never_exposes_secret_in_run_record(self):
+        self._ready()
+        with patch('runtime.workspace.aibo.execute',side_effect=Exception(
+                'Invalid api key sk-proj-SECRET-EXAMPLE in a provider error')):
+            result=workspace.start_run(self.id,{'task':'Review market positioning','provider':'mock'})
+            completed=workspace.run_status(result['id'])
+        self.assertEqual(completed['status'],'failed')
+        self.assertNotIn('SECRET',completed['error'])
+        self.assertIn('Execution failed',completed['error'])
+
     def test_auto_fails_over_codex_to_claude_without_api(self):
         self._ready()
         import time
