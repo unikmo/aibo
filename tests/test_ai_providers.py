@@ -9,7 +9,7 @@ from runtime import ai_providers, products
 class ProviderConfigTests(unittest.TestCase):
     def setUp(self):
         # Test routing independent of CLI installations on CI runners.
-        self.local_cli_probe=patch('runtime.ai_providers.shutil.which', side_effect=lambda name: 'C:/test/'+name if name in ('codex','claude') else None)
+        self.local_cli_probe=patch('runtime.ai_providers.shutil.which', side_effect=lambda name: 'C:/test/'+name if name in ('codex','claude','codex.cmd','claude.cmd') else None)
         self.local_cli_probe.start()
         self.addCleanup(self.local_cli_probe.stop)
         self.tmp=tempfile.TemporaryDirectory()
@@ -21,6 +21,14 @@ class ProviderConfigTests(unittest.TestCase):
         ai_providers.PATH=self.saved_path
         ai_providers.KEY_PATH=self.saved_key
         self.tmp.cleanup()
+    def test_windows_npm_cmd_shims_selected(self):
+        from types import SimpleNamespace
+        with patch.object(ai_providers,'os',SimpleNamespace(name='nt')):
+            with patch('runtime.ai_providers.shutil.which',side_effect=lambda name: 'C:/npm/'+name if name.endswith('.cmd') else None):
+                self.assertEqual(ai_providers.local_cli_path('codex-local'),'C:/npm/codex.cmd')
+                self.assertEqual(ai_providers.local_cli_path('claude-local'),'C:/npm/claude.cmd')
+        self.assertIsNone(ai_providers.local_cli_path('openrouter'))
+
     def test_initial_default_priority(self):
         self.assertEqual(ai_providers.public()['priority'][:4],['codex-local','claude-local','openai','anthropic'])
         self.assertEqual(ai_providers.public()['switchMode'],'ask')
