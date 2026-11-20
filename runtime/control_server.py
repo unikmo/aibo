@@ -9,7 +9,7 @@ from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlsplit
 try:
-    from . import products, workspace, portfolio, costs, connector_catalog, connection_runtime, dependencies, editorial, oauth_local, action_gateway, attachments, agent_setup, ai_providers, relationship_work, browser_qa
+    from . import products, workspace, portfolio, costs, connector_catalog, connection_runtime, dependencies, editorial, oauth_local, action_gateway, attachments, agent_setup, ai_providers, relationship_work, browser_qa, drive_oauth
 except ImportError:
     import products
     import workspace
@@ -26,6 +26,7 @@ except ImportError:
     import ai_providers
     import relationship_work
     import browser_qa
+    import drive_oauth
 try:
     from . import infra_actions
 except ImportError:
@@ -119,6 +120,22 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(200 if item else 404,item if item else {'error':'Not found'})
             return
         if path=='/':self.send_response(302);self.send_header('Location','/v3/');self.end_headers();return
+        if path=='/api/oauth/google-drive/callback':
+            from urllib.parse import parse_qs
+            try:
+                result=drive_oauth.callback(parse_qs(urlsplit(self.path).query))
+                self.send_response(200)
+                self.send_header('Content-Type','text/html; charset=utf-8')
+                self.send_header('Cache-Control','no-store')
+                self.end_headers()
+                self.wfile.write(b'<h2>Google Drive connected for this session.</h2><p>Return to AIBO and inspect your sources.</p>')
+            except products.ProductError as exc:
+                self._json(400,{'error':str(exc)})
+            return
+        if path.startswith('/api/oauth/google-drive/status/'):
+            try:self._json(200,drive_oauth.status(path.split('/')[-1]))
+            except products.ProductError as exc:self._json(404,{'error':str(exc)})
+            return
         if path=='/api/oauth/buffer/callback':
             from urllib.parse import parse_qs
             qs=parse_qs(urlsplit(self.path).query)
@@ -303,6 +320,12 @@ class Handler(SimpleHTTPRequestHandler):
         if path=='/api/editorial/review':
             try:self._json(200,editorial.review(self._read_body()))
             except (ValueError,TypeError) as e:self._json(400,{'error':str(e)})
+            return
+        if path=='/api/oauth/google-drive/start':
+            try:
+                data=self._read_body()
+                self._json(202,drive_oauth.begin(data.get('project'),self.server.server_port))
+            except (ValueError,TypeError) as exc:self._json(400,{'error':str(exc)})
             return
         if path=='/api/oauth/buffer/start':
             try:
