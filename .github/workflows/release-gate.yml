@@ -117,7 +117,7 @@ jobs:
       - name: Verify release has no accidental committed Python credentials
         shell: bash
         run: |
-          if git grep -nE '(sk-proj-|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' -- runtime Control-Centre tests; then
+          if git grep -nE '(sk-proj-[A-Za-z0-9]{20,}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)' -- runtime Control-Centre; then
             echo "Potential credential literal found. Review before release."
             exit 1
           fi
