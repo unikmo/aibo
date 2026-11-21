@@ -47,15 +47,19 @@ with tempfile.TemporaryDirectory() as state_dir:
                     const r=el.getBoundingClientRect();
                     const wrap=el.parentElement.getBoundingClientRect();
                     const composer=document.querySelector('#soniPrompt').getBoundingClientRect();
+                    const heading=document.querySelector('#soni-title').getBoundingClientRect();
                     return {height:r.height,top:r.top,wrapHeight:wrap.height,
-                            composerBottom:composer.bottom,viewport:innerHeight,
+                            composerBottom:composer.bottom,composerTop:composer.top,
+                            headingTop:heading.top,viewport:innerHeight,
                             background:getComputedStyle(el).backgroundColor};
                 }""")
                 assert empty_chat["height"]<230,empty_chat
-                assert empty_chat["wrapHeight"]>empty_chat["height"]+60,empty_chat
-                assert empty_chat["composerBottom"]<empty_chat["viewport"]-10,empty_chat
+                assert page.locator("#screen-soni.is-empty").count()==1
+                assert empty_chat["headingTop"]>empty_chat["viewport"]*0.24,empty_chat
+                assert empty_chat["composerTop"]<empty_chat["viewport"]*0.74,empty_chat
+                assert empty_chat["composerBottom"]<empty_chat["viewport"]*0.83,empty_chat
                 assert empty_chat["background"]=="rgba(0, 0, 0, 0)",empty_chat
-                result["functional"].append("Empty Soni history collapses; composer remains bottom-anchored")
+                result["functional"].append("Fresh chat centers title and compact composer; no empty full-screen panel")
                 colors=page.locator("#conversation").evaluate("""el => {
                     const css=getComputedStyle(el);
                     const agent=getComputedStyle(document.querySelector('#screen-soni .chat'));
@@ -90,6 +94,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     el.append(msg);
                   }
                 }""")
+                page.wait_for_function("!document.querySelector('#screen-soni').classList.contains('is-empty')")
                 sizes=check_composer()
                 assert sizes["scrollHeight"]>sizes["clientHeight"]+80,"Old messages must scroll independently"
                 page.locator("#conversation").evaluate("(el)=>{el.scrollTop=el.scrollHeight}")

@@ -252,6 +252,8 @@ function logMessage(type,title,body,detail){
 }
 async function renderConversation(){
   const root=$("conversation");root.replaceChildren();root.classList.add("chat-log");
+  const screen=$("screen-soni");
+  screen.classList.toggle("is-empty",true);
   if(!S.selected)return;
   try{
     const data=await api("/api/runs/custom/"+encodeURIComponent(S.selected));
@@ -265,8 +267,15 @@ async function renderConversation(){
       logMessage("agent","Soni · "+r.status,shortAnswer(answer),extended);
     }
   }catch(e){root.append(E("div","empty","Conversation unavailable: "+e.message))}
+  screen.classList.toggle("is-empty",root.children.length===0);
   root.scrollTop=root.scrollHeight;
 }
+// Derive the visual state from actual message nodes, including asynchronous
+// updates and restored history; never use the absence of a selected project alone.
+const conversationRoot=$("conversation");
+const syncSoniLayout=()=>{$("screen-soni").classList.toggle("is-empty",conversationRoot.children.length===0)};
+new MutationObserver(syncSoniLayout).observe(conversationRoot,{childList:true});
+syncSoniLayout();
 const soniComposer=$("soniPrompt");
 function sizeComposer(){soniComposer.style.height="34px";soniComposer.style.height=Math.min(175,Math.max(34,soniComposer.scrollHeight))+"px";}
 soniComposer.addEventListener("input",sizeComposer);
