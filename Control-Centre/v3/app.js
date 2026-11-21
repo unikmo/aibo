@@ -252,6 +252,8 @@ function logMessage(type,title,body,detail){
 }
 async function renderConversation(){
   const root=$("conversation");root.replaceChildren();root.classList.add("chat-log");
+  const screen=$("screen-soni");
+  screen.classList.toggle("is-empty",true);
   if(!S.selected)return;
   try{
     const data=await api("/api/runs/custom/"+encodeURIComponent(S.selected));
@@ -265,6 +267,7 @@ async function renderConversation(){
       logMessage("agent","Soni · "+r.status,shortAnswer(answer),extended);
     }
   }catch(e){root.append(E("div","empty","Conversation unavailable: "+e.message))}
+  screen.classList.toggle("is-empty",root.children.length===0);
   root.scrollTop=root.scrollHeight;
 }
 const soniComposer=$("soniPrompt");
