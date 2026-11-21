@@ -212,34 +212,45 @@
  #screen-soni .composer-dock{padding:10px 11px max(12px,env(safe-area-inset-bottom))}
 }
 
-/* Empty Soni conversations: never reserve a full-height dark message panel.
-   Keep the composer pinned to the bottom of the viewport; history uses
-   the scrollable dark panel only after messages actually exist. */
-#screen-soni .chat-wrap:has(#conversation:empty){
-  align-items:flex-end!important;
+/* Soni's empty and populated states are different layouts, not color variants.
+   A new chat is centered like a modern messenger. After the first message,
+   history fills the available area and only message history scrolls. */
+#screen-soni.is-empty .soni-stage{
+  justify-content:center!important;
+  padding:0 0 min(10dvh,90px)!important;
 }
-#screen-soni .chat-wrap:has(#conversation:empty) .chat{
+#screen-soni.is-empty #soni-title{
+  text-align:center;
+  margin:0 0 22px!important;
+}
+#screen-soni.is-empty .chat-wrap{
   flex:0 0 auto!important;
+  width:100%;
+  align-items:stretch!important;
+  overflow:visible!important;
+}
+#screen-soni.is-empty .chat{
+  flex:0 0 auto!important;
+  width:100%;
   height:auto!important;
   min-height:0!important;
-  width:100%;
   background:transparent!important;
   border:0!important;
   border-radius:0!important;
   overflow:visible!important;
 }
-#screen-soni #conversation:empty{
-  display:none!important;
-}
-#screen-soni .chat-wrap:has(#conversation:empty) .composer-dock{
+#screen-soni.is-empty #conversation{display:none!important}
+#screen-soni.is-empty .composer-dock{
   border:1px solid #414944!important;
-  border-radius:17px;
+  border-radius:19px;
   padding:14px 18px max(14px,env(safe-area-inset-bottom));
 }
 @media(max-width:700px){
- #screen-soni .chat-wrap:has(#conversation:empty) .composer-dock{
-   padding:11px 12px max(11px,env(safe-area-inset-bottom));
- }
+  #screen-soni.is-empty .soni-stage{padding:0 0 6dvh!important}
+  #screen-soni.is-empty #soni-title{margin:0 0 18px!important}
+  #screen-soni.is-empty .composer-dock{
+    padding:11px 12px max(11px,env(safe-area-inset-bottom));
+  }
 }
 </style></head><body>
 <div class="shell"><aside class="aside"><div class="logo"><div class="mark">A</div><span>AIBO</span></div><div class="edition"><strong id="editionLabel">Portfolio edition</strong></div><nav class="navigation" aria-label="Primary">
