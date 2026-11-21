@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     el.append(msg);
                   }
                 }""")
-                page.locator("#screen-soni").evaluate("(el)=>el.classList.remove('is-empty')")
+                page.wait_for_function("!document.querySelector('#screen-soni').classList.contains('is-empty')")
                 sizes=check_composer()
                 assert sizes["scrollHeight"]>sizes["clientHeight"]+80,"Old messages must scroll independently"
                 page.locator("#conversation").evaluate("(el)=>{el.scrollTop=el.scrollHeight}")
