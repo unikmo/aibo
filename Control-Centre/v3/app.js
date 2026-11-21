@@ -270,6 +270,12 @@ async function renderConversation(){
   screen.classList.toggle("is-empty",root.children.length===0);
   root.scrollTop=root.scrollHeight;
 }
+// Derive the visual state from actual message nodes, including asynchronous
+// updates and restored history; never use the absence of a selected project alone.
+const conversationRoot=$("conversation");
+const syncSoniLayout=()=>{$("screen-soni").classList.toggle("is-empty",conversationRoot.children.length===0)};
+new MutationObserver(syncSoniLayout).observe(conversationRoot,{childList:true});
+syncSoniLayout();
 const soniComposer=$("soniPrompt");
 function sizeComposer(){soniComposer.style.height="34px";soniComposer.style.height=Math.min(175,Math.max(34,soniComposer.scrollHeight))+"px";}
 soniComposer.addEventListener("input",sizeComposer);
