@@ -224,7 +224,7 @@ def select_agents(goal):
     return (selected or ['research'])[:5]
 
 
-def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=120, output_token_limit=1800, max_model_calls=8, agent_routes=None, deadline=None):
+def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=120, output_token_limit=1800, max_model_calls=8, agent_routes=None, deadline=None, extra_context=''):
     project = project_info(project_id)
     roster = load_json(ROSTER)
     index = {a['id']:a for a in roster['specialists']}
@@ -236,6 +236,9 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
     if len(requested) + 1 > max_model_calls:
         raise AiboError('Model-call limit exceeded. Increase it in Cost Management before this task.')
     shared = context(project)
+    if extra_context:
+        # Auxiliary context is bounded, explicitly read-only and cannot grant tool access.
+        shared += '\n\n'+str(extra_context)[:7500]
     outputs = {}
     for name in requested:
         system, user = prompt_for(index[name], project, goal, shared)
