@@ -403,16 +403,17 @@ def _worker(run_id):
                 # Never overwrite a watchdog timeout or interrupted run with a late model response.
                 if CURRENT.get(persisted.get('project'))==run_id:CURRENT.pop(persisted['project'],None)
             elif item.get('project'):
-                item['updatedAt']=now()
-                _save_run(item)
-                # Remember only confirmed completed runs after the persisted status
-                # is checked; never learn from failed, interrupted or late responses.
+                # Memory must complete BEFORE the run becomes visibly completed,
+                # otherwise a fast client/test may close its workspace during
+                # a background Windows atomic file write.
                 if item['status']=='completed' and isinstance((item.get('result') or {}).get('soni'),str):
                     try:
                         soni_memory.remember(item['project'],item['task'],item['result']['soni'],
                                              cross_project=item.get('crossProjectReadOnly',False))
                     except (OSError,ValueError):
-                        pass  # Memory is auxiliary; a disk error cannot falsify task completion.
+                        pass  # Auxiliary memory errors never falsify completed work.
+                item['updatedAt']=now()
+                _save_run(item)
                 if CURRENT.get(item['project'])==run_id:CURRENT.pop(item['project'],None)
 
 def recent_runs(project_id):
