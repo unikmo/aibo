@@ -88,7 +88,7 @@ def memory_state(project_id):
     pinned=raw.get('pinned',[])
     if not isinstance(pinned,list):pinned=[]
     return {'project':project_id,'entries':entries[-MAX_MEMORY_ITEMS:],
-            'pinned':pinned[-MAX_PINN:],
+            'pinned':pinned[-MAX_PINNED:],
             'completedTurns':max(0,int(raw.get('completedTurns',0))),
             'compactedTurns':max(0,int(raw.get('compactedTurns',0)))}
 
@@ -143,7 +143,7 @@ def remember(project_id,task,answer,cross_project=False):
     entries=entries[-MAX_MEMORY_ITEMS:]
     pinned=state['pinned']
     if PIN_WORDS.search(clean_task) and clean_task not in pinned:
-        pinned=(pinned+[clean_task])[-MAX_PINN:]
+        pinned=(pinned+[clean_task])[-MAX_PINNED:]
     output={'project':project_id,'entries':entries,'pinned':pinned,
             'completedTurns':state['completedTurns']+1,
             'compactedTurns':state['compactedTurns']+dropped,
