@@ -77,7 +77,7 @@ def comparison_context(project_ids):
 def _path(project_id):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}',project_id):
         raise products.ProductError('Invalid project ID')
-    return MEMORY_DIR/(project_id+'.json')
+    return products.STATE/'soni-memory'/(project_id+'.json')
 
 def memory_state(project_id):
     raw=products.read_json(_path(project_id),{})
@@ -110,9 +110,9 @@ def previous_context(project_id,runs_dir):
             recent.append((item.get('createdAt',''),_clean(item.get('task',''),220),_clean(answer,420)))
     recent=sorted(recent,reverse=True)[:MAX_RECENT_TURNS]
     recent.reverse()
-    text='RETAINED LOCAL CONTEXT (unverified conversational notes, not factual evidence):\n'
-    if pieces:text+='Compressed notes:\n'+'\n'.join('- '+p for p in pieces if p)
-    if recent:text+='\nRecent turns:\n'+'\n'.join('User: '+q+'\nSoni: '+a for _,q,a in recent)
+    text='RETAINED LOCAL CONTEXT (unverified conversational notes, not factual evidence):\\n'
+    if recent:text+='Recent turns:\\n'+'\\n'.join('User: '+q+'\\nSoni: '+a for _,q,a in recent)
+    if pieces:text+='\\nOlder compressed notes:\\n'+'\\n'.join('- '+p for p in pieces[-5:] if p)
     if not pieces and not recent:return '',{'recentTurns':0,'memoryItems':0,'contextCharacters':0}
     text=text[:MAX_CONTEXT_CHARS]
     return text,{'recentTurns':len(recent),'memoryItems':len(pieces),'contextCharacters':len(text),
