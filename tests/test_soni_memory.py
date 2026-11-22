@@ -25,6 +25,10 @@ class SoniMemoryTests(unittest.TestCase):
             'Compare Auditdefend and Politangle using owner-reviewed facts'),[self.other['id']])
         self.assertEqual(soni_memory.comparison_scope(self.primary['id'],
             'Review the current project'),[])
+        self.assertEqual(soni_memory.comparison_scope(self.primary['id'],
+            'Benchmark Auditdefend against Politangle'),[self.other['id']])
+        self.assertEqual(soni_memory.comparison_scope(self.primary['id'],
+            'Reuse learnings from Politangle for Auditdefend'),[self.other['id']])
 
     def test_comparison_uses_only_reviewed_fields_not_private_history(self):
         pid=self.other['id']
