@@ -18,6 +18,8 @@ MAX_MEMORY_ITEMS=12
 MAX_ENTRY_CHARS=360
 MAX_CONTEXT_CHARS=3200
 MAX_RECENT_TURNS=3
+MAX_PINNED=6
+PIN_WORDS=re.compile(r'\b(?:remember|decided|agreed|must|never|always|priority|constraint|require|prefer)\b',re.I)
 COMPARISON_WORDS=re.compile(
     r'\b(compare|comparison|versus|vs\.?|contrast|similarities|differences|across projects|between projects)\b',
     re.IGNORECASE,
@@ -83,7 +85,10 @@ def memory_state(project_id):
     raw=products.read_json(_path(project_id),{})
     entries=raw.get('entries',[])
     if not isinstance(entries,list):entries=[]
+    pinned=raw.get('pinned',[])
+    if not isinstance(pinned,list):pinned=[]
     return {'project':project_id,'entries':entries[-MAX_MEMORY_ITEMS:],
+            'pinned':pinned[-MAX_PINN:],
             'completedTurns':max(0,int(raw.get('completedTurns',0))),
             'compactedTurns':max(0,int(raw.get('compactedTurns',0)))}
 
@@ -112,7 +117,10 @@ def previous_context(project_id,runs_dir):
     recent.reverse()
     text='RETAINED LOCAL CONTEXT (unverified conversational notes, not factual evidence):\\n'
     if recent:text+='Recent turns:\\n'+'\\n'.join('User: '+q+'\\nSoni: '+a for _,q,a in recent)
-    if pieces:text+='\\nOlder compressed notes:\\n'+'\\n'.join('- '+p for p in pieces[-5:] if p)
+    if memory['pinned']:
+        text+='\nOwner instructions from earlier turns (not independently verified):\n'
+        text+='\n'.join('- '+_clean(p,240) for p in memory['pinned'])
+    if pieces:text+='\nOlder compressed notes:\n'+'\n'.join('- '+p for p in pieces[-4:] if p)
     if not pieces and not recent:return '',{'recentTurns':0,'memoryItems':0,'contextCharacters':0}
     text=text[:MAX_CONTEXT_CHARS]
     return text,{'recentTurns':len(recent),'memoryItems':len(pieces),'contextCharacters':len(text),
@@ -133,7 +141,10 @@ def remember(project_id,task,answer,cross_project=False):
                     'at':dt.datetime.now(dt.timezone.utc).isoformat()})
     dropped=max(0,len(entries)-MAX_MEMORY_ITEMS)
     entries=entries[-MAX_MEMORY_ITEMS:]
-    output={'project':project_id,'entries':entries,
+    pinned=state['pinned']
+    if PIN_WORDS.search(clean_task) and clean_task not in pinned:
+        pinned=(pinned+[clean_task])[-MAX_PINN:]
+    output={'project':project_id,'entries':entries,'pinned':pinned,
             'completedTurns':state['completedTurns']+1,
             'compactedTurns':state['compactedTurns']+dropped,
             'method':'deterministic-extractive-no-model',
