@@ -78,6 +78,22 @@ class SoniMemoryTests(unittest.TestCase):
         self.assertEqual(before,after)
         self.assertEqual(soni_memory.memory_state(self.other['id'])['entries'],[])
 
+    def test_comparison_is_available_for_same_chat_followup_not_permanent_memory(self):
+        pid=self.primary['id']
+        run_dir=self.state/'runs'
+        run_dir.mkdir()
+        (run_dir/'11111111-1111-4111-8111-111111111111.json').write_text(
+            json.dumps({'project':pid,'status':'completed',
+                        'createdAt':'2026-11-22T18:00:00+00:00',
+                        'crossProjectReadOnly':True,
+                        'task':'Compare Auditdefend with Politangle',
+                        'result':{'soni':'Both have separate business goals.'}}),encoding='utf-8')
+        context,usage=soni_memory.previous_context(pid,run_dir)
+        self.assertIn('Read-only cross-project comparison',context)
+        self.assertIn('Both have separate business goals',context)
+        self.assertEqual(soni_memory.memory_state(pid)['entries'],[])
+        self.assertEqual(soni_memory.memory_state(self.other['id'])['entries'],[])
+
     def test_local_memory_cannot_elevate_or_read_another_project(self):
         pid=self.primary['id']
         other=self.other['id']
