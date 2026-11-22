@@ -115,13 +115,13 @@ def previous_context(project_id,runs_dir):
             recent.append((item.get('createdAt',''),_clean(item.get('task',''),220),_clean(answer,420)))
     recent=sorted(recent,reverse=True)[:MAX_RECENT_TURNS]
     recent.reverse()
-    text='RETAINED LOCAL CONTEXT (unverified conversational notes, not factual evidence):\\n'
-    if recent:text+='Recent turns:\\n'+'\\n'.join('User: '+q+'\\nSoni: '+a for _,q,a in recent)
+    text='RETAINED LOCAL CONTEXT (unverified conversational notes, not factual evidence):\n'
+    if recent:text+='Recent turns:\n'+'\n'.join('User: '+q+'\nSoni: '+a for _,q,a in recent)
     if memory['pinned']:
         text+='\nOwner instructions from earlier turns (not independently verified):\n'
         text+='\n'.join('- '+_clean(p,240) for p in memory['pinned'])
     if pieces:text+='\nOlder compressed notes:\n'+'\n'.join('- '+p for p in pieces[-4:] if p)
-    if not pieces and not recent:return '',{'recentTurns':0,'memoryItems':0,'contextCharacters':0}
+    if not pieces and not recent and not memory['pinned']:return '',{'recentTurns':0,'memoryItems':0,'contextCharacters':0}
     text=text[:MAX_CONTEXT_CHARS]
     return text,{'recentTurns':len(recent),'memoryItems':len(pieces),'contextCharacters':len(text),
                  'compactedTurns':memory['compactedTurns']}
