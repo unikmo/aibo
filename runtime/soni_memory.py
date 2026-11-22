@@ -108,11 +108,12 @@ def previous_context(project_id,runs_dir):
             item=products.read_json(file,{})
             if item.get('project')!=project_id or item.get('status')!='completed':
                 continue
-            if item.get('crossProjectReadOnly'):
-                continue  # comparison outputs are not written into project-specific memory
+            # Cross-project comparisons remain in THIS project's recent chat only.
+            # They are never promoted into lasting project-specific memory.
             answer=(item.get('result') or {}).get('soni','')
             if not isinstance(answer,str) or not answer:continue
-            recent.append((item.get('createdAt',''),_clean(item.get('task',''),220),_clean(answer,420)))
+            kind='Read-only cross-project comparison: ' if item.get('crossProjectReadOnly') else ''
+            recent.append((item.get('createdAt',''),kind+_clean(item.get('task',''),220),_clean(answer,420)))
     recent=sorted(recent,reverse=True)[:MAX_RECENT_TURNS]
     recent.reverse()
     text='RETAINED LOCAL CONTEXT (unverified conversational notes, not factual evidence):\n'
