@@ -13,9 +13,9 @@ import time
 import uuid
 
 try:
-    from . import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth
+    from . import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth, soni_memory
 except ImportError:
-    import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth
+    import products, aibo, costs, attachments, ai_providers, source_onboarding, drive_oauth, soni_memory
 
 LOCK = threading.RLock()
 DIR = products.STATE / 'workspaces'
@@ -196,16 +196,8 @@ def _run_file(run_id):
         raise products.ProductError('Invalid run ID')
     return RUNS_DIR/(run_id+'.json')
 
-def _cross_project_names(project_id, instruction):
-    """Reject explicit references to other managed projects before any model call."""
-    matches=[]
-    for project in products.project_records():
-        if project['id']==project_id:
-            continue
-        name=project.get('name','').strip()
-        if len(name)>=4 and re.search(r'(?<!\w)'+re.escape(name)+r'(?!\w)',instruction,re.IGNORECASE):
-            matches.append(name)
-    return sorted(set(matches),key=str.casefold)
+def _cross_project_names(project_id,instruction):
+    return [x['name'] for x in soni_memory.referenced(project_id,instruction)]
 
 
 def _expire_run(run_id):
@@ -269,11 +261,13 @@ def start_run(project_id, payload):
         raise products.ProductError('Unsupported AI provider')
     if requires_api_consent(provider) and payload.get('consent') is not True:
         raise products.ProductError('API processing requires explicit consent')
-    other_projects=_cross_project_names(project_id,instruction)
-    if other_projects:
+    cross_scope=soni_memory.comparison_scope(project_id,instruction)
+    if cross_scope is None:
+        other_projects=_cross_project_names(project_id,instruction)
         active=_project(project_id)['name']
         raise products.ProductError('Project mismatch: '+', '.join(other_projects[:3])+
-            ' mentioned while '+active+' is selected. Select the intended project first. No AI request was started.')
+            ' mentioned while '+active+' is selected. Select the intended project first. '
+            'To compare both projects, explicitly ask for a comparison. No AI request was started.')
     attachment_ids=payload.get('attachments',[])
     attachments.load(project_id,attachment_ids)
     with LOCK:
@@ -283,7 +277,8 @@ def start_run(project_id, payload):
                 raise products.ProductError('Soni is already working on this project')
         item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
               'provider':provider, 'apiConsentGranted':requires_api_consent(provider) and payload.get('consent') is True, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
-              'result':None, 'error':None, 'externalActionsExecuted':False}
+              'result':None, 'error':None, 'externalActionsExecuted':False,
+              'crossProjectReadOnly':bool(cross_scope),'comparedProjects':cross_scope or []}
         _save_run(item)
         CURRENT[project_id]=item['id']
     # AIBO_NFAT_RACE_V1: mock provider has no network or external actions.
@@ -346,6 +341,16 @@ def _worker(run_id):
         deadline=time.monotonic()+MAX_RUN_SECONDS-5
         attachment_context=attachments.context(item['project'],item.get('attachments',[]))
         enriched=item['task'] + ('\n\n' + attachment_context if attachment_context else '')
+        # Per-project history is bounded and never shared between project threads.
+        try:
+            history,history_meta=soni_memory.previous_context(item['project'],RUNS_DIR)
+        except (OSError,ValueError,TypeError,KeyError):
+            # Broken optional memory must not prevent a permitted Soni task.
+            history,history_meta='',{'recentTurns':0,'memoryItems':0,'contextCharacters':0,'unavailable':True}
+        item['memoryUsage']=history_meta
+        comparisons=soni_memory.comparison_context(item.get('comparedProjects',[])) if item.get('crossProjectReadOnly') else ''
+        extra_context='\n\n'.join(x for x in (history,comparisons) if x)
+        if comparisons:item['comparisonEvidence']='owner-reviewed-profile-fields-only'
         selected,model=(item['provider'],None) if item['provider']=='mock' else ai_providers.route(item['provider'])
         config=ai_providers.public()
         routes=None
@@ -357,7 +362,7 @@ def _worker(run_id):
         _save_run(item)
         try:
             result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
-                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline)
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline,extra_context=extra_context)
         except aibo.AiboError as original:
             # Only an automatically routed CLI task may switch providers.
             # Never retry explicit/manual selections or use paid API endpoints.
@@ -376,7 +381,7 @@ def _worker(run_id):
             # Use one CLI for the entire retry; overrides cannot route to APIs.
             result=aibo.execute(item['project'],enriched,provider=fallback,
                                 model=config['models'].get(fallback) or None,agent_routes=None,
-                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline)
+                                output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline,extra_context=extra_context)
             item['providerAttempts'][-1]['status']='completed'
             item['effectiveProvider']=fallback
         else:
@@ -384,6 +389,7 @@ def _worker(run_id):
             item['effectiveProvider']=selected
         item['result']=result
         item['status']='completed'
+
     except Exception as exc:
         # Only known sanitized model/runtime errors may be exposed to the browser.
         message=str(exc)
@@ -401,6 +407,15 @@ def _worker(run_id):
                 # Never overwrite a watchdog timeout or interrupted run with a late model response.
                 if CURRENT.get(persisted.get('project'))==run_id:CURRENT.pop(persisted['project'],None)
             elif item.get('project'):
+                # Memory must complete BEFORE the run becomes visibly completed,
+                # otherwise a fast client/test may close its workspace during
+                # a background Windows atomic file write.
+                if item['status']=='completed' and isinstance((item.get('result') or {}).get('soni'),str):
+                    try:
+                        soni_memory.remember(item['project'],item['task'],item['result']['soni'],
+                                             cross_project=item.get('crossProjectReadOnly',False))
+                    except (OSError,ValueError,TypeError,KeyError):
+                        pass  # Auxiliary memory errors never falsify completed work.
                 item['updatedAt']=now()
                 _save_run(item)
                 if CURRENT.get(item['project'])==run_id:CURRENT.pop(item['project'],None)

@@ -67,6 +67,43 @@ class WorkspaceTests(unittest.TestCase):
         self.assertFalse(workspace.recent_runs(self.id))
         ai.assert_not_called()
 
+    def test_explicit_cross_project_comparison_is_read_only_and_project_scoped(self):
+        self._ready()
+        result=workspace.start_run(self.id,{
+            'task':'Compare Auditdefend versus Politangle using reviewed profiles only',
+            'provider':'mock'})
+        final=workspace.run_status(result['id'])
+        self.assertEqual(final['status'],'completed',final.get('error'))
+        self.assertTrue(final['crossProjectReadOnly'])
+        self.assertFalse(final['result']['externalActionsExecuted'])
+        self.assertEqual(final['comparisonEvidence'],'owner-reviewed-profile-fields-only')
+        self.assertFalse((self.state/'soni-memory'/(self.id+'.json')).exists())
+
+    def test_corrupted_optional_memory_does_not_block_soni(self):
+        self._ready()
+        folder=self.state/'soni-memory'
+        folder.mkdir()
+        (folder/(self.id+'.json')).write_text('{corrupt-json',encoding='utf-8')
+        created=workspace.start_run(self.id,{'task':'Review market positioning','provider':'mock'})
+        final=workspace.run_status(created['id'])
+        self.assertEqual(final['status'],'completed',final.get('error'))
+        self.assertTrue(final['memoryUsage'].get('unavailable'))
+
+    def test_real_execution_receives_local_memory_and_not_other_project_chat(self):
+        self._ready()
+        from runtime import soni_memory
+        soni_memory.remember(self.id,'What did we decide?','Focus on property managers')
+        captured={}
+        def execute(project,goal,**kwargs):
+            captured.update(kwargs)
+            return {'soni':'We should focus on property managers.','externalActionsExecuted':False}
+        with patch('runtime.workspace.aibo.execute',side_effect=execute):
+            created=workspace.start_run(self.id,{'task':'Recall prior decisions','provider':'mock'})
+            status=workspace.run_status(created['id'])
+        self.assertEqual(status['status'],'completed')
+        self.assertIn('Focus on property managers',captured['extra_context'])
+        self.assertFalse(status['crossProjectReadOnly'])
+
     def test_selected_project_name_is_allowed(self):
         self._ready()
         self.assertEqual(workspace._cross_project_names(self.id,"Review Auditdefend's source records"),[])

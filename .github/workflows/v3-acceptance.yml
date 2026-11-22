@@ -26,8 +26,9 @@ jobs:
         run: python qa/v3_acceptance.py
       - name: Keep visual and execution evidence
         if: always()
+        continue-on-error: true # Quota exhaustion must not mask passing browser assertions.
         uses: actions/upload-artifact@v4
         with:
           name: aibo-v3-acceptance
           path: qa/v3-acceptance/
-          retention-days: 14
+          retention-days: 1

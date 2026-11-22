@@ -42,11 +42,12 @@ jobs:
         run: python qa/release_nonfunctional.py
       - name: Preserve smoke evidence
         if: always()
+        continue-on-error: true # Storage quota must not hide genuine test outcomes.
         uses: actions/upload-artifact@v4
         with:
           name: aibo-release-local-probes
           path: qa/release-evidence/
-          retention-days: 30
+          retention-days: 1
 
   stage-3-functional:
     name: 3 Functional desktop and mobile
@@ -68,11 +69,12 @@ jobs:
         run: python qa/soni_sanity.py
       - name: Preserve screenshots and run records
         if: always()
+        continue-on-error: true # Storage quota must not hide genuine test outcomes.
         uses: actions/upload-artifact@v4
         with:
           name: aibo-release-functional-evidence
           path: qa/v3-acceptance/
-          retention-days: 30
+          retention-days: 1
 
   stage-5-regression:
     name: 5 Broad regression
@@ -112,11 +114,12 @@ jobs:
           fi
       - name: Save security and performance results
         if: always()
+        continue-on-error: true # Storage quota must not hide genuine test outcomes.
         uses: actions/upload-artifact@v4
         with:
           name: aibo-release-security-performance
           path: qa/release-evidence/
-          retention-days: 30
+          retention-days: 1
 
   # Stage 6 owner acceptance and Stage 7 post-install smoke cannot be
   # self-certified in CI. These require a real user-installed build.
