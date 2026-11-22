@@ -385,9 +385,7 @@ def _worker(run_id):
             item['effectiveProvider']=selected
         item['result']=result
         item['status']='completed'
-        if isinstance(result,dict) and isinstance(result.get('soni'),str):
-            soni_memory.remember(item['project'],item['task'],result['soni'],
-                                 cross_project=item.get('crossProjectReadOnly',False))
+
     except Exception as exc:
         # Only known sanitized model/runtime errors may be exposed to the browser.
         message=str(exc)
@@ -407,6 +405,14 @@ def _worker(run_id):
             elif item.get('project'):
                 item['updatedAt']=now()
                 _save_run(item)
+                # Remember only confirmed completed runs after the persisted status
+                # is checked; never learn from failed, interrupted or late responses.
+                if item['status']=='completed' and isinstance((item.get('result') or {}).get('soni'),str):
+                    try:
+                        soni_memory.remember(item['project'],item['task'],item['result']['soni'],
+                                             cross_project=item.get('crossProjectReadOnly',False))
+                    except (OSError,ValueError):
+                        pass  # Memory is auxiliary; a disk error cannot falsify task completion.
                 if CURRENT.get(item['project'])==run_id:CURRENT.pop(item['project'],None)
 
 def recent_runs(project_id):
