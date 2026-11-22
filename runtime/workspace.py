@@ -342,7 +342,11 @@ def _worker(run_id):
         attachment_context=attachments.context(item['project'],item.get('attachments',[]))
         enriched=item['task'] + ('\n\n' + attachment_context if attachment_context else '')
         # Per-project history is bounded and never shared between project threads.
-        history,history_meta=soni_memory.previous_context(item['project'],RUNS_DIR)
+        try:
+            history,history_meta=soni_memory.previous_context(item['project'],RUNS_DIR)
+        except (OSError,ValueError,TypeError,KeyError):
+            # Broken optional memory must not prevent a permitted Soni task.
+            history,history_meta='',{'recentTurns':0,'memoryItems':0,'contextCharacters':0,'unavailable':True}
         item['memoryUsage']=history_meta
         comparisons=soni_memory.comparison_context(item.get('comparedProjects',[])) if item.get('crossProjectReadOnly') else ''
         extra_context='\n\n'.join(x for x in (history,comparisons) if x)
@@ -410,7 +414,7 @@ def _worker(run_id):
                     try:
                         soni_memory.remember(item['project'],item['task'],item['result']['soni'],
                                              cross_project=item.get('crossProjectReadOnly',False))
-                    except (OSError,ValueError):
+                    except (OSError,ValueError,TypeError,KeyError):
                         pass  # Auxiliary memory errors never falsify completed work.
                 item['updatedAt']=now()
                 _save_run(item)
