@@ -42,11 +42,12 @@ jobs:
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
       - name: Upload portable Windows Control Centre
         if: success()
+        continue-on-error: true # Upload may be blocked by repository artifact quota.
         uses: actions/upload-artifact@v4
         with:
           name: AIBO-Control-Centre-3-Windows
           path: dist/AIBO/
-          retention-days: 30
+          retention-days: 1
       - name: Executable loopback smoke
         shell: pwsh
         run: |
