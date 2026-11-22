@@ -79,6 +79,16 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(final['comparisonEvidence'],'owner-reviewed-profile-fields-only')
         self.assertFalse((self.state/'soni-memory'/(self.id+'.json')).exists())
 
+    def test_corrupted_optional_memory_does_not_block_soni(self):
+        self._ready()
+        folder=self.state/'soni-memory'
+        folder.mkdir()
+        (folder/(self.id+'.json')).write_text('{corrupt-json',encoding='utf-8')
+        created=workspace.start_run(self.id,{'task':'Review market positioning','provider':'mock'})
+        final=workspace.run_status(created['id'])
+        self.assertEqual(final['status'],'completed',final.get('error'))
+        self.assertTrue(final['memoryUsage'].get('unavailable'))
+
     def test_real_execution_receives_local_memory_and_not_other_project_chat(self):
         self._ready()
         from runtime import soni_memory
