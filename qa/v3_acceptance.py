@@ -287,6 +287,19 @@ with tempfile.TemporaryDirectory() as state_dir:
                     previous=page.request.get(BASE+"/api/runs/custom/"+new_id).json()
                     assert not previous.get("runs"),"Cross-project request unexpectedly created a run"
                     result["functional"].append("cross-project request denied before AI execution")
+                    comparison=page.request.post(BASE+"/api/work/custom/"+new_id,data={
+                        "task":"Compare V3 Acceptance Initiative versus Politangle using approved profiles only",
+                        "provider":"mock","consent":False
+                    },headers={"Content-Type":"application/json"})
+                    assert comparison.ok,comparison.text()
+                    comp=page.request.get(BASE+"/api/run/"+comparison.json()["id"]).json()
+                    assert comp["status"]=="completed",comp
+                    assert comp["crossProjectReadOnly"] is True,comp
+                    assert comp["result"]["externalActionsExecuted"] is False,comp
+                    assert comp["comparisonEvidence"]=="owner-reviewed-profile-fields-only",comp
+                    assert "Politangle" in comp["result"]["soni"] or comp["comparedProjects"],comp
+                    result["functional"].append("explicit cross-project comparison uses read-only owner-reviewed summaries")
+
                     run=page.request.post(BASE+"/api/work/custom/"+new_id,data={
                         "task":"Check new project routing","provider":"mock","consent":False
                     },headers={"Content-Type":"application/json"})
