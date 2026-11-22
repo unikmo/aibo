@@ -21,7 +21,9 @@ MAX_RECENT_TURNS=3
 MAX_PINNED=6
 PIN_WORDS=re.compile(r'\b(?:remember|decided|agreed|must|never|always|priority|constraint|require|prefer)\b',re.I)
 COMPARISON_WORDS=re.compile(
-    r'\b(compare|comparison|versus|vs\.?|contrast|similarities|differences|across projects|between projects)\b',
+    r'\b(compare|comparison|versus|vs\.?|contrast|similarities|differences|benchmark|'
+    r'cross.reference|reuse|adapt|learn from|learnings from|draw from|'
+    r'across projects|between projects)\b',
     re.IGNORECASE,
 )
 SENSITIVE=re.compile(r'(?i)(?:api[_ -]?key|password|client_secret|access_token|private[_ -]?key|authorization\s*:|bearer\s)')
