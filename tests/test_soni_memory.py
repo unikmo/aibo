@@ -62,6 +62,15 @@ class SoniMemoryTests(unittest.TestCase):
         self.assertLessEqual(len(context),soni_memory.MAX_CONTEXT_CHARS)
         self.assertGreater(meta['compactedTurns'],0)
 
+    def test_explicit_owner_instruction_survives_older_turn_compaction(self):
+        pid=self.primary['id']
+        soni_memory.remember(pid,'Always require approval before spending','Acknowledged')
+        for i in range(30):
+            soni_memory.remember(pid,'Routine question '+str(i),'Routine answer '+str(i))
+        ctx,meta=soni_memory.previous_context(pid,self.state/'runs')
+        self.assertIn('Always require approval before spending',ctx)
+        self.assertLessEqual(len(ctx),soni_memory.MAX_CONTEXT_CHARS)
+
     def test_comparison_never_writes_to_either_memory(self):
         before=soni_memory.memory_state(self.primary['id'])
         soni_memory.remember(self.primary['id'],'Compare','Other project response',cross_project=True)
