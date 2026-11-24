@@ -8,9 +8,11 @@ $root=Split-Path -Parent $PSCommandPath
 Set-Location $root
 if($Clean){Remove-Item -LiteralPath (Join-Path $root 'build') -Recurse -Force -ErrorAction SilentlyContinue;Remove-Item -LiteralPath (Join-Path $root 'dist') -Recurse -Force -ErrorAction SilentlyContinue}
 # Ensure locally uploaded PDFs are actually readable in the shipped application.
-python -m pip install "pypdf>=5,<8"
+python -m pip install "pypdf>=5,<8" pillow pywebview
 if ($LASTEXITCODE -ne 0) { throw "PDF extraction dependency installation failed" }
-python -m PyInstaller --noconfirm --clean --onedir --windowed --name AIBO `
+python packaging\generate_icons.py
+if ($LASTEXITCODE -ne 0) { throw 'App icon generation failed' }
+python -m PyInstaller --noconfirm --clean --onedir --windowed --icon "$root\packaging\icons\AIBO.ico" --name AIBO `
   --specpath build `
   --add-data "$root\Control-Centre;Control-Centre" `
   --add-data "$root\System;System" `
