@@ -10,7 +10,6 @@ if (!$AllowUnsignedDevelopment) {
   # The owner controls the publisher certificate. Sign only when this trusted
   # certificate exists; never generate an untrusted self-signed substitute.
   & (Join-Path $root 'packaging\windows\sign-app.ps1')
-  if ($LASTEXITCODE -ne 0) { throw 'Signing of AIBO application components failed.' }
 }
 $signature = Get-AuthenticodeSignature -LiteralPath $app
 if (!$AllowUnsignedDevelopment) {
