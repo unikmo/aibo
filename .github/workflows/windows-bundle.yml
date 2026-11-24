@@ -42,6 +42,30 @@ jobs:
             if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
           }
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
+      - name: Build unsigned installer for isolated QA only
+        shell: pwsh
+        run: |
+          ./build-windows-installer.ps1 -AllowUnsignedDevelopment
+          if (!(Test-Path 'dist/installer/AIBO-Control-Centre-Windows-Setup.exe')) {
+            throw 'Inno Setup did not create the installer'
+          }
+      - name: Verify installer install, desktop integration, and uninstall
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path 'dist/installer/AIBO-Control-Centre-Windows-Setup.exe').Path
+          $target = Join-Path $env:RUNNER_TEMP 'AIBO Native Installer QA'
+          $args = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$target")
+          $install = Start-Process -FilePath $setup -ArgumentList $args -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Installation failed with exit $($install.ExitCode)" }
+          $exe = Join-Path $target 'AIBO.exe'
+          if (!(Test-Path $exe)) { throw 'Installed AIBO.exe missing' }
+          & $exe --verify-desktop
+          if ($LASTEXITCODE -ne 0) { throw 'Installed WebView integration unavailable' }
+          $uninstall = Join-Path $target 'unins000.exe'
+          if (!(Test-Path $uninstall)) { throw 'Uninstaller missing' }
+          $result = Start-Process -FilePath $uninstall -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru -Wait
+          if ($result.ExitCode -ne 0) { throw "Uninstall failed: $($result.ExitCode)" }
+          if (Test-Path $exe) { throw 'Uninstall did not remove installed executable' }
       - name: Upload portable Windows Control Centre
         if: success()
         continue-on-error: true # Upload may be blocked by repository artifact quota.
