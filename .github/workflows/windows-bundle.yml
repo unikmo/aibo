@@ -41,16 +41,15 @@ jobs:
             if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
           }
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
-      - name: Reclaim superseded Windows artifacts for latest build
+      - name: Reclaim obsolete AIBO binary artifacts
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Delete only obsolete AIBO Windows binaries from before 21 Nov 2026.
-          # Never delete source, current packages, other projects, or QA evidence.
           $ids = @(gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts" --paginate --jq '.artifacts[] | select(.name == "AIBO-Control-Centre-3-Windows") | select(.created_at < "2026-11-21T00:00:00Z") | .id')
+          if ($LASTEXITCODE -ne 0) { throw "Artifact list failed" }
           foreach ($artifactId in $ids) {
-            if ($artifactId -match '^\\d+
+            if ($artifactId -match '^[0-9]+
         if: success()
         continue-on-error: true # Upload may be blocked by repository artifact quota.
         uses: actions/upload-artifact@v4
@@ -92,10 +91,10 @@ jobs:
           }
 ) {
               gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$artifactId"
-              if ($LASTEXITCODE -ne 0) { throw "Could not remove expired AIBO build artifact $artifactId" }
+              if ($LASTEXITCODE -ne 0) { throw "Artifact cleanup failed" }
             }
           }
-          Write-Host "Superseded AIBO artifacts cleaned; GitHub quota reconciliation may take time."
+          Write-Host 'Old Windows packages reclaimed; GitHub quota reconciliation may be delayed.'
       - name: Upload portable Windows Control Centre
         if: success()
         continue-on-error: true # Upload may be blocked by repository artifact quota.
