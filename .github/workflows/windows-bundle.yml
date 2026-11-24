@@ -59,8 +59,10 @@ jobs:
           if ($install.ExitCode -ne 0) { throw "Installation failed with exit $($install.ExitCode)" }
           $exe = Join-Path $target 'AIBO.exe'
           if (!(Test-Path $exe)) { throw 'Installed AIBO.exe missing' }
-          & $exe --verify-desktop
-          if ($LASTEXITCODE -ne 0) { throw 'Installed WebView integration unavailable' }
+          # GUI subsystem executables are asynchronous in PowerShell; wait for
+          # process exit rather than trusting a stale $LASTEXITCODE.
+          $check = Start-Process -FilePath $exe -ArgumentList '--verify-desktop' -PassThru -Wait
+          if ($check.ExitCode -ne 0) { throw "Installed WebView verification failed: $($check.ExitCode)" }
           $uninstall = Join-Path $target 'unins000.exe'
           if (!(Test-Path $uninstall)) { throw 'Uninstaller missing' }
           $result = Start-Process -FilePath $uninstall -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru -Wait
@@ -77,8 +79,8 @@ jobs:
       - name: Executable loopback smoke
         shell: pwsh
         run: |
-          & "dist/AIBO/AIBO.exe" --verify-desktop
-          if ($LASTEXITCODE -ne 0) { throw 'Packaged native WebView unavailable' }
+          $desktopCheck = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList '--verify-desktop' -PassThru -Wait
+          if ($desktopCheck.ExitCode -ne 0) { throw "Packaged native WebView unavailable: $($desktopCheck.ExitCode)" }
           # Windowed Windows binaries have no stdout: probe a pre-allocated localhost port.
           $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
           $listener.Start()
