@@ -53,7 +53,7 @@ jobs:
         shell: pwsh
         run: |
           $setup = (Resolve-Path 'dist/installer/AIBO-Control-Centre-Windows-Setup.exe').Path
-          $target = Join-Path $env:RUNNER_TEMP 'AIBO Native Installer QA'
+          $target = Join-Path $env:RUNNER_TEMP 'AIBOInstallerQA'
           $args = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$target")
           $install = Start-Process -FilePath $setup -ArgumentList $args -PassThru -Wait
           if ($install.ExitCode -ne 0) { throw "Installation failed with exit $($install.ExitCode)" }
