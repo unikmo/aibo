@@ -11,7 +11,7 @@ if (!$AllowUnsignedDevelopment -and $signature.Status -ne 'Valid') {
   throw 'AIBO.exe must have a valid Authenticode publisher signature for public distribution.'
 }
 $compiler = @(
-  "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe",
+  "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
   "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
   'ISCC.exe'
 ) | Where-Object { $_ -and (Test-Path $_ -ErrorAction SilentlyContinue -PathType Leaf) } | Select-Object -First 1
