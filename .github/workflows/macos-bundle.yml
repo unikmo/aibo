@@ -1,0 +1,43 @@
+name: AIBO macOS bundle verification
+
+on:
+  pull_request:
+    paths:
+      - 'runtime/**'
+      - 'Control-Centre/**'
+      - 'System/**'
+      - 'Industry-Packs/**'
+      - 'build-macos.sh'
+      - 'qa/macos_bundle_smoke.py'
+      - 'tests/**'
+      - '.github/workflows/macos-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-bundle:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Python regression suite
+        run: python3 -m unittest discover -s tests -q
+      - name: Build AIBO.app
+        run: |
+          python3 -m pip install pyinstaller playwright
+          bash ./build-macos.sh
+      - name: Verify bundled application and local HTTP workflows
+        run: python3 qa/macos_bundle_smoke.py
+      - name: Upload macOS application for development testing
+        if: success()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIBO-macOS-UNSIGNED-DEVELOPMENT
+          path: dist/AIBO.app/
+          retention-days: 1
