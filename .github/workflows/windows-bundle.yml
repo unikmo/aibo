@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   windows-bundle:
@@ -40,6 +41,61 @@ jobs:
             if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
           }
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
+      - name: Reclaim superseded Windows artifacts for latest build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete only obsolete AIBO Windows binaries from before 21 Nov 2026.
+          # Never delete source, current packages, other projects, or QA evidence.
+          $ids = @(gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts" --paginate --jq '.artifacts[] | select(.name == "AIBO-Control-Centre-3-Windows") | select(.created_at < "2026-11-21T00:00:00Z") | .id')
+          foreach ($artifactId in $ids) {
+            if ($artifactId -match '^\\d+
+        if: success()
+        continue-on-error: true # Upload may be blocked by repository artifact quota.
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIBO-Control-Centre-3-Windows
+          path: dist/AIBO/
+          retention-days: 1
+      - name: Executable loopback smoke
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--port", "0") -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/aibo-stdout.txt" -RedirectStandardError "$env:RUNNER_TEMP/aibo-stderr.txt"
+          try {
+            $url = $null
+            for ($i=0; $i -lt 80; $i++) {
+              Start-Sleep -Milliseconds 500
+              $output = if (Test-Path "$env:RUNNER_TEMP/aibo-stdout.txt") { Get-Content "$env:RUNNER_TEMP/aibo-stdout.txt" -Raw } else { "" }
+              if ($output -match 'http://127\.0\.0\.1:(\d+)/v3/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
+              if ($proc.HasExited) { throw "Executable exited before HTTP startup: $(Get-Content "$env:RUNNER_TEMP/aibo-stderr.txt" -Raw)" }
+            }
+            if (!$url) { throw "Executable did not announce loopback URL" }
+            # Rehearse the same read-only smoke used after installation.
+            & ./qa/production_smoke.ps1 -BaseUrl $url
+            foreach ($endpoint in @("/v3/", "/standard/", "/custom/", "/api/products/custom")) {
+              $response = Invoke-WebRequest -Uri ($url + $endpoint) -UseBasicParsing -TimeoutSec 10
+              if ($response.StatusCode -ne 200) { throw "HTTP smoke failed for $endpoint" }
+            }
+            # Verify packaged app writes project files to user state, not frozen resources.
+            $created = Invoke-RestMethod -Uri ($url + "/api/projects/custom") -Method Post -ContentType "application/json" -Body '{"name":"Packaged Acceptance Project","industry":"Internal verification","region":"Germany","corePack":null,"addOns":[]}'
+            if ($created.project -ne "packaged-acceptance-project") { throw "Packaged project creation failed" }
+            $setupBody = '{"fields":{"name":"Packaged Acceptance Project","region":"Germany","goal":"Verify packaged Soni","audience":"Internal","successMeasure":"Mock execution accepted"},"step":2,"complete":true}'
+            $setup = Invoke-RestMethod -Uri ($url + "/api/setup/custom/packaged-acceptance-project") -Method Post -ContentType "application/json" -Body $setupBody
+            if (!$setup.complete) { throw "Packaged project setup failed" }
+            $run = Invoke-RestMethod -Uri ($url + "/api/work/custom/packaged-acceptance-project") -Method Post -ContentType "application/json" -Body '{"task":"Verify frozen project execution","provider":"mock"}'
+            $detail = Invoke-RestMethod -Uri ($url + "/api/run/" + $run.id) -TimeoutSec 15
+            if ($detail.status -ne "completed" -or $detail.result.soni -notmatch "MOCK") { throw "Packaged Soni execution failed" }
+
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+) {
+              gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$artifactId"
+              if ($LASTEXITCODE -ne 0) { throw "Could not remove expired AIBO build artifact $artifactId" }
+            }
+          }
+          Write-Host "Superseded AIBO artifacts cleaned; GitHub quota reconciliation may take time."
       - name: Upload portable Windows Control Centre
         if: success()
         continue-on-error: true # Upload may be blocked by repository artifact quota.
