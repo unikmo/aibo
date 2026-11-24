@@ -6,6 +6,12 @@ Set-Location $root
 $app = Join-Path $root 'dist\AIBO\AIBO.exe'
 if (!(Test-Path $app)) { throw 'AIBO.exe missing; run build-windows.ps1 first.' }
 # Signing only with a verified publisher certificate; no Smart App Control bypass.
+if (!$AllowUnsignedDevelopment) {
+  # The owner controls the publisher certificate. Sign only when this trusted
+  # certificate exists; never generate an untrusted self-signed substitute.
+  & (Join-Path $root 'packaging\windows\sign-app.ps1')
+  if ($LASTEXITCODE -ne 0) { throw 'Signing of AIBO application components failed.' }
+}
 $signature = Get-AuthenticodeSignature -LiteralPath $app
 if (!$AllowUnsignedDevelopment) {
   $expected = ($env:AIBO_WINDOWS_SIGNING_THUMBPRINT -replace '\\s','').ToUpperInvariant()
