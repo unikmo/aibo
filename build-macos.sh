@@ -6,8 +6,9 @@ cd "$ROOT"
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "AIBO .app must be built on macOS" >&2; exit 2
 fi
-python3 -m pip install "pypdf>=5,<8"
-python3 -m PyInstaller --noconfirm --clean --onedir --windowed --name AIBO \
+python3 -m pip install "pypdf>=5,<8" pillow pywebview pyobjc-framework-Cocoa pyobjc-framework-WebKit
+python3 packaging/generate_icons.py
+python3 -m PyInstaller --noconfirm --clean --onedir --windowed --icon "$ROOT/packaging/icons/AIBO.icns" --name AIBO \
   --specpath build \
   --add-data "$ROOT/Control-Centre:Control-Centre" \
   --add-data "$ROOT/System:System" \
@@ -15,6 +16,7 @@ python3 -m PyInstaller --noconfirm --clean --onedir --windowed --name AIBO \
   --add-data "$ROOT/runtime/agents.json:runtime" \
   --add-data "$ROOT/runtime/connectors.json:runtime" \
   --collect-all playwright \
+  --collect-all webview \
   runtime/macos_app.py
 
 APP="$ROOT/dist/AIBO.app"

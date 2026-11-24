@@ -1,25 +1,31 @@
 # AIBO desktop release gates
 
 AIBO uses **one local Control Centre/runtime** with Windows and macOS packaging.
-The current launcher opens the local UI in the default browser. It is not a standalone native WebView yet. Do not advertise it as one.
+The default launcher embeds the local Control Centre in a native **WebView window** (Windows WebView2/macOS Cocoa WebKit). The HTTP server remains on loopback; UI runs in the application window, not an external browser.
 
 ## Windows
-- Build with `build-windows.ps1` on Windows.
-- A reproducible Inno Setup installer definition is at `packaging/windows/AIBO.iss`. It creates Start menu and optional desktop shortcuts.
+- Build with `build-windows.ps1` on Windows. The executable bundles the runtime and native WebView and does not require customer-installed Python.
+- Inno Setup is defined at `packaging/windows/AIBO.iss`. It creates Start menu and optional desktop shortcuts; Windows CI must compile, install and uninstall the isolated development installer.
 - Use a trusted publisher Authenticode certificate and sign **both** `AIBO.exe` and the generated installer with an approved signing service and timestamp.
-- `build-windows-installer.ps1` refuses unsigned production builds. `-AllowUnsignedDevelopment` is for isolated engineering tests only, **not** a solution to Windows Smart App Control.
+- `build-windows-installer.ps1` refuses unsigned production builds. Owner-controlled Windows signing uses `AIBO_WINDOWS_SIGNING_THUMBPRINT` and SignTool with an authorized certificate in the certificate store; private keys do not belong in GitHub. `-AllowUnsignedDevelopment` is only for isolated CI and does not bypass Smart App Control.
 - Verify on a clean Windows 11 machine with Smart App Control enabled; CI smoke tests alone do not satisfy this release gate.
 
 ## macOS
-- Build `AIBO.app` on a macOS runner with `build-macos.sh`.
-- For distribution outside the App Store, sign with an Apple Developer ID Application certificate, enable hardened runtime and required entitlements where applicable, notarize with Apple, and staple the notarization ticket.
+- Build `AIBO.app` with `build-macos.sh` on macOS. It runs inside a native Cocoa/WebKit window with the same Control Centre and user data.
+- Distribution outside the App Store requires Apple Developer ID Application signing, hardened runtime, notarization and stapling. With an approved Apple signing identity and `notarytool` keychain profile, use `packaging/macos/notarize-release.sh` to produce a signed and notarized drag-install `.dmg`.
 - Validate with `codesign --verify --deep --strict`, `spctl --assess`, and launch on a fresh macOS installation. No instructions to bypass Gatekeeper.
 - Unsigned CI artifacts are **development-only**, not public-ready downloads.
 
 ## Release blockers
-- Windows publisher certificate or managed signing provider.
-- Apple Developer Program membership, Developer ID signing credentials and notarization authorization.
+- Windows individual-publisher Authenticode certificate or managed signing provider, plus verified Smart App Control reputation.
+- Apple Developer Program enrollment under the owner's **individual legal name**, verified Developer ID credentials and notarization authorization. The repository never invents publisher legal identity.
 - Manual Smart App Control and Gatekeeper acceptance on clean systems.
 - GitHub Actions artifact storage quota currently interferes with ZIP uploads.
 
 Never claim Windows or macOS is security-trusted based solely on passing the functional test suite.
+
+## Native desktop release acceptance
+- Desktop-shell unit tests cover window URL and loopback-server lifecycle including GUI failure cleanup.
+- Both platform builds verify packaged WebView availability, local APIs and per-user data persistence.
+- Windows CI compiles, installs and uninstalls a development-only installer.
+- Shipping requires manual verification on protected Windows 11 (Smart App Control) and macOS (Gatekeeper) machines. Signing does not imply automatic Smart App Control reputation.

@@ -8,6 +8,8 @@ on:
       - 'System/**'
       - 'Industry-Packs/**'
       - 'build-windows.ps1'
+      - 'packaging/**'
+      - 'build-windows-installer.ps1'
       - 'tests/**'
       - '.github/workflows/windows-bundle.yml'
   workflow_dispatch:
@@ -27,7 +29,7 @@ jobs:
       - name: Python regression suite
         run: python -m unittest discover -s tests -v
       - name: Install bundle dependencies
-        run: python -m pip install pyinstaller playwright
+        run: python -m pip install pyinstaller playwright pywebview
       - name: Build Windows executable
         shell: pwsh
         run: ./build-windows.ps1
@@ -40,6 +42,32 @@ jobs:
             if (!(Test-Path (Join-Path $app $item))) { throw "Missing bundle resource: $item" }
           }
           if (!(Test-Path "dist/AIBO/AIBO.exe")) { throw "Missing Windows executable" }
+      - name: Build unsigned installer for isolated QA only
+        shell: pwsh
+        run: |
+          ./build-windows-installer.ps1 -AllowUnsignedDevelopment
+          if (!(Test-Path 'dist/installer/AIBO-Control-Centre-Windows-Setup.exe')) {
+            throw 'Inno Setup did not create the installer'
+          }
+      - name: Verify installer install, desktop integration, and uninstall
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path 'dist/installer/AIBO-Control-Centre-Windows-Setup.exe').Path
+          $target = Join-Path $env:RUNNER_TEMP 'AIBOInstallerQA'
+          $args = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$target")
+          $install = Start-Process -FilePath $setup -ArgumentList $args -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Installation failed with exit $($install.ExitCode)" }
+          $exe = Join-Path $target 'AIBO.exe'
+          if (!(Test-Path $exe)) { throw 'Installed AIBO.exe missing' }
+          # GUI subsystem executables are asynchronous in PowerShell; wait for
+          # process exit rather than trusting a stale $LASTEXITCODE.
+          $check = Start-Process -FilePath $exe -ArgumentList '--verify-desktop' -PassThru -Wait
+          if ($check.ExitCode -ne 0) { throw "Installed WebView verification failed: $($check.ExitCode)" }
+          $uninstall = Join-Path $target 'unins000.exe'
+          if (!(Test-Path $uninstall)) { throw 'Uninstaller missing' }
+          $result = Start-Process -FilePath $uninstall -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru -Wait
+          if ($result.ExitCode -ne 0) { throw "Uninstall failed: $($result.ExitCode)" }
+          if (Test-Path $exe) { throw 'Uninstall did not remove installed executable' }
       - name: Upload portable Windows Control Centre
         if: success()
         continue-on-error: true # Upload may be blocked by repository artifact quota.
@@ -51,16 +79,26 @@ jobs:
       - name: Executable loopback smoke
         shell: pwsh
         run: |
-          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--port", "0") -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/aibo-stdout.txt" -RedirectStandardError "$env:RUNNER_TEMP/aibo-stderr.txt"
+          $desktopCheck = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList '--verify-desktop' -PassThru -Wait
+          if ($desktopCheck.ExitCode -ne 0) { throw "Packaged native WebView unavailable: $($desktopCheck.ExitCode)" }
+          # Windowed Windows binaries have no stdout: probe a pre-allocated localhost port.
+          $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+          $listener.Start()
+          $port = ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port
+          $listener.Stop()
+          $url = "http://127.0.0.1:$port"
+          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--headless", "--port", "$port", "--strict-port") -PassThru
           try {
-            $url = $null
-            for ($i=0; $i -lt 80; $i++) {
+            $ready = $false
+            for ($i=0; $i -lt 100; $i++) {
               Start-Sleep -Milliseconds 500
-              $output = if (Test-Path "$env:RUNNER_TEMP/aibo-stdout.txt") { Get-Content "$env:RUNNER_TEMP/aibo-stdout.txt" -Raw } else { "" }
-              if ($output -match 'http://127\.0\.0\.1:(\d+)/v3/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
-              if ($proc.HasExited) { throw "Executable exited before HTTP startup: $(Get-Content "$env:RUNNER_TEMP/aibo-stderr.txt" -Raw)" }
+              if ($proc.HasExited) { throw "Executable exited before HTTP startup" }
+              try {
+                $response = Invoke-WebRequest -Uri ($url + "/v3/") -UseBasicParsing -TimeoutSec 2
+                if ($response.StatusCode -eq 200) { $ready = $true; break }
+              } catch { }
             }
-            if (!$url) { throw "Executable did not announce loopback URL" }
+            if (!$ready) { throw "Packaged executable did not serve /v3/" }
             # Rehearse the same read-only smoke used after installation.
             & ./qa/production_smoke.ps1 -BaseUrl $url
             foreach ($endpoint in @("/v3/", "/standard/", "/custom/", "/api/products/custom")) {
