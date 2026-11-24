@@ -4,6 +4,7 @@ No Python terminal or external browser is required for normal launch. The existi
 HTTP server and its loopback/Host/Origin guards remain authoritative.
 """
 import argparse
+import os
 import sys
 import threading
 
@@ -47,9 +48,16 @@ def main():
     if args.verify_desktop:
         import webview
         assert hasattr(webview, "create_window") and hasattr(webview, "start")
-        print("AIBO embedded WebView module available", flush=True)
+        if sys.stdout is not None:
+            print("AIBO embedded WebView module available", flush=True)
         return
     if args.headless:
+        # PyInstaller --windowed provides no sys.stdout on Windows.
+        # Preserve the runtime server path for automated bundled API checks.
+        if sys.stdout is None:
+            sys.stdout = open(os.devnull, "w", encoding="utf8")
+        if sys.stderr is None:
+            sys.stderr = open(os.devnull, "w", encoding="utf8")
         from control_server import main as server_main
         sys.argv = [sys.argv[0], *remaining]
         server_main()
