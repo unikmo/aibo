@@ -8,6 +8,8 @@ on:
       - 'System/**'
       - 'Industry-Packs/**'
       - 'build-windows.ps1'
+      - 'packaging/**'
+      - 'build-windows-installer.ps1'
       - 'tests/**'
       - '.github/workflows/windows-bundle.yml'
   workflow_dispatch:
