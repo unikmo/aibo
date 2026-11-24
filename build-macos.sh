@@ -15,6 +15,7 @@ python3 -m PyInstaller --noconfirm --clean --onedir --windowed --name AIBO \
   --add-data "$ROOT/runtime/agents.json:runtime" \
   --add-data "$ROOT/runtime/connectors.json:runtime" \
   --collect-all playwright \
+  --collect-all webview \
   runtime/macos_app.py
 
 APP="$ROOT/dist/AIBO.app"
