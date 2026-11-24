@@ -29,7 +29,7 @@ jobs:
         run: python3 -m unittest discover -s tests -q
       - name: Build AIBO.app
         run: |
-          python3 -m pip install pyinstaller playwright
+          python3 -m pip install pyinstaller playwright pywebview pyobjc-framework-WebKit pyobjc-framework-Cocoa
           bash ./build-macos.sh
       - name: Verify bundled application and local HTTP workflows
         run: python3 qa/macos_bundle_smoke.py
