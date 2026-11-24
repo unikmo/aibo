@@ -8,6 +8,7 @@ on:
       - 'System/**'
       - 'Industry-Packs/**'
       - 'build-macos.sh'
+      - 'packaging/**'
       - 'qa/macos_bundle_smoke.py'
       - 'tests/**'
       - '.github/workflows/macos-bundle.yml'
