@@ -53,16 +53,24 @@ jobs:
         run: |
           & "dist/AIBO/AIBO.exe" --verify-desktop
           if ($LASTEXITCODE -ne 0) { throw 'Packaged native WebView unavailable' }
-          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--headless", "--port", "0") -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/aibo-stdout.txt" -RedirectStandardError "$env:RUNNER_TEMP/aibo-stderr.txt"
+          # Windowed Windows binaries have no stdout: probe a pre-allocated localhost port.
+          $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+          $listener.Start()
+          $port = ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port
+          $listener.Stop()
+          $url = "http://127.0.0.1:$port"
+          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--headless", "--port", "$port", "--strict-port") -PassThru
           try {
-            $url = $null
-            for ($i=0; $i -lt 80; $i++) {
+            $ready = $false
+            for ($i=0; $i -lt 100; $i++) {
               Start-Sleep -Milliseconds 500
-              $output = if (Test-Path "$env:RUNNER_TEMP/aibo-stdout.txt") { Get-Content "$env:RUNNER_TEMP/aibo-stdout.txt" -Raw } else { "" }
-              if ($output -match 'http://127\.0\.0\.1:(\d+)/v3/') { $url = "http://127.0.0.1:$($Matches[1])"; break }
-              if ($proc.HasExited) { throw "Executable exited before HTTP startup: $(Get-Content "$env:RUNNER_TEMP/aibo-stderr.txt" -Raw)" }
+              if ($proc.HasExited) { throw "Executable exited before HTTP startup" }
+              try {
+                $response = Invoke-WebRequest -Uri ($url + "/v3/") -UseBasicParsing -TimeoutSec 2
+                if ($response.StatusCode -eq 200) { $ready = $true; break }
+              } catch { }
             }
-            if (!$url) { throw "Executable did not announce loopback URL" }
+            if (!$ready) { throw "Packaged executable did not serve /v3/" }
             # Rehearse the same read-only smoke used after installation.
             & ./qa/production_smoke.ps1 -BaseUrl $url
             foreach ($endpoint in @("/v3/", "/standard/", "/custom/", "/api/products/custom")) {
