@@ -27,7 +27,7 @@ jobs:
       - name: Python regression suite
         run: python -m unittest discover -s tests -v
       - name: Install bundle dependencies
-        run: python -m pip install pyinstaller playwright
+        run: python -m pip install pyinstaller playwright pywebview
       - name: Build Windows executable
         shell: pwsh
         run: ./build-windows.ps1
@@ -51,7 +51,9 @@ jobs:
       - name: Executable loopback smoke
         shell: pwsh
         run: |
-          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--port", "0") -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/aibo-stdout.txt" -RedirectStandardError "$env:RUNNER_TEMP/aibo-stderr.txt"
+          & "dist/AIBO/AIBO.exe" --verify-desktop
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged native WebView unavailable' }
+          $proc = Start-Process -FilePath (Resolve-Path "dist/AIBO/AIBO.exe") -ArgumentList @("--headless", "--port", "0") -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/aibo-stdout.txt" -RedirectStandardError "$env:RUNNER_TEMP/aibo-stderr.txt"
           try {
             $url = $null
             for ($i=0; $i -lt 80; $i++) {
