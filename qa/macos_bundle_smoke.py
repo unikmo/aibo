@@ -13,6 +13,7 @@ APP=ROOT/"dist"/"AIBO.app"
 EXE=APP/"Contents"/"MacOS"/"AIBO"
 RESOURCES=APP/"Contents"/"Frameworks"
 assert EXE.is_file(), f"Missing executable: {EXE}"
+subprocess.run([str(EXE), "--verify-desktop"], check=True, timeout=25)
 for item in ("Control-Centre/v3/index.html","Control-Centre/v3/app.js",
              "System/project-registry.json","runtime/agents.json",
              "runtime/connectors.json","Industry-Packs/README.md"):
@@ -21,7 +22,7 @@ for item in ("Control-Centre/v3/index.html","Control-Centre/v3/app.js",
 with tempfile.TemporaryDirectory(prefix="aibo-macos-smoke-") as state:
     env=dict(os.environ, AIBO_STATE_DIR=state)
     with tempfile.NamedTemporaryFile(mode="w+",encoding="utf8") as log:
-        proc=subprocess.Popen([str(EXE),"--port","0"],cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT)
+        proc=subprocess.Popen([str(EXE),"--headless","--port","0"],cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT)
         try:
             root=None
             for _ in range(90):
