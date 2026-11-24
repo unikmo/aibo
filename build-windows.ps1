@@ -10,7 +10,7 @@ if($Clean){Remove-Item -LiteralPath (Join-Path $root 'build') -Recurse -Force -E
 # Ensure locally uploaded PDFs are actually readable in the shipped application.
 python -m pip install "pypdf>=5,<8"
 if ($LASTEXITCODE -ne 0) { throw "PDF extraction dependency installation failed" }
-python -m PyInstaller --noconfirm --clean --onedir --name AIBO `
+python -m PyInstaller --noconfirm --clean --onedir --windowed --name AIBO `
   --specpath build `
   --add-data "$root\Control-Centre;Control-Centre" `
   --add-data "$root\System;System" `
@@ -18,6 +18,7 @@ python -m PyInstaller --noconfirm --clean --onedir --name AIBO `
   --add-data "$root\runtime\agents.json;runtime" `
   --add-data "$root\runtime\connectors.json;runtime" `
   --collect-all playwright `
+  --collect-all webview `
   runtime\windows_app.py
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 Write-Host 'Built local package: dist\AIBO\AIBO.exe'
