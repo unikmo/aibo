@@ -160,7 +160,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert "Verify a real imported project brief" in page.locator(".source-list-item").inner_text()
                     assert page.locator("#modalBody form input[name='audience']").input_value().strip()
                     assert "Audience: Business decision makers" in page.locator(".source-list-item").inner_text()
-                    page.locator("#modalBody details.source-extra summary").click()
+                    page.locator("#modalBody details.source-extra summary",has_text="Optional project details").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
                     page.locator("#modalBody form textarea[name='goal']").fill("Validate local workflow")
                     page.locator("#modalBody form input[name='audience']").fill("Business users")
