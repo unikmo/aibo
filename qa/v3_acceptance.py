@@ -31,6 +31,11 @@ with tempfile.TemporaryDirectory() as state_dir:
                         if attempt==44:raise
                         time.sleep(.3)
                 page.wait_for_function("document.querySelector('#countProjects').textContent !== '—'")
+                assert page.locator('.nav[data-screen="soni"]').inner_text().strip()=="CariFive"
+                assert "CariFive" in page.locator("#soni-title").inner_text()
+                assert page.locator("#soniPrompt").get_attribute("aria-label")=="Message CariFive"
+                assert page.locator("#reviewPrompt").get_attribute("aria-label")=="Send to CariFive"
+                assert page.get_by_text("Just ask Soni.",exact=True).count()==0
                 assert page.locator(".nav").count()==5
                 for screen in ("home","soni","projects","activity","connections"):
                     page.locator(f'.nav[data-screen="{screen}"]').click()
