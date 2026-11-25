@@ -357,5 +357,13 @@ function render(){
  $("newProjectBtn").hidden=S.edition!=="custom";
 }
 
+// The hosted shell is a safe visual preview until an authenticated backend is deployed.
+if(location.protocol==="https:"&&!["localhost","127.0.0.1"].includes(location.hostname)){
+  const banner=document.createElement("div");
+  banner.setAttribute("role","status");
+  banner.style.cssText="position:relative;z-index:100;background:#fff5db;color:#39312a;border-bottom:1px solid #d3b873;padding:10px 18px;font:13px/1.5 Inter,Arial,sans-serif;text-align:center";
+  banner.textContent="CariFive web preview — the local execution engine is not connected. Tasks and integrations are unavailable online.";
+  document.body.prepend(banner);
+}
 (async()=>{await refresh();show(location.hash.slice(1)||"home");})();
 })();
