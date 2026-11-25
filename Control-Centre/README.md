@@ -4,7 +4,7 @@ Both editions preserve and reuse the supplied original Control Centre visual imp
 
 - **Standard**: `/standard/`. Industry, core knowledge pack, add-ons and five project slots belong to the customer license. This prototype intentionally blocks paid activation until a trusted license-issuer integration is implemented. No editable local JSON can unlock it.
 - **Custom**: `/custom/`. Maintains the 15 existing independently classified projects and initializes each with project-specific inputs without overwriting the source records. No five-project ceiling is imposed on this tailored edition.
-- Both share Soni, 11 specialists, the central approval policy, the same dashboard layout and local runtime.
+- Both share CariFive, 11 specialists, the central approval policy, the same dashboard layout and local runtime.
 
 Run from the AIBO root with Python 3.10+:
 
@@ -20,7 +20,7 @@ Custom initialization state is saved in a separate local location (`~/.aibo-stat
 
 ## Control Centre 3 (primary local UI)
 
-The approved five-area interface is at `/v3/` and is the default when opening the local server or Windows executable. It includes Home, Soni, Projects, Activity, and Connections, with top-bar project selection and settings. It uses the existing local APIs for real project setup, Soni runs, activity records, connection requests and cost controls.
+The approved five-area interface is at `/v3/` and is the default when opening the local server or Windows executable. It includes Home, CariFive, Projects, Activity, and Connections, with top-bar project selection and settings. It uses the existing local APIs for real project setup, CariFive runs, activity records, connection requests and cost controls.
 
 The previous `/standard/` and `/custom/` interfaces remain available as rollback views. Standard activation remains blocked until an externally verified signed license is supported; no local configuration can unlock paid entitlements.
 
