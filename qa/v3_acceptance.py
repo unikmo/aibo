@@ -141,6 +141,9 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#modalBody input[name='drive']").is_hidden()
                     assert page.locator("#modalBody input[name='website']").is_hidden()
                     assert page.locator("#modalBody input[name='sourceLink']").count()==1
+                    assert page.locator("#modalBody button",has_text="Cancel").count()==0
+                    assert page.locator("#closeModal").count()==1
+                    assert "only after you save" in page.locator(".source-guidance").inner_text()
                     page.locator("#modalBody form button",has_text="Continue").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
                     page.locator("#modalBody details.source-extra summary").click()
@@ -149,8 +152,11 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#modalBody form input[name='audience']").fill("Business users")
                     page.locator("#modalBody form input[name='successMeasure']").fill("Verified acceptance")
                     page.locator("#modalBody form button[type=submit]").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent==='Project ready'",timeout=15000)
+                    assert "You can now ask CariFive" in page.locator("#modalBody").inner_text()
+                    page.locator("#closeModal").click()
                     page.locator("#overlay.open").wait_for(state="hidden")
-                    result["functional"].append("project source scan reviewed and setup persists")
+                    result["functional"].append("single close action, source review, explicit setup success, and persistence")
                     page.locator(".nav[data-screen='soni']").click()
                     page.locator("#soniProvider").select_option("mock")
                     page.locator("#soniPrompt").fill("Review selected project positioning")
