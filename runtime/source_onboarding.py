@@ -109,7 +109,11 @@ def _remote(url, allowed_hosts=None, headers=None, redirects=0):
                                headers if next_host in (allowed_hosts or ()) else None,redirects+1)
             if 300<=response.status<400:
                 raise SourceError("Source redirects were blocked")
-            raise SourceError("Source unavailable (HTTP "+str(response.status)+"); check sharing permissions")
+            if response.status in (401,403):
+                raise SourceError("Access denied (HTTP "+str(response.status)+"). Sign in or upload an accessible document.")
+            if response.status==404:
+                raise SourceError("Source not found (HTTP 404). For a private GitHub repository, authorize GitHub CLI access or upload its README.")
+            raise SourceError("Source unavailable (HTTP "+str(response.status)+"). Check the address and sharing permissions.")
         kind=response.getheader("Content-Type","").lower()
         if not any(x in kind for x in ("text/", "application/json", "application/xml", "application/xhtml+xml")):
             raise SourceError("Source does not provide readable text; upload the document instead")
@@ -227,7 +231,10 @@ def inspect_remote(kind,raw_url,drive_token=None):
     host=(parsed.hostname or "").lower()
     if kind=="website":
         contents=_remote(raw_url)
-        return _extract(raw_url,contents,True,raw_url)
+        page=_extract(raw_url,contents,True,raw_url)
+        if len(page['excerpt'].strip())<30:
+            raise SourceError("The website returned too little readable text. It may require JavaScript or login; upload a project brief instead.")
+        return page
     if kind=="repository":
         if host!="github.com":raise SourceError("Enter a github.com/owner/repository URL")
         match=re.fullmatch(r"/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?",parsed.path)
