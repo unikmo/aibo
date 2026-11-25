@@ -31,7 +31,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertFalse(updated['complete'])
 
     def test_uninitialized_run_denied(self):
-        with self.assertRaisesRegex(products.ProductError,'Finish the guided'):
+        with self.assertRaisesRegex(products.ProductError,'Finish project setup before asking CariFive'):
             workspace.start_run(self.id,{'task':'Review the existing page','provider':'mock'})
 
     def test_consent_required_for_api_provider(self):
