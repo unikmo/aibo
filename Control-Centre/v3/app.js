@@ -140,7 +140,7 @@ async function openProject(p){
         const hostname=main?new URL(main).hostname.toLowerCase():"";
         const kind=hostname==="github.com"?"repository":
           ["docs.google.com","drive.google.com"].includes(hostname)?"drive":"website";
-        if(main&&data[kind]&&data[kind]!==main)throw Error("Use the More sources section to avoid two links of the same type");
+        if(main&&normalizeLink(data[kind])&&normalizeLink(data[kind])!==main)throw Error("Use the More sources section to avoid two links of the same type");
         const sources={website:normalizeLink(data.website),repository:normalizeLink(data.repository),drive:normalizeLink(data.drive)};
         if(main)sources[kind]=main;
         const report=await api("/api/setup/custom/"+encodeURIComponent(p.id)+"/inspect",
@@ -186,7 +186,7 @@ function renderSourceReview(project,state,report){
   intro.append(E("p","",missingSource||"Check the source content and suggested details below, then save the project."));
   if(sourceReviewed&&!usableSuggestions.length)intro.append(E("p","source-warning","The source was read, but it did not state a clear business goal. Enter the goal yourself before saving."));
   if(sources.length){
-    const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");
+    const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");list.open=true;
     list.append(heading);
     for(const entry of sources.slice(0,8)){const item=E("div","source-list-item");item.append(E("strong","",entry.reference),E("p","",entry.excerpt?.trim()?entry.excerpt.slice(0,550):"The source returned no readable text."));list.append(item)}
     intro.append(list);
