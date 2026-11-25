@@ -142,6 +142,19 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#modalBody input[name='website']").is_hidden()
                     assert page.locator("#modalBody input[name='sourceLink']").count()==1
                     assert page.locator("#modalBody input[name='sourceLink']").get_attribute("type")=="text"
+                    # A pasted domain without a scheme must be normalized to HTTPS.
+                    # Inaccessible links must produce a visible, actionable failure.
+                    page.locator("#modalBody input[name='sourceLink']").fill("unresolvable-onboarding-test.invalid")
+                    with page.expect_request(lambda request: "/api/setup/custom/" in request.url and request.url.endswith("/inspect") and request.method=="POST") as attempted:
+                        page.locator("#modalBody form button",has_text="Check sources").click()
+                    submitted=attempted.value.post_data_json
+                    assert submitted["website"]=="https://unresolvable-onboarding-test.invalid/"
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
+                    assert "unresolvable-onboarding-test.invalid" in page.locator(".source-warning").inner_text()
+                    page.locator("#closeModal").click()
+                    page.locator("#projectCards .project-summary button",has_text="Import sources").click()
+                    page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible")
+
                     page.locator("#modalBody input[type=file]").set_input_files({
                         "name":"onboarding-brief.md",
                         "mimeType":"text/markdown",
