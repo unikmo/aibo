@@ -77,10 +77,10 @@ class SourceOnboardingTests(unittest.TestCase):
     def test_failed_supplied_link_is_reported_with_reason(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
-            with patch.object(products,'STATE',root), \\
-                 patch.object(workspace,'DIR',root/'workspaces'), \\
-                 patch.object(workspace,'DRAFTS',root/'source-previews'), \\
-                 patch.object(attachments,'ROOT',root/'attachments'), \\
+            with patch.object(products,'STATE',root), \
+                 patch.object(workspace,'DIR',root/'workspaces'), \
+                 patch.object(workspace,'DRAFTS',root/'source-previews'), \
+                 patch.object(attachments,'ROOT',root/'attachments'), \
                  patch.dict(os.environ,{'AIBO_STATE_DIR':tmp}):
                 pid=products.project_records()[0]['id']
                 with patch.object(source,'inspect_remote',side_effect=source.SourceError('Access denied (HTTP 403)')):
