@@ -4,6 +4,7 @@ on:
     paths:
       - 'Control-Centre/v3/**'
       - 'qa/v3_acceptance.py'
+      - 'qa/pwa_acceptance.py'
       - 'runtime/**'
       - 'packaging/**'
       - 'build-windows-msix.ps1'
@@ -28,6 +29,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Test five areas and real local operations
         run: python qa/v3_acceptance.py
+      - name: Verify installable AIBO PWA using Playwright
+        run: python qa/pwa_acceptance.py
       - name: Keep visual and execution evidence
         if: always()
         continue-on-error: true # Quota exhaustion must not mask passing browser assertions.
