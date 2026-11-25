@@ -206,7 +206,7 @@ def prompt_for(agent, project, goal, shared):
 
 
 def select_agents(goal):
-    """Lightweight deterministic skill-based routing; Soni always adds QA separately."""
+    """Lightweight deterministic skill-based routing; CariFive always adds QA separately."""
     topic = goal.lower()
     rules = [
         ('research', ('research','market','competitor','audit','evaluate','investigate')),
@@ -247,9 +247,9 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
         selected_provider,selected_model=(agent_routes.get(name,(provider,model)) if agent_routes else (provider,model))
         remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
         if remaining<1:
-            raise AiboError('Soni task deadline reached; no completed result can be reported')
+            raise AiboError('CariFive task deadline reached; no completed result can be reported')
         outputs[name] = provider_call(selected_provider, system, user, selected_model, remaining, output_token_limit)
-    soni_system = ('You are Soni, a concise executive-level business partner. Answer the actual question directly in plain language. '
+    soni_system = ('You are CariFive, a concise executive-level business partner. Answer the actual question directly in plain language. '
                    'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
                    'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
                    'When asked for a status report, distinguish completed, pending and blocked only where the records support it. '
@@ -262,7 +262,7 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
     remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
     if remaining<1:
-        raise AiboError('Soni task deadline reached before synthesis')
+        raise AiboError('CariFive task deadline reached before synthesis')
     synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, remaining, output_token_limit)
     return {'project':project_id, 'provider':provider, 'agents':requested, 'classification':project.get('classification'),
             'actionGate':classify_action(goal), 'decisionPackage':approval_record(project_id, goal) if classify_action(goal)=='approval-required' else None,
@@ -271,7 +271,7 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description='AIBO / Soni cross-provider agent orchestration')
+    p = argparse.ArgumentParser(description='AIBO / CariFive cross-provider agent orchestration')
     sub = p.add_subparsers(dest='command', required=True)
     sub.add_parser('projects')
     sub.add_parser('agents')
