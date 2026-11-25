@@ -85,18 +85,18 @@ async function openProject(p){
     const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
     const form=E("form","modal-form compact-ingest");
     const linkLabel=E("label","","Website, GitHub or Google Drive link");
-    const link=E("input","field");link.name="sourceLink";link.type="url";link.autocomplete="url";
+    const link=E("input","field");link.name="sourceLink";link.type="text";link.inputMode="url";link.autocomplete="url";
     link.placeholder="Paste a link";
     link.value=state.fields?.website||local.suggestions?.website?.value||"";
     linkLabel.append(link);form.append(linkLabel);
-    form.append(E("p","source-guidance","Add a website, GitHub repository or document. Select Check sources to see what CariFive can read. Review the information and save your project before starting a task."));
+    form.append(E("p","source-guidance","Add a website, GitHub link or document. Check what can be read, then review and save the project."));
     const fileLabel=E("label","upload-source-label","Or add documents");
     const files=E("input");files.type="file";files.multiple=true;
     files.accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json";fileLabel.append(files);form.append(fileLabel);
     const more=E("details","source-extra"),moreTitle=E("summary","","More sources");
     more.append(moreTitle);
     for(const [key,title] of [["website","Additional website"],["repository","Additional GitHub repository"],["drive","Additional Google Drive link"]]){
-      const label=E("label","",title),input=E("input","field");input.name=key;input.type="url";
+      const label=E("label","",title),input=E("input","field");input.name=key;input.type="text";input.inputMode="url";
       input.placeholder="Optional additional link";label.append(input);more.append(label);
     }
     form.append(more);
@@ -135,12 +135,13 @@ async function openProject(p){
           ids.push(result.id);
         }
         const data=Object.fromEntries(new FormData(form).entries());
-        const main=(data.sourceLink||"").trim();
+        const normalizeLink=value=>{let raw=String(value||"").trim();if(!raw)return "";if(!/^https?:\/\//i.test(raw))raw="https://"+raw;if(/^http:\/\//i.test(raw))raw="https://"+raw.slice(7);const parsed=new URL(raw);if(parsed.protocol!=="https:"||!parsed.hostname||parsed.username||parsed.password)throw Error("Enter a valid public website, GitHub or Google Drive link");parsed.hash="";return parsed.href;};
+        const main=normalizeLink(data.sourceLink);
         const hostname=main?new URL(main).hostname.toLowerCase():"";
         const kind=hostname==="github.com"?"repository":
           ["docs.google.com","drive.google.com"].includes(hostname)?"drive":"website";
         if(main&&data[kind]&&data[kind]!==main)throw Error("Use the More sources section to avoid two links of the same type");
-        const sources={website:data.website||"",repository:data.repository||"",drive:data.drive||""};
+        const sources={website:normalizeLink(data.website),repository:normalizeLink(data.repository),drive:normalizeLink(data.drive)};
         if(main)sources[kind]=main;
         const report=await api("/api/setup/custom/"+encodeURIComponent(p.id)+"/inspect",
           json("POST",{...sources,attachments:ids}));
