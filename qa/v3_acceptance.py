@@ -141,11 +141,20 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#modalBody input[name='drive']").is_hidden()
                     assert page.locator("#modalBody input[name='website']").is_hidden()
                     assert page.locator("#modalBody input[name='sourceLink']").count()==1
+                    page.locator("#modalBody input[type=file]").set_input_files({
+                        "name":"onboarding-brief.md",
+                        "mimeType":"text/markdown",
+                        "buffer":b"Goal: Verify a real imported project brief\\nAudience: Business decision makers\\n"
+                    })
                     assert page.locator("#modalBody button",has_text="Cancel").count()==0
                     assert page.locator("#closeModal").count()==1
                     assert "save your project" in page.locator(".source-guidance").inner_text()
                     page.locator("#modalBody form button",has_text="Check sources").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
+                    assert "Read 1 source" in page.locator(".source-review").inner_text()
+                    assert "onboarding-brief.md" in page.locator(".source-review").inner_text()
+                    assert page.locator("#modalBody form textarea[name='goal']").input_value()=="Verify a real imported project brief"
+                    assert page.locator("#modalBody form input[name='audience']").input_value()=="Business decision makers"
                     page.locator("#modalBody details.source-extra summary").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
                     page.locator("#modalBody form textarea[name='goal']").fill("Validate local workflow")
