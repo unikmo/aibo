@@ -5,7 +5,7 @@ const S={projects:[],activity:[],actions:[],connections:null,providers:null,sele
 const safe=(x)=>String(x??"");
 function notice(title,msg){$("modalTitle").textContent=title;$("modalBody").textContent=msg;$("modalBody").replaceChildren(document.createTextNode(msg));$("overlay").classList.add("open");$("closeModal").focus()}
 function formModal(title,fields,submit){$("modalTitle").textContent=title;const root=$("modalBody");root.replaceChildren();const form=E("form","modal-form");for(const f of fields){const label=E("label","",f.label),control=E(f.multiline?"textarea":f.options?"select":"input","field");control.name=f.name;if(f.multiline){control.rows=3;}else if(f.options){for(const [val,txt] of f.options){const option=E("option","",txt);option.value=val;control.append(option);}}else{control.type=f.type||"text";}control.value=f.value??"";if(f.required)control.required=true;if(f.max)control.maxLength=f.max;if(f.disabled)control.disabled=true;label.append(control);form.append(label);}
-const msg=E("div","notice");msg.setAttribute("role","status");form.append(msg);const actions=E("div","modal-controls"),go=E("button","cta","Save"),cancel=E("button","secondary","Cancel");go.type="submit";cancel.type="button";cancel.onclick=closeModal;actions.append(go,cancel);form.append(actions);form.onsubmit=async e=>{e.preventDefault();go.disabled=true;msg.textContent="Saving…";try{const outcome=await submit(Object.fromEntries(new FormData(form).entries()));if(outcome!=="keep-open")closeModal();await refresh();}catch(err){msg.className="notice error";msg.textContent=err.message;go.disabled=false;}};root.append(form);$("overlay").classList.add("open");form.querySelector("input,select,textarea")?.focus();}
+const msg=E("div","notice");msg.setAttribute("role","status");form.append(msg);const actions=E("div","modal-controls"),go=E("button","cta","Save");go.type="submit";actions.append(go);form.append(actions);form.onsubmit=async e=>{e.preventDefault();go.disabled=true;msg.textContent="Saving…";try{const outcome=await submit(Object.fromEntries(new FormData(form).entries()));if(outcome!=="keep-open")closeModal();await refresh();if(outcome==="project-saved"){show("soni");notice("Project ready","Project setup saved. You can now ask CariFive to work on this project.");}}catch(err){msg.className="notice error";msg.textContent=err.message;go.disabled=false;}};root.append(form);$("overlay").classList.add("open");form.querySelector("input,select,textarea")?.focus();}
 function closeModal(){$("overlay").classList.remove("open");$("modalBody").replaceChildren();}
 $("closeModal").onclick=closeModal;$("overlay").onclick=e=>{if(e.target===$("overlay"))closeModal()};document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 async function api(url,options={}){const r=await fetch(url,{cache:"no-store",...options});let body;try{body=await r.json()}catch{body={error:"Server returned an invalid response"}}if(!r.ok)throw Error(body.error||"Request failed ("+r.status+")");return body}
@@ -89,6 +89,7 @@ async function openProject(p){
     link.placeholder="Paste a link";
     link.value=state.fields?.website||local.suggestions?.website?.value||"";
     linkLabel.append(link);form.append(linkLabel);
+    form.append(E("p","source-guidance","Continue reads the link or files and opens a review. The project becomes ready only after you save its profile. A link alone does not start CariFive."));
     const fileLabel=E("label","upload-source-label","Or add documents");
     const files=E("input");files.type="file";files.multiple=true;
     files.accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json";fileLabel.append(files);form.append(fileLabel);
@@ -103,8 +104,7 @@ async function openProject(p){
     status.setAttribute("role","status");form.append(status);
     const actions=E("div","modal-controls");
     const scan=E("button","cta","Continue");scan.type="submit";
-    const cancel=E("button","secondary","Cancel");cancel.type="button";cancel.onclick=closeModal;
-    actions.append(scan,cancel);
+    actions.append(scan);
     const driveStatus=await api("/api/oauth/google-drive/status/"+encodeURIComponent(p.id)).catch(()=>({available:false,status:"not-connected"}));
     if(driveStatus.available){
       const connect=E("button","secondary",driveStatus.status==="authorized-for-session"?"Drive connected":"Connect Google Drive");
@@ -122,7 +122,7 @@ async function openProject(p){
     form.append(actions);root.append(form);
     $("overlay").classList.add("open");
     form.onsubmit=async e=>{
-      e.preventDefault();scan.disabled=true;status.textContent="Reading sources…";
+      e.preventDefault();scan.disabled=true;status.textContent="Inspecting sources securely…";
       try{
         const ids=[];
         if(files.files.length>5)throw Error("Select up to five documents");
@@ -158,7 +158,7 @@ function renderSourceReview(project,state,report){
   const values={...derived,...Object.fromEntries(Object.entries(fields).filter(([,value])=>value))};
   const sources=report.sources||[],failures=report.failures||[],conflicts=report.conflicts||{};
   const sourceReviewed=sources.length>0;
-  const missingSource=sourceReviewed?"":"No sources found. Add the missing details.";
+  const missingSource=sourceReviewed?"":"No readable sources were found. Enter a project goal manually below to finish setup; links alone cannot verify private or inaccessible content.";
   const definitions=[
     ["name","Project name",true,80,false],
     ["region","Country / region",false,100,false],
@@ -174,11 +174,12 @@ function renderSourceReview(project,state,report){
       await api("/api/setup/custom/"+encodeURIComponent(project.id),
         json("POST",{fields:values,step:2,complete:true,reviewSources:sourceReviewed}));
       S.selected=project.id;$("projectSelect").value=project.id;
+      return "project-saved";
     });
   const form=$("modalBody").querySelector("form");
   const intro=E("div","source-review");
   intro.append(E("strong","",sources.length+" readable source"+(sources.length===1?"":"s")+" found"));
-  intro.append(E("p","",missingSource||"Review the extracted facts."));
+  intro.append(E("p","",missingSource||"Review the extracted facts, then select Save to finish setup."));
   if(sources.length){
     const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");
     list.append(heading);
