@@ -5,6 +5,10 @@ on:
       - 'Control-Centre/v3/**'
       - 'qa/v3_acceptance.py'
       - 'runtime/**'
+      - 'packaging/**'
+      - 'build-windows-msix.ps1'
+      - 'build-windows-installer.ps1'
+      - 'build-macos.sh'
       - '.github/workflows/v3-acceptance.yml'
   workflow_dispatch:
 permissions:

@@ -22,4 +22,12 @@ image.save(OUTPUT / "AIBO.ico", format="ICO", sizes=[
     (128, 128), (256, 256)
 ])
 image.save(OUTPUT / "AIBO.icns", format="ICNS")
+# MSIX Store assets use the same approved graphite/gold identity.
+assets=OUTPUT/"msix"
+assets.mkdir(parents=True,exist_ok=True)
+for name,shape in [
+    ("StoreLogo.png",(50,50)),("Square44x44Logo.png",(44,44)),
+    ("Square150x150Logo.png",(150,150)),("Square310x310Logo.png",(310,310)),
+]:
+    image.resize(shape,Image.Resampling.LANCZOS).save(assets/name)
 print("Created desktop icons:", OUTPUT / "AIBO.ico", OUTPUT / "AIBO.icns")

@@ -10,6 +10,7 @@ on:
       - 'build-windows.ps1'
       - 'packaging/**'
       - 'build-windows-installer.ps1'
+      - 'build-windows-msix.ps1'
       - 'tests/**'
       - '.github/workflows/windows-bundle.yml'
   workflow_dispatch:
@@ -68,6 +69,13 @@ jobs:
           $result = Start-Process -FilePath $uninstall -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru -Wait
           if ($result.ExitCode -ne 0) { throw "Uninstall failed: $($result.ExitCode)" }
           if (Test-Path $exe) { throw 'Uninstall did not remove installed executable' }
+      - name: Build and unpack-test unsigned Store MSIX (development only)
+        shell: pwsh
+        run: |
+          ./build-windows-msix.ps1 -Development
+          if (!(Test-Path 'dist/AIBO-Control-Centre-Windows-x64.msix')) {
+            throw 'Development MSIX was not produced'
+          }
       - name: Upload portable Windows Control Centre
         if: success()
         continue-on-error: true # Upload may be blocked by repository artifact quota.

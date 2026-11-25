@@ -29,3 +29,13 @@ Never claim Windows or macOS is security-trusted based solely on passing the fun
 - Both platform builds verify packaged WebView availability, local APIs and per-user data persistence.
 - Windows CI compiles, installs and uninstalls a development-only installer.
 - Shipping requires manual verification on protected Windows 11 (Smart App Control) and macOS (Gatekeeper) machines. Signing does not imply automatic Smart App Control reputation.
+
+## Individual-publisher Windows Store route (preferred in Germany)
+
+For a verified **individual** publisher based in Germany, Microsoft Artifact Signing Public Trust currently supports individual developers only in the USA and Canada. Do not initiate an ineligible Azure Artifact Signing identity-verification request. The alternative for a new Windows app is **Microsoft Store MSIX**: Microsoft re-signs an accepted MSIX package during Store submission, so a commercial Authenticode certificate is not required for that channel. This does **not** sign an independent EXE/installer downloaded outside the Store.
+
+- The Store manifest template is `packaging/windows/AppxManifest.xml`; build with `build-windows-msix.ps1` **only after** reserving the app's official Partner Center identity and publisher certificate subject.
+- Set `AIBO_MSIX_IDENTITY`, `AIBO_MSIX_PUBLISHER`, and `AIBO_MSIX_PUBLISHER_DISPLAY` to the exact Store-issued values. Never invent the individual's legal name or publisher subject.
+- CI's `-Development` build packs and unpacks an unsigned synthetic-identity MSIX for structural validation only. It cannot be installed on protected customer machines or sent to the Store as production.
+- Production publishing requires the owner's individual Store account, acceptance of legal terms, reservation of AIBO product identity, submission, Microsoft certification, and verification on Windows 11 with Smart App Control enabled.
+- An independent Windows installer (outside Microsoft Store) still requires an individually validated code-signing certificate or a supported commercial service, appropriate costs, and verified reputation.
