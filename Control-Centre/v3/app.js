@@ -26,7 +26,7 @@ function renderProjects(){
    const actions=E("div","project-actions");
    const setup=E("button","cta",chosen.setupComplete?"Review sources":"Import sources");
    setup.onclick=()=>openProject(chosen);
-   const open=E("button","secondary","Ask Soni");open.onclick=()=>show("soni");
+   const open=E("button","secondary","Ask CariFive");open.onclick=()=>show("soni");
    actions.append(setup,open);card.append(state,actions);node.append(card);return;
  }
  $("projectSubheading").textContent=S.projects.length+" projects";
@@ -264,7 +264,7 @@ async function renderConversation(){
       if(r.status==="completed"){try{detail=await api("/api/run/"+encodeURIComponent(r.id))}catch{}}
       const result=detail.result||{},answer=result.soni||detail.error||"Run "+r.status;
       const extended=[answer,...Object.entries(result.specialistResults||{}).map(([name,body])=>name.toUpperCase()+":\n"+safe(body))].join("\n\n");
-      logMessage("agent","Soni · "+r.status,shortAnswer(answer),extended);
+      logMessage("agent","CariFive · "+r.status,shortAnswer(answer),extended);
     }
   }catch(e){root.append(E("div","empty","Conversation unavailable: "+e.message))}
   screen.classList.toggle("is-empty",root.children.length===0);
@@ -284,7 +284,7 @@ soniComposer.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.
 function providerOptions(){const select=$("soniProvider");select.replaceChildren();for(const [val,label] of [["mock","Demo (no paid AI)"],["auto","Auto · Codex → Claude"],["codex-local","Codex · local CLI"],["claude-local","Claude · local CLI"],["openai","OpenAI API"],["anthropic","Anthropic API"],["openrouter","OpenRouter API"],["vercel-gateway","Vercel AI Gateway"],["together","Together API"],["groq","Groq API"]]){const opt=E("option","",label+(S.providers?.ready?.[val]?" · available":""));opt.value=val;select.append(opt)}select.value=S.providerChoice||"auto";select.title="Automatic: Codex CLI first, Claude CLI on failure. Paid API requires separate approval.";providerConsent()}
 function providerConsent(){const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);document.querySelector(".consent").classList.toggle("visible",paid);$("soniConsent").checked=false;}
 $("soniProvider").onchange=()=>{S.providerChoice=$("soniProvider").value;providerConsent()};
-$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(S.edition==="standard"){notice("License not activated","Standard edition requires trusted license activation before Soni execution.");return}if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<255;i++){
+$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(S.edition==="standard"){notice("License not activated","Standard edition requires trusted license activation before CariFive execution.");return}if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<255;i++){
   await new Promise(ok=>setTimeout(ok,2000));
   const status=await api("/api/run/"+encodeURIComponent(r.id));
   if(["completed","failed","interrupted"].includes(status.status)){
@@ -294,11 +294,11 @@ $("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),proj
   }
   // Maintain truthful status during lengthy multi-specialist execution.
   if(i%5===0){
-    $("promptHint").textContent=status.status==="queued"?"Queued — checking execution": "Soni working · "+Math.round((i+1)*2/60)+" min";
+    $("promptHint").textContent=status.status==="queued"?"Queued — checking execution": "CariFive working · "+Math.round((i+1)*2/60)+" min";
     await renderConversation();
   }
   if(i===254){$("promptHint").textContent="Execution deadline reached. Check Activity.";await renderConversation();}
-}}catch(e){$("promptHint").textContent="Task not started";notice("Soni could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
+}}catch(e){$("promptHint").textContent="Task not started";notice("CariFive could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
 $("projectSelect").onchange=e=>{S.selected=e.target.value;render();renderConversation()};
 $("newProjectBtn").onclick=()=>{
  if(S.edition!=="custom"){notice("License not activated","A verified license is required to create new projects.");return;}
@@ -346,7 +346,7 @@ async function providerModel(){
     await loadModels();
   }catch(e){notice("Models unavailable",e.message)}
 }
-async function agentSettings(){if(!S.selected||S.edition!=="custom"){notice("Choose a project","Select a Custom project to edit Soni's project-scoped settings.");return}try{const a=await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected));formModal("Agent setup · "+projectName(S.selected),[{name:"workingStyle",label:"Working style",value:a.workingStyle,options:[["autonomous","Autonomous within permissions"],["supervised","Supervised"]]}],async d=>{await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected),json("PUT",{workingStyle:d.workingStyle}))});}catch(e){notice("Agent settings unavailable",e.message)}}
+async function agentSettings(){if(!S.selected||S.edition!=="custom"){notice("Choose a project","Select a Custom project to edit CariFive's project-scoped settings.");return}try{const a=await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected));formModal("Agent setup · "+projectName(S.selected),[{name:"workingStyle",label:"Working style",value:a.workingStyle,options:[["autonomous","Autonomous within permissions"],["supervised","Supervised"]]}],async d=>{await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected),json("PUT",{workingStyle:d.workingStyle}))});}catch(e){notice("Agent settings unavailable",e.message)}}
 $("settingsBtn").onclick=()=>{notice("Settings","Choose the control area. Permissions, AI provider routing and usage limits remain locally managed.");const controls=E("div","modal-controls");for(const [label,fn] of [["Cost controls",costSettings],["AI providers",providerSettings],["API credentials",providerCredentials],["Select model",providerModel],["Project agents",agentSettings]]){const button=E("button","secondary",label);button.type="button";button.onclick=fn;controls.append(button)}$("modalBody").append(controls)};
 
 $("accountBtn").onclick=()=>notice("Account and edition","AIBO is running as a local-first workspace. Cross-device identity and signed commercial licensing are not yet verified. Current edition: "+S.edition+".");
