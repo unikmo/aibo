@@ -144,7 +144,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#modalBody input[type=file]").set_input_files({
                         "name":"onboarding-brief.md",
                         "mimeType":"text/markdown",
-                        "buffer":b"Goal: Verify a real imported project brief\\nAudience: Business decision makers\\n"
+                        "buffer":b"Goal: Verify a real imported project brief\nAudience: Business decision makers\n"
                     })
                     assert page.locator("#modalBody button",has_text="Cancel").count()==0
                     assert page.locator("#closeModal").count()==1
