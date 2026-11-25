@@ -143,8 +143,8 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#modalBody input[name='sourceLink']").count()==1
                     assert page.locator("#modalBody button",has_text="Cancel").count()==0
                     assert page.locator("#closeModal").count()==1
-                    assert "only after you save" in page.locator(".source-guidance").inner_text()
-                    page.locator("#modalBody form button",has_text="Continue").click()
+                    assert "save your project" in page.locator(".source-guidance").inner_text()
+                    page.locator("#modalBody form button",has_text="Check sources").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
                     page.locator("#modalBody details.source-extra summary").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
