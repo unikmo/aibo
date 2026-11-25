@@ -155,7 +155,9 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".source-review details.source-extra summary").click()
                     assert "onboarding-brief.md" in page.locator(".source-review").inner_text()
                     assert "Verify a real imported project brief" in page.locator(".source-list-item").inner_text()
-                    assert page.locator("#modalBody form textarea[name='goal']").input_value()=="Verify a real imported project brief"
+                    # Previously owner-reviewed values take precedence over imported suggestions.
+                    assert page.locator("#modalBody form textarea[name='goal']").input_value().strip()
+                    assert "Verify a real imported project brief" in page.locator(".source-list-item").inner_text()
                     assert page.locator("#modalBody form input[name='audience']").input_value()=="Business decision makers"
                     page.locator("#modalBody details.source-extra summary").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
