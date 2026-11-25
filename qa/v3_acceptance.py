@@ -152,7 +152,9 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator("#modalBody form button",has_text="Check sources").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
                     assert "Read 1 source" in page.locator(".source-review").inner_text()
+                    page.locator(".source-review details.source-extra summary").click()
                     assert "onboarding-brief.md" in page.locator(".source-review").inner_text()
+                    assert "Verify a real imported project brief" in page.locator(".source-list-item").inner_text()
                     assert page.locator("#modalBody form textarea[name='goal']").input_value()=="Verify a real imported project brief"
                     assert page.locator("#modalBody form input[name='audience']").input_value()=="Business decision makers"
                     page.locator("#modalBody details.source-extra summary").click()
