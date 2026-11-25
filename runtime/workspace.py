@@ -207,7 +207,7 @@ def _expire_run(run_id):
         if saved.get('sessionId')!=SESSION_ID or saved.get('status') not in ('queued','running'):
             return False
         saved['status']='failed'
-        saved['error']='Soni exceeded the 8-minute task limit. No result was confirmed. Try a smaller request or select another available CLI provider.'
+        saved['error']='CariFive exceeded the 8-minute task limit. No result was confirmed. Try a smaller request or select another available CLI provider.'
         saved['updatedAt']=now()
         products.write_json(_run_file(run_id),saved)
         if CURRENT.get(saved.get('project'))==run_id:
@@ -252,7 +252,7 @@ def start_run(project_id, payload):
         raise products.ProductError('Invalid request')
     setup=setup_state(project_id)
     if not setup['complete']:
-        raise products.ProductError('Finish the guided project setup before asking Soni to work')
+        raise products.ProductError('Finish project setup before asking CariFive to work')
     instruction=payload.get('task','')
     provider=payload.get('provider','mock')
     if not isinstance(instruction,str) or not 5 <= len(instruction.strip()) <= 1500:
@@ -274,7 +274,7 @@ def start_run(project_id, payload):
         if project_id in CURRENT:
             running=run_status(CURRENT[project_id])
             if running.get('status') in ('queued','running'):
-                raise products.ProductError('Soni is already working on this project')
+                raise products.ProductError('CariFive is already working on this project')
         item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
               'provider':provider, 'apiConsentGranted':requires_api_consent(provider) and payload.get('consent') is True, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
               'result':None, 'error':None, 'externalActionsExecuted':False,
