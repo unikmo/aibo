@@ -141,12 +141,40 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#modalBody input[name='drive']").is_hidden()
                     assert page.locator("#modalBody input[name='website']").is_hidden()
                     assert page.locator("#modalBody input[name='sourceLink']").count()==1
+                    assert page.locator("#modalBody input[name='sourceLink']").get_attribute("type")=="text"
+                    # A pasted domain without a scheme must be normalized to HTTPS.
+                    # Inaccessible links must produce a visible, actionable failure.
+                    page.locator("#modalBody input[name='sourceLink']").fill("unresolvable-onboarding-test.invalid")
+                    with page.expect_request(lambda request: "/api/setup/custom/" in request.url and request.url.endswith("/inspect") and request.method=="POST") as attempted:
+                        page.locator("#modalBody form button",has_text="Check sources").click()
+                    submitted=attempted.value.post_data_json
+                    assert submitted["website"]=="https://unresolvable-onboarding-test.invalid/"
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
+                    assert "unresolvable-onboarding-test.invalid" in page.locator(".source-warning").inner_text()
+                    page.locator("#closeModal").click()
+                    page.locator("#projectCards .project-summary button",has_text="Import sources").click()
+                    page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible")
+
+                    page.locator("#modalBody input[type=file]").set_input_files({
+                        "name":"onboarding-brief.md",
+                        "mimeType":"text/markdown",
+                        "buffer":b"Goal: Verify a real imported project brief\nAudience: Business decision makers\n"
+                    })
                     assert page.locator("#modalBody button",has_text="Cancel").count()==0
                     assert page.locator("#closeModal").count()==1
-                    assert "only after you save" in page.locator(".source-guidance").inner_text()
-                    page.locator("#modalBody form button",has_text="Continue").click()
+                    assert "save the project" in page.locator(".source-guidance").inner_text()
+                    page.locator("#modalBody form button",has_text="Check sources").click()
                     page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
-                    page.locator("#modalBody details.source-extra summary").click()
+                    assert "Read 1 source" in page.locator(".source-review").inner_text()
+                    page.locator(".source-review details.source-extra summary").click()
+                    assert "onboarding-brief.md" in page.locator(".source-review").inner_text()
+                    assert "Verify a real imported project brief" in page.locator(".source-list-item").inner_text()
+                    # Previously owner-reviewed values take precedence over imported suggestions.
+                    assert page.locator("#modalBody form textarea[name='goal']").input_value().strip()
+                    assert "Verify a real imported project brief" in page.locator(".source-list-item").inner_text()
+                    assert page.locator("#modalBody form input[name='audience']").input_value().strip()
+                    assert "Audience: Business decision makers" in page.locator(".source-list-item").inner_text()
+                    page.locator("#modalBody details.source-extra summary",has_text="Optional project details").click()
                     page.locator("#modalBody form input[name='region']").fill("Germany")
                     page.locator("#modalBody form textarea[name='goal']").fill("Validate local workflow")
                     page.locator("#modalBody form input[name='audience']").fill("Business users")

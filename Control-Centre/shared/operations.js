@@ -5,28 +5,28 @@ if(document.body.dataset.product!=='custom')return;
 const nav=document.querySelector('.nav-list'),main=document.querySelector('.main-content');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const current=document.querySelector('[data-view="projects"]');
-for(const [key,text] of [['portfolio','Dashboard'],['soni','Soni']]){
+for(const [key,text] of [['portfolio','Dashboard'],['soni','CariFive']]){
  const a=document.createElement('a');a.className='nav-item';a.href='#'+key;a.dataset.view=key;a.textContent=text;
  nav.insertBefore(a,current);
 }
 const connectionsNav=document.createElement('a');connectionsNav.className='nav-item';connectionsNav.href='#connections';connectionsNav.dataset.view='connections';connectionsNav.textContent='Connections';nav.insertBefore(connectionsNav,current);
 const costsNav=document.createElement('a');costsNav.className='nav-item';costsNav.href='#cost-management';costsNav.dataset.view='cost-management';costsNav.textContent='Cost Management';nav.insertBefore(costsNav,current);
 const dashboard=document.createElement('section');dashboard.id='portfolio';dashboard.className='dashboard-view aibo-operational-view';
-dashboard.innerHTML=`<header class="soni-home-hero"><p class="eyebrow">AIBO CONTROL CENTRE</p><h1>What would you like to <em>move forward?</em></h1><p>Soni turns a plain request into the right plan, evidence, specialist work and a clear decision—without asking you to manage agents.</p><button class="soni-prompt-button" data-view="soni" type="button"><span>Ask Soni anything about your work</span><kbd>Enter</kbd></button><small>Nothing is sent, spent, published or connected without your approval.</small></header>
+dashboard.innerHTML=`<header class="soni-home-hero"><p class="eyebrow">AIBO CONTROL CENTRE</p><h1>What would you like to <em>move forward?</em></h1><p>CariFive turns a plain request into the right plan, evidence, specialist work and a clear decision—without asking you to manage agents.</p><button class="soni-prompt-button" data-view="soni" type="button"><span>Ask CariFive anything about your work</span><kbd>Enter</kbd></button><small>Nothing is sent, spent, published or connected without your approval.</small></header>
 <div class="op-metrics" id="op-metrics" aria-live="polite"></div>
-<div class="soni-home-grid"><article class="panel"><div class="op-panel-title"><div><p class="eyebrow">YOUR ATTENTION</p><h2>What needs you next</h2></div><button class="text-button" data-view="soni">Ask Soni →</button></div><div id="op-home-next"></div></article><article class="panel"><div class="op-panel-title"><div><p class="eyebrow">PROJECT STATUS</p><h2>Only what needs a look</h2></div><span>Local workspace data</span></div><div id="op-health"></div></article><article class="panel"><div class="op-panel-title"><div><p class="eyebrow">RECENT WORK</p><h2>Soni’s clear record</h2></div></div><div id="op-jobs"></div></article></div>
+<div class="soni-home-grid"><article class="panel"><div class="op-panel-title"><div><p class="eyebrow">YOUR ATTENTION</p><h2>What needs you next</h2></div><button class="text-button" data-view="soni">Ask CariFive →</button></div><div id="op-home-next"></div></article><article class="panel"><div class="op-panel-title"><div><p class="eyebrow">PROJECT STATUS</p><h2>Only what needs a look</h2></div><span>Local workspace data</span></div><div id="op-health"></div></article><article class="panel"><div class="op-panel-title"><div><p class="eyebrow">RECENT WORK</p><h2>CariFive’s clear record</h2></div></div><div id="op-jobs"></div></article></div>
 <div class="panel op-kpis"><div class="op-panel-title"><h2>Project KPIs</h2><span>Manual entries are labelled. Live business data is not connected.</span></div><div id="op-kpi-list"></div>
 <form id="op-kpi-form" class="op-kpi-form"><label>Project<select name="project" required></select></label><label>KPI name<input name="name" placeholder="e.g. Monthly leads" maxlength="75" required></label><label>Value<input name="value" placeholder="e.g. 12" maxlength="60" required></label><label>Unit<input name="unit" placeholder="e.g. leads" maxlength="30"></label><label>Source<input name="source" placeholder="e.g. CRM export, 12 Nov" maxlength="100" required></label><button class="secondary-button" type="submit">Add KPI</button></form><p id="op-kpi-status" role="status"></p></div>`;
 main.insertBefore(dashboard,document.querySelector('#projects'));
 const soni=document.createElement('section');soni.id='soni';soni.className='dashboard-view aibo-operational-view';
-soni.innerHTML=`<header class="soni-chat-heading"><p class="eyebrow">YOUR BUSINESS PARTNER</p><h1>Ask Soni.</h1><p>Use your own words. Soni brings in the right expertise, keeps work scoped, and returns only what you need to decide.</p></header>
+soni.innerHTML=`<header class="soni-chat-heading"><p class="eyebrow">YOUR BUSINESS PARTNER</p><h1>Ask CariFive.</h1><p>Use your own words. CariFive brings in the right expertise, keeps work scoped, and returns only what you need to decide.</p></header>
 <div class="op-chat-shell"><div class="panel op-chat-panel"><label class="op-project-picker">Working on <select id="op-chat-project"></select></label>
 <div id="op-conversation" class="op-conversation" role="log" aria-live="polite"><p>Select a project to load its history.</p></div>
-<form id="op-chat-form"><label for="op-chat-task" class="aibo-visually-hidden">Your request</label><div class="aibo-chat-composer"><textarea id="op-chat-task" rows="3" minlength="5" maxlength="1500" required placeholder="Ask Soni what you want to achieve, solve, decide or create…"></textarea><div class="aibo-chat-composer-bar"><label for="op-chat-files" class="aibo-chat-attach-button" title="Attach files" aria-label="Attach files">＋</label><input id="op-chat-files" type="file" multiple accept=".csv,.xlsx,.xls,.pdf,.json,.txt,.md" aria-label="Attach reference files"><span id="op-chat-attachment-list" aria-live="polite"></span><button class="primary-button aibo-chat-send" type="submit" title="Send" aria-label="Send message">Send <span>↑</span></button></div></div><div class="op-chat-actions"><details class="aibo-chat-options"><summary>AI connection</summary><p>By default, Soni uses an available local Codex or Claude connection. APIs are always your choice.</p><label>Use <select id="op-chat-provider"><option value="auto" selected>Let Soni choose a local connection</option><option value="mock">Demo only (no AI request)</option><option value="codex-local">Codex on this computer</option><option value="claude-local">Claude on this computer</option><option value="openai">OpenAI API</option><option value="anthropic">Anthropic API</option><option value="openrouter">OpenRouter API</option><option value="vercel-gateway">Vercel AI Gateway</option><option value="together">Together AI API</option><option value="groq">Groq API</option></select></label><label id="op-chat-consent-wrap" hidden><input id="op-chat-consent" type="checkbox"> I approve this API request and any provider charges</label></details></div></form><p id="op-chat-status" role="status"></p></div>
+<form id="op-chat-form"><label for="op-chat-task" class="aibo-visually-hidden">Your request</label><div class="aibo-chat-composer"><textarea id="op-chat-task" rows="3" minlength="5" maxlength="1500" required placeholder="Ask CariFive what you want to achieve, solve, decide or create…"></textarea><div class="aibo-chat-composer-bar"><label for="op-chat-files" class="aibo-chat-attach-button" title="Attach files" aria-label="Attach files">＋</label><input id="op-chat-files" type="file" multiple accept=".csv,.xlsx,.xls,.pdf,.json,.txt,.md" aria-label="Attach reference files"><span id="op-chat-attachment-list" aria-live="polite"></span><button class="primary-button aibo-chat-send" type="submit" title="Send" aria-label="Send message">Send <span>↑</span></button></div></div><div class="op-chat-actions"><details class="aibo-chat-options"><summary>AI connection</summary><p>By default, CariFive uses an available local Codex or Claude connection. APIs are always your choice.</p><label>Use <select id="op-chat-provider"><option value="auto" selected>Let CariFive choose a local connection</option><option value="mock">Demo only (no AI request)</option><option value="codex-local">Codex on this computer</option><option value="claude-local">Claude on this computer</option><option value="openai">OpenAI API</option><option value="anthropic">Anthropic API</option><option value="openrouter">OpenRouter API</option><option value="vercel-gateway">Vercel AI Gateway</option><option value="together">Together AI API</option><option value="groq">Groq API</option></select></label><label id="op-chat-consent-wrap" hidden><input id="op-chat-consent" type="checkbox"> I approve this API request and any provider charges</label></details></div></form><p id="op-chat-status" role="status"></p></div>
 </div>`;
 main.insertBefore(soni,document.querySelector('#projects'));
 
-// Optional tools remain inside Soni, not in the main navigation.
+// Optional tools remain inside CariFive, not in the main navigation.
 const relationshipTools=document.createElement('details');relationshipTools.className='aibo-relationship-tools';
 relationshipTools.innerHTML=`<summary>Contacts & publishing</summary>
 <div class="aibo-relationship-panel">
@@ -60,21 +60,21 @@ soni.querySelector('.op-chat-panel').append(relationshipTools);
 
 const costPage=document.createElement('section');costPage.id='cost-management';costPage.className='dashboard-view aibo-operational-view';
 costPage.innerHTML=`<header class="op-heading"><div><h1>Cost controls</h1></div></header>
-<div class="op-grid"><article class="panel"><div class="op-panel-title"><h2>Model request limits</h2><span>Enforced for requests started through Soni</span></div>
+<div class="op-grid"><article class="panel"><div class="op-panel-title"><h2>Model request limits</h2><span>Enforced for requests started through CariFive</span></div>
 <form id="aibo-cost-form" class="aibo-cost-form"><label>Maximum output tokens per API call<input name="maxOutputTokens" type="number" min="256" max="8192" step="1" required></label><small>Increase for longer responses. Larger responses may cost more. Local Codex/Claude CLI tokens are not controlled by this setting.</small>
-<label>Maximum model calls per task<input name="maxModelCalls" type="number" min="2" max="8" step="1" required></label><small>Includes specialists, quality review, and Soni's final synthesis. A task exceeding this cap stops before execution.</small>
+<label>Maximum model calls per task<input name="maxModelCalls" type="number" min="2" max="8" step="1" required></label><small>Includes specialists, quality review, and CariFive's final synthesis. A task exceeding this cap stops before execution.</small>
 <label>Monthly AI budget target (USD)<input name="monthlyBudgetUsd" type="number" min="1" max="10000" step="1" required></label>
 <label>Per-task AI budget target (USD)<input name="perTaskBudgetUsd" type="number" min="1" max="5000" step="1" required></label>
 <button type="submit" class="primary-button">Save limits</button><p id="aibo-cost-status" role="status"></p></form></article>
 <article class="panel"><div class="op-panel-title"><h2>What is protected</h2><span>Current implementation status</span></div>
-<div class="aibo-cost-explainer"><p><b>Enforced:</b> API output-token cap and model-call count on Soni requests.</p><p><b>Not yet enforced:</b> monthly and per-task USD budgets. Accurate provider usage metering and pricing reconciliation are not connected.</p><p><b>Provider billing:</b> AI providers charge the customer's own account. Set spending caps at the provider too where supported.</p><p><b>No hidden usage data:</b> the dashboard does not invent token totals or cost balances.</p></div></article></div>`;
+<div class="aibo-cost-explainer"><p><b>Enforced:</b> API output-token cap and model-call count on CariFive requests.</p><p><b>Not yet enforced:</b> monthly and per-task USD budgets. Accurate provider usage metering and pricing reconciliation are not connected.</p><p><b>Provider billing:</b> AI providers charge the customer's own account. Set spending caps at the provider too where supported.</p><p><b>No hidden usage data:</b> the dashboard does not invent token totals or cost balances.</p></div></article></div>`;
 main.insertBefore(costPage,document.querySelector('#projects'));
 const connectionsPage=document.createElement('section');connectionsPage.id='connections';connectionsPage.className='dashboard-view aibo-operational-view';
 connectionsPage.innerHTML=`<header class="op-heading"><div><h1>Connections</h1></div></header>
 <div class="panel aibo-connect-summary"><div><h2>Connector catalog</h2><p>Available to discover does not mean connected. Registered adapters are not necessarily ready to use.</p></div><div id="aibo-connect-stats" aria-live="polite">Loading catalog…</div></div>
 <div class="panel aibo-connect-controls"><label>Find a connector<input type="search" id="aibo-connect-search" placeholder="Search social media, Resend, Firebase, browser…" autocomplete="off"></label><label>Category<select id="aibo-connect-category"><option value="">All categories</option></select></label><label>Setup status<select id="aibo-connect-filter"><option value="">All</option><option value="runtime-registered">Registry entry</option><option value="catalog-only">Catalog only</option></select></label></div>
 <div id="aibo-connection-list" class="aibo-connection-list" aria-live="polite"></div>
-<div class="panel aibo-connect-notice"><h3>Connection requests</h3><p>A setup request records what your project needs. It does not grant authorization or connect the service. Soni-assisted authentication, permission verification and task resumption are not implemented yet.</p><div id="aibo-connection-requests"></div><p id="aibo-connection-status" role="status"></p></div>`;
+<div class="panel aibo-connect-notice"><h3>Connection requests</h3><p>A setup request records what your project needs. It does not grant authorization or connect the service. CariFive-assisted authentication, permission verification and task resumption are not implemented yet.</p><div id="aibo-connection-requests"></div><p id="aibo-connection-status" role="status"></p></div>`;
 main.insertBefore(connectionsPage,document.querySelector('#projects'));
 
 
@@ -144,12 +144,12 @@ async function refresh(){
 }
 function renderDashboard(){
  const c=portfolio.counts;
- el('op-metrics').innerHTML=[['Projects',c.projects,'your workspaces'],['Active work',c.queued+c.running,'Soni is progressing'],['Needs attention',c.failed+c.interrupted,'review or retry'],['Completed',c.completed,'recorded outcomes']].map(([name,val,detail])=>`<div class="panel op-metric"><small>${name}</small><b>${val}</b><span>${detail}</span></div>`).join('');
+ el('op-metrics').innerHTML=[['Projects',c.projects,'your workspaces'],['Active work',c.queued+c.running,'CariFive is progressing'],['Needs attention',c.failed+c.interrupted,'review or retry'],['Completed',c.completed,'recorded outcomes']].map(([name,val,detail])=>`<div class="panel op-metric"><small>${name}</small><b>${val}</b><span>${detail}</span></div>`).join('');
  const next=el('op-home-next');
  const attention=portfolio.projects.filter(p=>p.tasksFailed||p.tasksOpen||!p.setupComplete).slice(0,3);
- next.innerHTML=attention.length?attention.map(p=>`<button class="soni-next-row" type="button" data-view="soni"><span><b>${escape(p.name)}</b><small>${p.tasksFailed?'A result needs review':p.tasksOpen?'Soni has work in progress':'Finish the short setup, then ask Soni anything'}</small></span><i>→</i></button>`).join(''):'<p class="op-empty">Everything is quiet. Ask Soni to start the next useful piece of work.</p>';
+ next.innerHTML=attention.length?attention.map(p=>`<button class="soni-next-row" type="button" data-view="soni"><span><b>${escape(p.name)}</b><small>${p.tasksFailed?'A result needs review':p.tasksOpen?'CariFive has work in progress':'Finish the short setup, then ask CariFive anything'}</small></span><i>→</i></button>`).join(''):'<p class="op-empty">Everything is quiet. Ask CariFive to start the next useful piece of work.</p>';
  el('op-health').innerHTML=portfolio.projects.map(p=>`<div class="op-row"><div><strong>${escape(p.name)}</strong><small>${p.tasksCompleted} completed · ${p.tasksOpen} active · ${p.tasksFailed} failed</small></div><span class="op-chip ${p.setupComplete?'ready':'pending'}">${escape(p.readiness)}</span></div>`).join('');
- el('op-jobs').innerHTML=portfolio.recentWork.length?portfolio.recentWork.slice(0,10).map(r=>`<div class="op-row"><div><strong>${escape(portfolio.projects.find(p=>p.id===r.project)?.name||r.project)}</strong><small>${escape((r.task||'').slice(0,88))}${(r.task||'').length>88?'…':''}${r.createdAt?' · '+escape(r.createdAt.substring(0,10)):''}${r.error?'<br><strong class="soni-job-error">'+escape(r.error)+'</strong>':''}</small></div><span class="op-chip ${r.status==='completed'?'ready':'pending'}">${escape(r.status)}</span></div>`).join(''):'<p class="op-empty">No Soni tasks recorded yet.</p>';
+ el('op-jobs').innerHTML=portfolio.recentWork.length?portfolio.recentWork.slice(0,10).map(r=>`<div class="op-row"><div><strong>${escape(portfolio.projects.find(p=>p.id===r.project)?.name||r.project)}</strong><small>${escape((r.task||'').slice(0,88))}${(r.task||'').length>88?'…':''}${r.createdAt?' · '+escape(r.createdAt.substring(0,10)):''}${r.error?'<br><strong class="soni-job-error">'+escape(r.error)+'</strong>':''}</small></div><span class="op-chip ${r.status==='completed'?'ready':'pending'}">${escape(r.status)}</span></div>`).join(''):'<p class="op-empty">No CariFive tasks recorded yet.</p>';
  el('op-kpi-list').innerHTML=portfolio.projects.map(p=>p.kpis.length?`<div class="op-kpi-project"><h3>${escape(p.name)}</h3><div class="op-kpi-values">${p.kpis.map(k=>`<div><b>${escape(k.value)} ${escape(k.unit)}</b><span>${escape(k.name)}</span><small>Source: ${escape(k.source)} · ${escape((k.recordedAt||'').substring(0,10))}</small></div>`).join('')}</div></div>`:'').filter(Boolean).join('')||'<p class="op-empty">No KPIs recorded yet. Add sourced business metrics below.</p>';
 }
 function updateProjectChoices(){
@@ -166,12 +166,12 @@ async function renderConversation(){
  const id=el('op-chat-project').value,box=el('op-conversation');
  if(!id){box.textContent='No projects registered.';return;}
  try{const r=await api('/api/runs/custom/'+encodeURIComponent(id));
-  if(!r.runs.length){box.innerHTML='<p class="op-empty">No history for this project yet. Ask Soni your first question.</p>';return;}
+  if(!r.runs.length){box.innerHTML='<p class="op-empty">No history for this project yet. Ask CariFive your first question.</p>';return;}
   // The ledger is authoritative; render latest requests and verified saved results.
   const runs=r.runs.slice(0,12).reverse();const nodes=[];
   for(const run of runs){nodes.push(`<div class="op-message user"><small>You · ${escape((run.createdAt||'').slice(0,16).replace('T',' '))}</small><p>${escape(run.task.length>280?run.task.slice(0,280)+'…':run.task)}</p></div>`);
     if(run.status==='completed'){let detail;try{detail=await api('/api/run/'+encodeURIComponent(run.id));}catch{}
-      nodes.push(`<div class="op-message assistant"><small>Soni · ${escape(run.provider)} · completed</small><p>${escape(detail?.result?.soni||'Completed. See original task details for the full result.')}</p></div>`);
+      nodes.push(`<div class="op-message assistant"><small>CariFive · ${escape(run.provider)} · completed</small><p>${escape(detail?.result?.soni||'Completed. See original task details for the full result.')}</p></div>`);
     }else nodes.push(`<div class="op-message assistant"><small>${escape(run.status)}</small><p>${escape(run.error||'No completed response yet.')}</p></div>`);
   }
   box.innerHTML=nodes.join('');box.scrollTop=box.scrollHeight;
@@ -182,8 +182,8 @@ el('op-chat-provider').addEventListener('change',()=>{const api=['openai','anthr
 el('op-chat-form').addEventListener('submit',async e=>{
  e.preventDefault();const f=e.currentTarget,button=f.querySelector('button[type="submit"]'),project=el('op-chat-project').value;
  const p=portfolio?.projects.find(p=>p.id===project);
- if(!p?.setupComplete){status('op-chat-status','Finish guided setup for this project in Projects before using Soni.');return;}
- button.disabled=true;status('op-chat-status','Requesting Soni…');
+ if(!p?.setupComplete){status('op-chat-status','Finish guided setup for this project in Projects before using CariFive.');return;}
+ button.disabled=true;status('op-chat-status','Requesting CariFive…');
  try{
   const result=await api('/api/work/custom/'+encodeURIComponent(project),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task:el('op-chat-task').value,provider:el('op-chat-provider').value,consent:el('op-chat-consent').checked})});
   el('op-chat-task').value='';await renderConversation();
@@ -197,9 +197,9 @@ const moneyForm=document.getElementById('aibo-cost-form');
 async function loadCosts(){try{const c=await api('/api/cost-controls');for(const k of ['maxOutputTokens','maxModelCalls','monthlyBudgetUsd','perTaskBudgetUsd'])moneyForm.elements[k].value=c[k];}
 catch(e){document.getElementById('aibo-cost-status').textContent='Could not load controls: '+e.message;}}
 moneyForm.addEventListener('submit',async e=>{e.preventDefault();const button=moneyForm.querySelector('button[type=submit]');button.disabled=true;
-try{const fields=['maxOutputTokens','maxModelCalls','monthlyBudgetUsd','perTaskBudgetUsd'];const data=Object.fromEntries(fields.map(k=>[k,Number(moneyForm.elements[k].value)]));await api('/api/cost-controls',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});document.getElementById('aibo-cost-status').textContent='Saved. Token and model-call caps now apply to new Soni runs. USD targets are informational until metering is connected.';}
+try{const fields=['maxOutputTokens','maxModelCalls','monthlyBudgetUsd','perTaskBudgetUsd'];const data=Object.fromEntries(fields.map(k=>[k,Number(moneyForm.elements[k].value)]));await api('/api/cost-controls',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});document.getElementById('aibo-cost-status').textContent='Saved. Token and model-call caps now apply to new CariFive runs. USD targets are informational until metering is connected.';}
 catch(err){document.getElementById('aibo-cost-status').textContent='Could not save: '+err.message;}finally{button.disabled=false;}});
-// Connector-gated Soni workflow. Explicit project-scoped checks; no unattended writes.
+// Connector-gated CariFive workflow. Explicit project-scoped checks; no unattended writes.
 el('op-chat-files').addEventListener('change',()=>{const files=[...el('op-chat-files').files];el('op-chat-attachment-list').textContent=files.length?files.map(x=>x.name).join(' · '):'';});
 const aiServicePicker=document.createElement('label');
 aiServicePicker.textContent='Service needed ';
@@ -235,7 +235,7 @@ async function queueSoniRequest(event){
   el('op-chat-task').value='';el('op-chat-files').value='';el('op-chat-attachment-list').textContent='';
   if(task.status==='ready-to-run'){
    const response=await api('/api/dependencies/resume/'+encodeURIComponent(task.id),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-   status('op-chat-status','Soni started. Job '+response.runId.slice(0,8)+'…');
+   status('op-chat-status','CariFive started. Job '+response.runId.slice(0,8)+'…');
    await renderConversation();
    // Connection-queued runs previously stopped here, leaving a stale 'running'
    // bubble even after the backend had completed or failed.
@@ -283,7 +283,7 @@ document.addEventListener('click',async event=>{
    el('aibo-dependency-status').textContent=result.message;
   }else{
    const result=await api('/api/dependencies/resume/'+encodeURIComponent(resumeButton.dataset.aiboResume),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-   el('aibo-dependency-status').textContent='Soni resumed the analysis request. Run '+result.runId.slice(0,8)+'…';
+   el('aibo-dependency-status').textContent='CariFive resumed the analysis request. Run '+result.runId.slice(0,8)+'…';
    await renderConversation();
   }
   await loadDependencies();await refresh();
@@ -292,7 +292,7 @@ document.addEventListener('click',async event=>{
 });
 loadDependencies();
 loadCosts();
-const show=id=>{document.querySelectorAll('.dashboard-view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.querySelector('.breadcrumb b').textContent=id==='portfolio'?'Dashboard':id==='soni'?'Soni':id==='cost-management'?'Cost Management':id==='connections'?'Connections':id==='agent-setup'?'Agent Setup':id==='ai-providers'?'AI Providers':'Projects';};
+const show=id=>{document.querySelectorAll('.dashboard-view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===id));document.querySelector('.breadcrumb b').textContent=id==='portfolio'?'Dashboard':id==='soni'?'CariFive':id==='cost-management'?'Cost Management':id==='connections'?'Connections':id==='agent-setup'?'Agent Setup':id==='ai-providers'?'AI Providers':'Projects';};
 show('portfolio');
 document.addEventListener('click',e=>{const a=e.target.closest('[data-view]');if(a&&['portfolio','soni','projects','cost-management','connections','agent-setup','ai-providers'].includes(a.dataset.view)){setTimeout(()=>{if(a.dataset.view==='portfolio')refresh();if(a.dataset.view==='connections')loadConnections();if(a.dataset.view==='agent-setup')loadAgentSetup();if(a.dataset.view==='soni'){refresh().then(renderConversation);}},0);}});
 refresh();
@@ -300,10 +300,10 @@ loadConnections();
 // Agent Setup: project-scoped operating preferences, not a credential store.
 const agentSetupNav=document.createElement('a');agentSetupNav.className='nav-item';agentSetupNav.href='#agent-setup';agentSetupNav.dataset.view='agent-setup';agentSetupNav.textContent='Agent Setup';nav.insertBefore(agentSetupNav,document.querySelector('[data-view="cost-management"]'));
 const agentSetupPage=document.createElement('section');agentSetupPage.id='agent-setup';agentSetupPage.className='dashboard-view aibo-operational-view';
-agentSetupPage.innerHTML=`<header class="op-heading"><div><p class="eyebrow">WORKING PREFERENCES</p><h1>Agent Setup.</h1><p>Decide what Soni may do for each project.</p></div></header>
-<article class="panel aibo-agent-panel"><div class="aibo-agent-top"><label>Project<select id="aibo-agent-project"></select></label><label>Coordinator<select id="aibo-agent-coordinator"><option value="soni">Soni + specialists</option><option value="specialists">Specialists, coordinated by Soni</option></select></label><label>Working style<select id="aibo-agent-style"><option value="autonomous">Autonomous</option><option value="supervised">Supervised</option></select></label></div>
+agentSetupPage.innerHTML=`<header class="op-heading"><div><p class="eyebrow">WORKING PREFERENCES</p><h1>Agent Setup.</h1><p>Decide what CariFive may do for each project.</p></div></header>
+<article class="panel aibo-agent-panel"><div class="aibo-agent-top"><label>Project<select id="aibo-agent-project"></select></label><label>Coordinator<select id="aibo-agent-coordinator"><option value="soni">CariFive + specialists</option><option value="specialists">Specialists, coordinated by CariFive</option></select></label><label>Working style<select id="aibo-agent-style"><option value="autonomous">Autonomous</option><option value="supervised">Supervised</option></select></label></div>
 <h2>Work permissions</h2><p class="aibo-agent-muted">Routine research and local edits start enabled. Public and financial actions require approval.</p><div id="aibo-agent-permissions" class="aibo-agent-permissions"></div>
-<h2>Mailboxes</h2><p class="aibo-agent-muted">Select addresses Soni may use once the mail provider is connected. This does not connect an account.</p><div id="aibo-agent-mailboxes"></div><div class="aibo-agent-mailbox-add"><input id="aibo-agent-mailbox-input" type="email" placeholder="name@company.com" aria-label="Mailbox address"><button type="button" id="aibo-agent-mailbox-add" class="secondary-button">Add mailbox</button></div>
+<h2>Mailboxes</h2><p class="aibo-agent-muted">Select addresses CariFive may use once the mail provider is connected. This does not connect an account.</p><div id="aibo-agent-mailboxes"></div><div class="aibo-agent-mailbox-add"><input id="aibo-agent-mailbox-input" type="email" placeholder="name@company.com" aria-label="Mailbox address"><button type="button" id="aibo-agent-mailbox-add" class="secondary-button">Add mailbox</button></div>
 <div class="aibo-agent-footer"><button class="primary-button" type="button" id="aibo-agent-save">Save settings</button><span role="status" id="aibo-agent-status"></span></div><p class="aibo-agent-muted">Preferences govern supported prepared actions. Other external work requires an available, authenticated connector; sending, publishing and deployment retain existing approval gates.</p></article>`;
 main.insertBefore(agentSetupPage,document.querySelector('#projects'));
 // User-initiated translation uses their own DeepL API key; nothing is published.

@@ -67,7 +67,7 @@ function renderConnections(){
  if(details.open)populate();
  details.addEventListener("toggle",()=>{if(details.open)populate()},{once:true});
 }
-async function runDetail(id){if(!id)return;try{const r=await api("/api/run/"+encodeURIComponent(id));const result=r.result||{},parts=[r.task||"Task", "Status: "+r.status,"Provider: "+(r.provider||"Unknown"),"External actions executed: "+(r.externalActionsExecuted===true?"Yes":"No")];if(r.effectiveProvider)parts.push("Executed with: "+r.effectiveProvider);if(Array.isArray(r.providerAttempts))parts.push("Routing: "+r.providerAttempts.map(a=>a.provider+" ("+a.status+")").join(" → "));if(r.error)parts.push("Error: "+r.error);if(result.soni)parts.push("\nSoni:\n"+result.soni);if(result.specialistResults)parts.push("\nSpecialist review:\n"+Object.entries(result.specialistResults).map(([n,t])=>n+": "+safe(t)).join("\n\n"));notice("Execution record",cleanCopy(parts.join("\n\n")))}catch(e){notice("Record unavailable",e.message)}}
+async function runDetail(id){if(!id)return;try{const r=await api("/api/run/"+encodeURIComponent(id));const result=r.result||{},parts=[r.task||"Task", "Status: "+r.status,"Provider: "+(r.provider||"Unknown"),"External actions executed: "+(r.externalActionsExecuted===true?"Yes":"No")];if(r.effectiveProvider)parts.push("Executed with: "+r.effectiveProvider);if(Array.isArray(r.providerAttempts))parts.push("Routing: "+r.providerAttempts.map(a=>a.provider+" ("+a.status+")").join(" → "));if(r.error)parts.push("Error: "+r.error);if(result.soni)parts.push("\nCariFive:\n"+result.soni);if(result.specialistResults)parts.push("\nSpecialist review:\n"+Object.entries(result.specialistResults).map(([n,t])=>n+": "+safe(t)).join("\n\n"));notice("Execution record",cleanCopy(parts.join("\n\n")))}catch(e){notice("Record unavailable",e.message)}}
 function actionDetail(a){
 const title="Action · "+(a.kind||"record"),description="Project: "+projectName(a.project)+"\nStatus: "+(a.status||"Unknown")+"\nDetails: "+JSON.stringify(a.details||{},null,2)+"\n\nExternal action requires exact approval and a separate execution confirmation.";
 notice(title,description);
@@ -85,25 +85,25 @@ async function openProject(p){
     const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
     const form=E("form","modal-form compact-ingest");
     const linkLabel=E("label","","Website, GitHub or Google Drive link");
-    const link=E("input","field");link.name="sourceLink";link.type="url";link.autocomplete="url";
+    const link=E("input","field");link.name="sourceLink";link.type="text";link.inputMode="url";link.autocomplete="url";
     link.placeholder="Paste a link";
     link.value=state.fields?.website||local.suggestions?.website?.value||"";
     linkLabel.append(link);form.append(linkLabel);
-    form.append(E("p","source-guidance","Continue reads the link or files and opens a review. The project becomes ready only after you save its profile. A link alone does not start CariFive."));
+    form.append(E("p","source-guidance","Add a website, GitHub link or document. Check what can be read, then review and save the project."));
     const fileLabel=E("label","upload-source-label","Or add documents");
     const files=E("input");files.type="file";files.multiple=true;
     files.accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.json";fileLabel.append(files);form.append(fileLabel);
     const more=E("details","source-extra"),moreTitle=E("summary","","More sources");
     more.append(moreTitle);
     for(const [key,title] of [["website","Additional website"],["repository","Additional GitHub repository"],["drive","Additional Google Drive link"]]){
-      const label=E("label","",title),input=E("input","field");input.name=key;input.type="url";
+      const label=E("label","",title),input=E("input","field");input.name=key;input.type="text";input.inputMode="url";
       input.placeholder="Optional additional link";label.append(input);more.append(label);
     }
     form.append(more);
     const status=E("p","notice","");
     status.setAttribute("role","status");form.append(status);
     const actions=E("div","modal-controls");
-    const scan=E("button","cta","Continue");scan.type="submit";
+    const scan=E("button","cta","Check sources");scan.type="submit";
     actions.append(scan);
     const driveStatus=await api("/api/oauth/google-drive/status/"+encodeURIComponent(p.id)).catch(()=>({available:false,status:"not-connected"}));
     if(driveStatus.available){
@@ -122,7 +122,7 @@ async function openProject(p){
     form.append(actions);root.append(form);
     $("overlay").classList.add("open");
     form.onsubmit=async e=>{
-      e.preventDefault();scan.disabled=true;status.textContent="Inspecting sources securely…";
+      e.preventDefault();scan.disabled=true;status.textContent="Checking the selected sources. This may take a few seconds…";
       try{
         const ids=[];
         if(files.files.length>5)throw Error("Select up to five documents");
@@ -135,12 +135,13 @@ async function openProject(p){
           ids.push(result.id);
         }
         const data=Object.fromEntries(new FormData(form).entries());
-        const main=(data.sourceLink||"").trim();
+        const normalizeLink=value=>{let raw=String(value||"").trim();if(!raw)return "";if(!/^https?:\/\//i.test(raw))raw="https://"+raw;if(/^http:\/\//i.test(raw))raw="https://"+raw.slice(7);const parsed=new URL(raw);if(parsed.protocol!=="https:"||!parsed.hostname||parsed.username||parsed.password)throw Error("Enter a valid public website, GitHub or Google Drive link");parsed.hash="";return parsed.href;};
+        const main=normalizeLink(data.sourceLink);
         const hostname=main?new URL(main).hostname.toLowerCase():"";
         const kind=hostname==="github.com"?"repository":
           ["docs.google.com","drive.google.com"].includes(hostname)?"drive":"website";
         if(main&&data[kind]&&data[kind]!==main)throw Error("Use the More sources section to avoid two links of the same type");
-        const sources={website:data.website||"",repository:data.repository||"",drive:data.drive||""};
+        const sources={website:normalizeLink(data.website),repository:normalizeLink(data.repository),drive:normalizeLink(data.drive)};
         if(main)sources[kind]=main;
         const report=await api("/api/setup/custom/"+encodeURIComponent(p.id)+"/inspect",
           json("POST",{...sources,attachments:ids}));
@@ -157,12 +158,15 @@ function renderSourceReview(project,state,report){
   // An explicit prior owner-reviewed value always wins over an extracted suggestion.
   const values={...derived,...Object.fromEntries(Object.entries(fields).filter(([,value])=>value))};
   const sources=report.sources||[],failures=report.failures||[],conflicts=report.conflicts||{};
-  const sourceReviewed=sources.length>0;
-  const missingSource=sourceReviewed?"":"No readable sources were found. Enter a project goal manually below to finish setup; links alone cannot verify private or inaccessible content.";
+  const sourceReviewed=sources.some(x=>x.excerpt?.trim());
+  const usableSuggestions=Object.keys(extracted).filter(k=>["name","goal","audience","website","region","successMeasure"].includes(k));
+  // Never suggest that an inaccessible URL was read or a profile was inferred from it.
+  if(!sourceReviewed&&sources.length)failures.push({kind:"source",source:"supplied material",reason:"No readable text was returned. Upload a document or enter a goal manually."});
+  const missingSource=sourceReviewed?"":"No source could be read. Check the errors below or upload a document. You can still finish setup by entering a project goal.";
   const definitions=[
     ["name","Project name",true,80,false],
     ["region","Country / region",false,100,false],
-    ["goal","Business goal"+(extracted.goal?" · suggested":""),!sourceReviewed,500,true],
+    ["goal","Business goal"+(extracted.goal?" · suggested":""),!Boolean(extracted.goal||fields.goal),500,true],
     ["audience","Target buyer or audience",false,250,false],
     ["website","Website",false,200,false],
     ["successMeasure","Success measure",false,250,false],
@@ -178,18 +182,19 @@ function renderSourceReview(project,state,report){
     });
   const form=$("modalBody").querySelector("form");
   const intro=E("div","source-review");
-  intro.append(E("strong","",sources.length+" readable source"+(sources.length===1?"":"s")+" found"));
-  intro.append(E("p","",missingSource||"Review the extracted facts, then select Save to finish setup."));
+  intro.append(E("strong","",sources.length?("Read "+sources.length+" source"+(sources.length===1?"":"s")):"No sources read"));
+  intro.append(E("p","",missingSource||"Check the source content and suggested details below, then save the project."));
+  if(sourceReviewed&&!usableSuggestions.length)intro.append(E("p","source-warning","The source was read, but it did not state a clear business goal. Enter the goal yourself before saving."));
   if(sources.length){
     const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");
     list.append(heading);
-    for(const entry of sources.slice(0,8))list.append(E("div","source-list-item",entry.reference));
+    for(const entry of sources.slice(0,8)){const item=E("div","source-list-item");item.append(E("strong","",entry.reference),E("p","",entry.excerpt?.trim()?entry.excerpt.slice(0,550):"The source returned no readable text."));list.append(item)}
     intro.append(list);
   }
   for(const [key,alternatives] of Object.entries(conflicts)){
     if(alternatives?.length)intro.append(E("p","source-warning","Conflicting "+key+": "+alternatives.map(x=>x.source).join(", ")+". Please verify."));
   }
-  for(const failure of failures)intro.append(E("p","source-warning","Not inspected · "+failure.kind+": "+failure.reason));
+  for(const failure of failures)intro.append(E("p","source-warning","Could not read "+failure.kind+" ("+(failure.source||"link") +"): "+failure.reason));
   form.prepend(intro);
   const optional=E("details","source-extra"),heading=E("summary","","Optional project details");
   optional.append(heading);

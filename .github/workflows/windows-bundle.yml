@@ -29,6 +29,8 @@ jobs:
           python-version: '3.13'
       - name: Python regression suite
         run: python -m unittest discover -s tests -v
+      - name: Verify real public website import (no credentials)
+        run: python -m qa.source_live_smoke
       - name: Install bundle dependencies
         run: python -m pip install pyinstaller playwright pywebview
       - name: Build Windows executable

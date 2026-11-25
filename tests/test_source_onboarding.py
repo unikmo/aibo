@@ -69,6 +69,27 @@ class SourceOnboardingTests(unittest.TestCase):
         with self.assertRaises(source.SourceError):
             source.inspect_remote('repository','https://not-github.example/repo')
 
+    def test_javascript_only_website_does_not_claim_readable_sources(self):
+        with patch.object(source,'_remote',return_value='<html><head><title>App</title></head><body><div id="root"></div><script>Render from JS</script></body></html>'):
+            with self.assertRaisesRegex(source.SourceError,'too little readable text'):
+                source.inspect_remote('website','https://example.com')
+
+    def test_failed_supplied_link_is_reported_with_reason(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            with patch.object(products,'STATE',root), \
+                 patch.object(workspace,'DIR',root/'workspaces'), \
+                 patch.object(workspace,'DRAFTS',root/'source-previews'), \
+                 patch.object(attachments,'ROOT',root/'attachments'), \
+                 patch.dict(os.environ,{'AIBO_STATE_DIR':tmp}):
+                pid=products.project_records()[0]['id']
+                with patch.object(source,'inspect_remote',side_effect=source.SourceError('Access denied (HTTP 403)')):
+                    result=workspace.inspect_sources(pid,{'website':'https://example.com','attachments':[]})
+                self.assertTrue(result['failures'])
+                self.assertEqual(result['failures'][0]['source'],'https://example.com')
+                self.assertIn('403',result['failures'][0]['reason'])
+                self.assertFalse(result['saved'])
+
     def test_drive_folder_without_auth_is_reported_not_fabricated(self):
         with patch.dict(os.environ,{'GOOGLE_DRIVE_ACCESS_TOKEN':''}):
             with self.assertRaisesRegex(source.SourceError,'connected'):

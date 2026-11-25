@@ -48,8 +48,8 @@ function render(){
  summary.innerHTML=`<div class="product-summary-top"><strong>Standard license</strong><span class="summary-pill">${license.projectLimit} project slots</span></div><p>Industry: <b>${escape(license.industry||'Not activated')}</b> · Core pack: <b>${escape(license.corePack||'Not activated')}</b> · Add-on: <b>${escape((license.addOns&&license.addOns[0])||'Not activated')}</b></p><small>The license holds the knowledge. Each project only adds its own business details and connections.</small>`;
  list.innerHTML=state.slots.map(x=>`<article class="panel product-project"><div class="product-project-info"><div class="product-project-heading"><span class="project-index">0${x.slot}</span><b>${x.name||'Project slot '+x.slot}</b><span class="project-state ${x.initialized?'configured':'pending'}">${x.initialized?'Initialized':'Available'}</span></div><div class="project-facts"><span><strong>Status</strong>${x.initialized?'Setup started':'Ready to initialize'}</span><span><strong>Region</strong>${escape(x.region||'—')}</span><span><strong>Main goal</strong>${escape(x.goal||'—')}</span></div></div><button class="secondary-button" disabled title="Verified license required">Initialize</button></article>`).join('');
  }else{
- summary.innerHTML=`<div class="product-summary-top"><strong>15 existing projects${state.projects.length!==15?' + new additions':''}</strong><button class="primary-button" type="button" id="create-custom-project"><span>+</span> New project</button></div><p>Create more workspaces whenever you need them. <b>Existing projects are preserved.</b> New projects are added to the portfolio; they do not replace existing folders or files.</p><small>Choose the project, initialize it, and let Soni use that project’s own knowledge setup.</small>`;
- list.innerHTML=state.projects.map((x,i)=>`<article class="panel product-project"><div class="product-project-info"><div class="product-project-heading"><span class="project-index">${String(i+1).padStart(2,'0')}</span><b>${escape(x.name)}</b><span class="project-state ${x.setupComplete?'configured':'pending'}">${x.setupComplete?'Ready':x.setupStep?'Setup in progress':'Needs setup'}</span></div><div class="project-facts"><span><strong>Industry</strong>${escape(x.industry||'Pending')}</span><span><strong>Core pack</strong>${escape(x.corePack||'Pending assignment')}</span><span><strong>Add-ons</strong>${x.addOns.length?escape(x.addOns.join(', ')):'Pending / none assigned'}</span></div><small>${x.setupComplete?'Ready for Soni.':'Complete guided setup to unlock Soni.'}${x.region?' · '+escape(x.region):''}</small></div><div class="project-actions"><button class="secondary-button" data-custom-id="${escape(x.id)}">${x.setupComplete?'Edit setup':x.setupStep?'Resume setup':'Initialize'}</button>${x.setupComplete?`<button class="primary-button" data-work-id="${escape(x.id)}">Ask Soni</button>`:''}</div></article>`).join('');
+ summary.innerHTML=`<div class="product-summary-top"><strong>15 existing projects${state.projects.length!==15?' + new additions':''}</strong><button class="primary-button" type="button" id="create-custom-project"><span>+</span> New project</button></div><p>Create more workspaces whenever you need them. <b>Existing projects are preserved.</b> New projects are added to the portfolio; they do not replace existing folders or files.</p><small>Choose the project, initialize it, and let CariFive use that project’s own knowledge setup.</small>`;
+ list.innerHTML=state.projects.map((x,i)=>`<article class="panel product-project"><div class="product-project-info"><div class="product-project-heading"><span class="project-index">${String(i+1).padStart(2,'0')}</span><b>${escape(x.name)}</b><span class="project-state ${x.setupComplete?'configured':'pending'}">${x.setupComplete?'Ready':x.setupStep?'Setup in progress':'Needs setup'}</span></div><div class="project-facts"><span><strong>Industry</strong>${escape(x.industry||'Pending')}</span><span><strong>Core pack</strong>${escape(x.corePack||'Pending assignment')}</span><span><strong>Add-ons</strong>${x.addOns.length?escape(x.addOns.join(', ')):'Pending / none assigned'}</span></div><small>${x.setupComplete?'Ready for CariFive.':'Complete guided setup to unlock CariFive.'}${x.region?' · '+escape(x.region):''}</small></div><div class="project-actions"><button class="secondary-button" data-custom-id="${escape(x.id)}">${x.setupComplete?'Edit setup':x.setupStep?'Resume setup':'Initialize'}</button>${x.setupComplete?`<button class="primary-button" data-work-id="${escape(x.id)}">Ask CariFive</button>`:''}</div></article>`).join('');
  }
 }
 const backdrop=document.createElement('div');
@@ -59,16 +59,16 @@ backdrop.innerHTML=`<section class="setup-modal wizard-modal" role="dialog" aria
 <h2 id="project-setup-title">Project setup</h2>
 <div class="wizard-progress" aria-label="Setup progress"><span id="wizard-count">Step 1 of 3</span><div class="wizard-track"><div id="wizard-fill"></div></div></div>
 <form id="project-setup-form" novalidate>
-<div class="wizard-step" data-step="0"><p class="wizard-hint">First, tell Soni about this project.</p>
+<div class="wizard-step" data-step="0"><p class="wizard-hint">First, tell CariFive about this project.</p>
 <label>Project name<input name="name" required maxlength="80"></label>
 <label>Region or location<input name="region" required maxlength="100" placeholder="e.g. Berlin, Germany"></label>
 <label>Website (optional)<input name="website" type="url" maxlength="200" placeholder="https://example.com"></label></div>
-<div class="wizard-step" data-step="1" hidden><p class="wizard-hint">What should Soni focus on?</p>
+<div class="wizard-step" data-step="1" hidden><p class="wizard-hint">What should CariFive focus on?</p>
 <label>Main goal<textarea name="goal" required maxlength="500" placeholder="e.g. Find 15 qualified leads per month"></textarea></label>
 <label>Who are you serving?<input name="audience" required maxlength="250" placeholder="e.g. Property managers in Boston"></label>
 <label>How will you measure success?<input name="successMeasure" required maxlength="250" placeholder="e.g. 15 qualified inquiries monthly"></label></div>
 <div class="wizard-step" data-step="2" hidden><p class="wizard-hint">Review before activating this workspace.</p>
-<label>Anything Soni should know? (optional)<textarea name="notes" maxlength="800" placeholder="Constraints, brand tone, operating preferences"></textarea></label>
+<label>Anything CariFive should know? (optional)<textarea name="notes" maxlength="800" placeholder="Constraints, brand tone, operating preferences"></textarea></label>
 <div class="wizard-review" id="wizard-review"></div>
 <div class="setup-note"><p>Setup details remain local. Saving does not send messages, publish, deploy or spend money. Live AI requests are optional and require separate consent.</p></div></div>
 <div class="wizard-actions"><button class="secondary-button" type="button" id="wizard-back">Back</button><button class="secondary-button" type="button" id="wizard-save">Save & exit</button><button class="primary-button" type="button" id="wizard-next">Continue</button></div>
@@ -113,7 +113,7 @@ async function saveWizard(complete=false){
  try{
   const response=await fetch('/api/setup/custom/'+encodeURIComponent(selected.id),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:getWizardFields(),step:wizardStep,complete})});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Save failed');
-  setMessage(status,complete?'Project ready. You can now ask Soni to work.':'Progress saved. Continue any time.');
+  setMessage(status,complete?'Project ready. You can now ask CariFive to work.':'Progress saved. Continue any time.');
   if(complete){await load();setTimeout(close,850);}return true;
  }catch(err){setMessage(status,'Could not save: '+err.message,'error');return false;}
  finally{wizardBusy=false;}
@@ -156,10 +156,10 @@ createBackdrop.querySelector('form').addEventListener('submit',async e=>{
  }catch(err){setMessage(status,'Could not create project: '+err.message,'error');}
  finally{submit.disabled=false;}
 });
-// Work panel: analysis-only Soni orchestration with explicit provider selection.
+// Work panel: analysis-only CariFive orchestration with explicit provider selection.
 const workBackdrop=document.createElement('div');workBackdrop.className='modal-backdrop';workBackdrop.id='soni-work-backdrop';workBackdrop.setAttribute('aria-hidden','true');
 workBackdrop.innerHTML=`<section class="setup-modal wizard-modal" role="dialog" aria-modal="true" aria-labelledby="soni-work-title">
-<button class="modal-close" id="soni-work-close" type="button" aria-label="Close">×</button><h2 id="soni-work-title">Soni</h2>
+<button class="modal-close" id="soni-work-close" type="button" aria-label="Close">×</button><h2 id="soni-work-title">CariFive</h2>
 <form id="soni-work-form"><label>What would you like done?<textarea name="task" required minlength="5" maxlength="1500" rows="4" placeholder="e.g. Review our positioning and identify the three best improvements"></textarea></label>
 <label>Reference files (CSV, XLSX, PDF, JSON; up to 5, 12 MB each)<input type="file" name="attachments" multiple accept=".csv,.xlsx,.xls,.pdf,.json,.txt,.md"></label><small>Files are saved locally to this project. Only bounded CSV/text excerpts are included for API analysis; full workbooks require file-capable local tools.</small>
 <label>AI provider<select name="provider"><option value="mock">Demo (no AI request)</option><option value="codex-local">Codex CLI (read-only)</option><option value="claude-local">Claude Code (plan-only)</option><option value="openai">OpenAI API (customer key)</option><option value="anthropic">Anthropic API (customer key)</option></select></label>
@@ -179,7 +179,7 @@ function renderSoniResult(job){
  if(job.status!=='completed'){target.innerHTML='<p>Running specialists and QA. No business actions are being executed.</p>';return;}
  const result=job.result||{};
  const specialists=result.specialistResults||{};
- target.innerHTML=`<div class="soni-result-card"><h3>Soni’s response</h3><pre>${escape(result.soni||'No response')}</pre></div><details><summary>Specialist review (${Object.keys(specialists).length})</summary>${Object.entries(specialists).map(([name,output])=>`<h4>${escape(name)}</h4><pre>${escape(output)}</pre>`).join('')}</details>${result.decisionPackage?'<p class="result-warning">Approval required before the requested external action. No external action was executed.</p>':'<p class="result-ok">Analysis only. No external business action executed.</p>'}`;
+ target.innerHTML=`<div class="soni-result-card"><h3>CariFive’s response</h3><pre>${escape(result.soni||'No response')}</pre></div><details><summary>Specialist review (${Object.keys(specialists).length})</summary>${Object.entries(specialists).map(([name,output])=>`<h4>${escape(name)}</h4><pre>${escape(output)}</pre>`).join('')}</details>${result.decisionPackage?'<p class="result-warning">Approval required before the requested external action. No external action was executed.</p>':'<p class="result-ok">Analysis only. No external business action executed.</p>'}`;
 }
 async function pollRun(id){
  try{const r=await fetch('/api/run/'+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Status unavailable');
@@ -201,7 +201,7 @@ workBackdrop.querySelector('#work-history').addEventListener('click',e=>{
  const button=e.target.closest('[data-run-id]');if(button)pollRun(button.dataset.runId);
 });
 async function openWork(project){
- workProject=project;workBackdrop.querySelector('#soni-work-title').textContent='Ask Soni · '+project.name;
+ workProject=project;workBackdrop.querySelector('#soni-work-title').textContent='Ask CariFive · '+project.name;
  workBackdrop.querySelector('#soni-work-status').textContent='';workBackdrop.querySelector('#soni-work-result').textContent='';
  workForm.reset();workBackdrop.querySelector('#provider-consent').hidden=true;
  workForm.querySelector('[type=submit]').disabled=false;
@@ -220,7 +220,7 @@ workForm.elements.task.addEventListener('keydown',event=>{
 workForm.addEventListener('submit',async e=>{
  e.preventDefault();if(!workProject)return;
  const btn=workForm.querySelector('[type=submit]');btn.disabled=true;
- setMessage(workBackdrop.querySelector('#soni-work-status'),'Starting Soni…');
+ setMessage(workBackdrop.querySelector('#soni-work-status'),'Starting CariFive…');
  try{
  const selected=[...workForm.elements.attachments.files];
  if(selected.length>5)throw Error('Select no more than five attachments');
