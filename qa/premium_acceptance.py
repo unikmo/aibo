@@ -42,6 +42,8 @@ def run():
                     assert page.locator('.nav[data-screen="soni"]').count()==1
                     assert page.locator('.nav[data-screen="growth"]').count()==1
                     assert page.locator('#homeTalkForm').is_visible()
+                    assert page.locator('#homePortfolio .portfolio-tile').count()==3
+                    assert page.locator('#homePortfolio .portfolio-state').count()==3
                     assert page.locator('#homeTalkPrompt').get_attribute('placeholder')=="What would you like CariFive to do today?"
                     assert 'No brand' in page.locator('#growthReadyValue').inner_text()
                     page.wait_for_function("document.querySelector('#todayTitle')?.textContent!=='Looking for a high-value next step…'",timeout=15000)
