@@ -254,6 +254,12 @@ def transition(project,experiment_id,body):
         if target not in next_states[item['status']]:
             raise products.ProductError('Invalid lifecycle transition')
         if target=='READY_FOR_APPROVAL':
+            if readiness(data)['status']!='PASS':
+                raise products.ProductError('Brand readiness must PASS before campaign approval')
+            opportunity=next((o for o in data['opportunities']
+                              if o['id']==item['opportunityId']),None)
+            if not opportunity or opportunity['decision'] in ('ESCALATE','IGNORE'):
+                raise products.ProductError('Risk or weak-fit opportunity cannot enter routine approval')
             review=next((r for r in data.get('creativeReviews',[])
                          if r['id']==body.get('creativeReviewId') and r['passed']
                          and r['channel']==item['channel']),None)
