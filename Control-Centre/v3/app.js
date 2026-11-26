@@ -313,14 +313,59 @@ const syncSoniLayout=()=>{$("screen-soni").classList.toggle("is-empty",conversat
 new MutationObserver(syncSoniLayout).observe(conversationRoot,{childList:true});
 syncSoniLayout();
 const soniComposer=$("soniPrompt");
-function sizeComposer(){soniComposer.style.height="34px";soniComposer.style.height=Math.min(175,Math.max(34,soniComposer.scrollHeight))+"px";}
+function growTextarea(input,min=38,max=190){
+ input.style.height="auto";
+ const target=Math.max(min,Math.min(max,input.scrollHeight));
+ input.style.height=target+"px";
+ input.style.overflowY=input.scrollHeight>max?"auto":"hidden";
+}
+function sizeComposer(){growTextarea(soniComposer);}
+function submitOnEnter(input,submit){
+ input.addEventListener("keydown",e=>{
+  if(e.key!=="Enter"||e.shiftKey||e.isComposing||e.keyCode===229)return;
+  e.preventDefault();
+  if(!e.repeat)submit();
+ });
+}
 soniComposer.addEventListener("input",sizeComposer);
-soniComposer.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();$("reviewPrompt").click()}});
+submitOnEnter(soniComposer,()=>$("reviewPrompt").click());
 
-function providerOptions(){const select=$("soniProvider");select.replaceChildren();for(const [val,label] of [["mock","Demo (no paid AI)"],["auto","Auto · Codex → Claude"],["codex-local","Codex · local CLI"],["claude-local","Claude · local CLI"],["openai","OpenAI API"],["anthropic","Anthropic API"],["openrouter","OpenRouter API"],["vercel-gateway","Vercel AI Gateway"],["together","Together API"],["groq","Groq API"]]){const opt=E("option","",label+(S.providers?.ready?.[val]?" · available":""));opt.value=val;select.append(opt)}select.value=S.providerChoice||"auto";select.title="Automatic: Codex CLI first, Claude CLI on failure. Paid API requires separate approval.";providerConsent()}
+function providerOptions(){
+ const choices=[["mock","Demo · no paid AI"],["auto","Auto · Codex → Claude"],["codex-local","Codex · local CLI"],["claude-local","Claude · local CLI"],["openai","OpenAI API"],["anthropic","Anthropic API"],["openrouter","OpenRouter API"],["vercel-gateway","Vercel AI Gateway"],["together","Together API"],["groq","Groq API"]];
+ for(const id of ["soniProvider","homeProvider"]){
+  const select=$(id),prior=S.providerChoice||"auto";
+  select.replaceChildren();
+  for(const [val,label] of choices){
+   const opt=E("option","",label+(S.providers?.ready?.[val]?" · available":""));
+   opt.value=val;select.append(opt);
+  }
+  select.value=prior;
+  select.title="Provider for this request. Paid API calls require explicit consent.";
+ }
+ providerConsent();
+}
 function providerConsent(){const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);document.querySelector(".consent").classList.toggle("visible",paid);$("soniConsent").checked=false;}
-$("soniProvider").onchange=()=>{S.providerChoice=$("soniProvider").value;providerConsent()};
-$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<255;i++){
+const MODULES=new Set(["auto","build","marketing","analysis","complete"]);
+for(const id of ["homeModule","soniModule"]){
+ $(id).onchange=()=>{
+  const selected=$(id).value;
+  if(!MODULES.has(selected))return;
+  $("homeModule").value=selected;
+  $("soniModule").value=selected;
+ };
+}
+$("soniProvider").onchange=()=>{
+ S.providerChoice=$("soniProvider").value;
+ $("homeProvider").value=S.providerChoice;
+ providerConsent();
+};
+$("homeProvider").onchange=()=>{
+ S.providerChoice=$("homeProvider").value;
+ $("soniProvider").value=S.providerChoice;
+ providerConsent();
+};
+
+$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,module:$("soniModule").value,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<255;i++){
   await new Promise(ok=>setTimeout(ok,2000));
   const status=await api("/api/run/"+encodeURIComponent(r.id));
   if(["completed","failed","interrupted"].includes(status.status)){
@@ -337,33 +382,37 @@ $("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),proj
 }}catch(e){$("promptHint").textContent="Task not started";notice("CariFive could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
 // Chat-first home composer uses the existing real CariFive conversation and provider gate.
 const homeTalkForm=$("homeTalkForm"),homeTalkPrompt=$("homeTalkPrompt");
-homeTalkForm.addEventListener("submit",e=>{
- e.preventDefault();
+function sendHomeMessage(){
  const prompt=homeTalkPrompt.value.trim();
- if(prompt.length<5){homeTalkPrompt.focus();return;}
+ if(S.busy){$("homeChatHint").textContent="CariFive is already processing a request.";return;}
+ if(prompt.length<5){$("homeChatHint").textContent="Write at least five characters.";homeTalkPrompt.focus();return;}
+ $("homeChatHint").textContent="";
+ $("soniModule").value=$("homeModule").value;
+ $("soniProvider").value=$("homeProvider").value;
+ S.providerChoice=$("homeProvider").value;
+ providerConsent();
  $("soniPrompt").value=prompt;
  sizeComposer();
  show("soni");
  if(!S.selected){
-  $("promptHint").textContent="Choose a project above, then press Send. Your message is kept.";
+  $("promptHint").textContent="Select a project above. Your message is saved in the composer.";
   $("projectSelect").focus();
   return;
  }
- // Approval is per task. Never carry earlier API payment consent into a new request.
- $("soniConsent").checked=false;
  homeTalkPrompt.value="";
+ growTextarea(homeTalkPrompt,56,200);
  const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);
  if(paid){
-  $("promptHint").textContent="Review the selected paid provider and approve its charges before sending.";
+  $("promptHint").textContent="Approve this paid API request below, then press Enter to send.";
   $("soniPrompt").focus();
   return;
  }
- // Only the existing chat submission route executes, never a parallel home endpoint.
  $("reviewPrompt").click();
-});
-homeTalkPrompt.addEventListener("keydown",e=>{
- if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();homeTalkForm.requestSubmit();}
-});
+}
+homeTalkForm.addEventListener("submit",e=>{e.preventDefault();sendHomeMessage();});
+homeTalkPrompt.addEventListener("input",()=>growTextarea(homeTalkPrompt,56,200));
+submitOnEnter(homeTalkPrompt,()=>homeTalkForm.requestSubmit());
+
 const openGrowth=()=>{show("growth");};
 for(const id of ["homeGrowthButton","growthReadiness","growthRadar","growthCreative","growthExperiments"]){
  $(id).onclick=openGrowth;
