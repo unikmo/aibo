@@ -22,6 +22,19 @@ DIR = products.STATE / 'workspaces'
 STAGES = ('business', 'focus', 'controls')
 PROVIDERS = {'mock', 'auto', 'codex-local', 'claude-local', 'openai', 'anthropic', 'openrouter', 'vercel-gateway', 'together', 'groq'}
 API_PROVIDERS = frozenset({'openai', 'anthropic', 'openrouter', 'vercel-gateway', 'together', 'groq'})
+# Selected chat modules map to actual CariFive specialists, not decorative labels.
+MODULE_AGENT_ROUTES = {
+    'build': ('engineering', 'automation'),
+    'marketing': ('growth', 'content', 'sales'),
+    'analysis': ('research', 'finance'),
+    'complete': ('research', 'engineering', 'growth', 'content', 'automation'),
+}
+MODULES = frozenset({'auto', *MODULE_AGENT_ROUTES})
+def specialists_for_module(module, task):
+    if module not in MODULES:
+        raise products.ProductError('Unknown CariFive module')
+    return list(MODULE_AGENT_ROUTES[module]) if module != 'auto' else aibo.select_agents(task)
+
 
 def requires_api_consent(provider):
     return provider in API_PROVIDERS
@@ -260,6 +273,9 @@ def start_run(project_id, payload):
         raise products.ProductError('Finish project setup before asking CariFive to work')
     instruction=payload.get('task','')
     provider=payload.get('provider','mock')
+    module=payload.get('module','auto')
+    if module not in MODULES:
+        raise products.ProductError('Unknown CariFive module')
     if not isinstance(instruction,str) or not 5 <= len(instruction.strip()) <= 1500:
         raise products.ProductError('Describe the task in 5–1500 characters')
     if provider not in PROVIDERS:
@@ -281,7 +297,7 @@ def start_run(project_id, payload):
             if running.get('status') in ('queued','running'):
                 raise products.ProductError('CariFive is already working on this project')
         item={'id':str(uuid.uuid4()), 'project':project_id, 'task':instruction.strip(),
-              'provider':provider, 'apiConsentGranted':requires_api_consent(provider) and payload.get('consent') is True, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
+              'provider':provider, 'module':module, 'apiConsentGranted':requires_api_consent(provider) and payload.get('consent') is True, 'attachments':attachment_ids, 'status':'queued','sessionId':SESSION_ID,'createdAt':now(), 'updatedAt':now(),
               'result':None, 'error':None, 'externalActionsExecuted':False,
               'crossProjectReadOnly':bool(cross_scope),'comparedProjects':cross_scope or []}
         _save_run(item)
@@ -418,13 +434,14 @@ def _worker(run_id):
         config=ai_providers.public()
         routes=None
         if item['provider']=='auto' and config['switchMode']=='soni':
-            roster=aibo.select_agents(enriched)+['quality','soni']
+            roster=specialists_for_module(item.get('module','auto'),enriched)+['quality','soni']
             routes={agent:ai_providers.route('auto',agent) for agent in roster}
         attempt={'provider':selected,'status':'started'}
         item['providerAttempts']=[attempt]
         _save_run(item)
         try:
             result=aibo.execute(item['project'],enriched,provider=selected,model=model,agent_routes=routes,
+                                agents=specialists_for_module(item.get('module','auto'),enriched),
                                 output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline,extra_context=extra_context)
         except aibo.AiboError as original:
             # Only an automatically routed CLI task may switch providers.
@@ -444,6 +461,7 @@ def _worker(run_id):
             # Use one CLI for the entire retry; overrides cannot route to APIs.
             result=aibo.execute(item['project'],enriched,provider=fallback,
                                 model=config['models'].get(fallback) or None,agent_routes=None,
+                                agents=specialists_for_module(item.get('module','auto'),enriched),
                                 output_token_limit=limits['maxOutputTokens'],max_model_calls=limits['maxModelCalls'],deadline=deadline,extra_context=extra_context)
             item['providerAttempts'][-1]['status']='completed'
             item['effectiveProvider']=fallback
@@ -492,5 +510,5 @@ def recent_runs(project_id):
         if value.get('project')==project_id:
             if value.get('status') in ('queued','running'):
                 value=run_status(value['id'])
-            items.append({k:value.get(k) for k in ('id','project','task','provider','status','createdAt','updatedAt','error')})
+            items.append({k:value.get(k) for k in ('id','project','task','provider','module','status','createdAt','updatedAt','error')})
     return sorted(items,key=lambda x:x.get('createdAt') or '',reverse=True)[:12]
