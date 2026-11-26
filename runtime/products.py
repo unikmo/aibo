@@ -1,4 +1,8 @@
-"""AIBO perpetual-version software: no activation or renewal checks.\n\nPurchased installed versions remain usable; upgrades are optional.\n"""\nimport json
+"""AIBO perpetual-version software: no activation or renewal checks.
+
+Purchased installed versions remain usable; upgrades are optional.
+"""
+import json
 import os
 import sys
 from pathlib import Path
