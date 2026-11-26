@@ -379,6 +379,32 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.request.get(BASE+"/api/products/standard").json()["slots"][0]["setupComplete"] is True
                     result["functional"].append("perpetual Standard five-slot setup, local AI run and reload without key")
 
+                    # Real Growth OS customer journey: entry point, project isolation
+                    # and persisted personality settings, without sending any content.
+                    page.locator("#projectSelect").select_option("standard-slot-1")
+                    page.locator("#projectCards .project-summary button",has_text="Growth OS").click()
+                    page.locator("#modalTitle").wait_for(state="visible")
+                    assert page.locator("#modalTitle").inner_text().startswith("Growth · ")
+                    assert page.locator("#modalBody").get_by_text("Brand readiness: FAIL").count()==1
+                    page.locator("#modalBody button",has_text="Creative personality").click()
+                    page.locator("#modalBody input[name='voice']").fill("Clear, clever, evidence-driven")
+                    page.locator("#modalBody input[name='humor']").fill("6")
+                    page.locator("#modalBody input[name='provocation']").fill("2")
+                    page.locator("#modalBody textarea[name='boundaries']").fill("No invented evidence")
+                    page.locator("#modalBody button",has_text="Save reviewed record").click()
+                    page.locator("#modalTitle").wait_for(state="visible")
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.startsWith('Growth · ')",timeout=15000)
+                    assert page.request.get(BASE+"/api/growth/project/standard-slot-1").json()["mischief"]["voice"]=="Clear, clever, evidence-driven"
+                    assert page.request.get(BASE+"/api/growth/project/standard-slot-2").json()["mischief"] is None
+                    page.locator("#closeModal").click()
+                    page.locator(".nav[data-screen='home']").click()
+                    assert page.get_by_role("button",name="Growth portfolio").count()==1
+                    page.get_by_role("button",name="Today's action").click()
+                    assert page.locator("#modalTitle").inner_text().startswith("Today · ")
+                    page.locator("#closeModal").click()
+                    result["functional"].append("Growth OS entry, readiness, saved per-brand persona, isolation and Today UI")
+
+
 
                 assert not result["errors"], "Browser JS errors: "+repr(result["errors"])
                 page.close()
