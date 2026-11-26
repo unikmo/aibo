@@ -358,6 +358,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert standard_data["purchase"]["mandatoryRenewal"] is False
                     assert page.locator("#newProjectBtn").is_hidden()
                     page.locator("#projectSelect").select_option("standard-slot-1")
+                    page.locator(".nav[data-screen='projects']").click()
                     page.locator("#projectCards .project-summary button",has_text="Import sources").click()
                     page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible")
                     page.locator("#modalBody button",has_text="Check sources").click()
