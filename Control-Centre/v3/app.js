@@ -17,6 +17,35 @@ function show(name){if(!["home","soni","projects","activity","connections","grow
 document.addEventListener("click",e=>{const r=e.target.closest("[data-go],[data-screen]");if(r){e.preventDefault();show(r.dataset.go||r.dataset.screen)}});
 function renderRows(id,items,empty){const node=$(id);node.replaceChildren();if(!items.length){node.className="empty";node.textContent=empty;return;}node.className="";for(const item of items){const row=E("div","rowitem"),left=E("div");left.append(E("strong","",item.name),E("small","",item.info));row.append(left,E("span","pill"+(["failed","interrupted","Attention"].includes(item.status)?" gold":""),item.status||"Recorded"));if(item.click){row.style.cursor="pointer";row.tabIndex=0;row.setAttribute("role","button");row.onclick=item.click;row.onkeydown=e=>{if(e.key==="Enter")item.click()}}node.append(row)}}
 function renderHome(){const p=filteredProjects(),num=k=>p.reduce((n,x)=>n+Number(x[k]||0),0),activity=S.activity.filter(x=>!S.selected||x.project===S.selected);$("countProjects").textContent=p.length;$("countActive").textContent=num("tasksOpen");$("countNeeds").textContent=num("tasksFailed");$("countDone").textContent=num("tasksCompleted");renderRows("homeNeeds",p.filter(x=>x.tasksFailed||x.tasksOpen||!x.setupComplete).slice(0,5).map(x=>({name:x.name,info:x.tasksFailed?"Latest work needs review":x.tasksOpen?"Work running":"Review setup",status:x.tasksFailed?"Attention":"Review",click:()=>openProject(x)})),"Nothing needs attention.");renderRows("homeRecent",activity.slice(0,5).map(x=>({name:projectName(x.project),info:(x.task||"Task").slice(0,130),status:x.status,click:()=>runDetail(x.id)})),"No activity yet.");renderRows("homeHealth",p.slice(0,6).map(x=>({name:x.name,info:x.readiness||"No readiness assessment",status:x.tasksFailed?"Attention":"Recorded"})),"No portfolio records available.")}
+function renderHomePortfolio(){
+ const list=$("homePortfolio");list.replaceChildren();
+ const projects=filteredProjects().slice(0,3);
+ if(!projects.length){
+  list.append(E("div","empty","No projects in this workspace."));
+  return;
+ }
+ for(const p of projects){
+  const card=E("button","portfolio-tile");
+  card.type="button";
+  const head=E("div","portfolio-tile-head");
+  const emblem=E("span","portfolio-emblem","▣");
+  const text=E("div","portfolio-tile-main");
+  text.append(E("strong","",p.name),E("small","",p.industry||"CariFive project"));
+  head.append(emblem,text);
+  const state=p.tasksFailed?"Needs attention":p.setupComplete?"Ready":"Setup needed";
+  const status=E("span","portfolio-state "+(p.tasksFailed?"at-risk":p.setupComplete?"is-ready":"is-review"),state);
+  const footer=E("div","portfolio-tile-foot");
+  footer.append(status,E("span","portfolio-arrow","↗"));
+  card.append(head,footer);
+  card.onclick=()=>{
+   S.selected=p.id;
+   $("projectSelect").value=p.id;
+   render();
+   show("projects");
+  };
+  list.append(card);
+ }
+}
 function renderProjects(){
  const node=$("projectCards");node.replaceChildren();
  const chosen=S.projects.find(p=>p.id===S.selected);
@@ -427,7 +456,7 @@ $("settingsBtn").onclick=()=>{notice("Settings","Choose the control area. Permis
 $("accountBtn").onclick=()=>notice("Your CariFive version","One-time purchase: keep this installed version without renewal or activation keys. Optional feature upgrades: $48/year or individually priced. AI provider costs are separate. Unsupported customer modifications and custom support may be billable; statutory defect remedies and required security updates remain protected.");
 async function refresh(){let projectState;const opts=[api("/api/portfolio/"+S.edition),api("/api/products/"+S.edition),api("/api/actions"),api("/api/connections/catalog"),api("/api/ai-providers")];const all=await Promise.allSettled(opts);const get=i=>all[i].status==="fulfilled"?all[i].value:null;const portfolio=get(0)||{projects:[],recentWork:[]};projectState=get(1);S.projects=portfolio.projects?.length?portfolio.projects:(S.edition==="custom"?projectState?.projects||[]:(projectState?.slots||[]).map(x=>({...x,id:x.id||"standard-slot-"+x.slot,industry:"Standard",readiness:x.setupComplete?"Ready":"Setup needed",tasksOpen:0,tasksCompleted:0,tasksFailed:0})));S.activity=(portfolio.recentWork||[]).filter(x=>S.edition==="custom"?!String(x.project||"").startsWith("standard-slot-"):String(x.project||"").startsWith("standard-slot-"));S.actions=(get(2)?.actions||[]).filter(x=>S.edition==="custom"?!String(x.project||"").startsWith("standard-slot-"):String(x.project||"").startsWith("standard-slot-"));S.connections=get(3);S.providers=get(4);const sel=$("projectSelect"),prior=S.selected;sel.replaceChildren();const allOpt=E("option","","All projects");allOpt.value="";sel.append(allOpt);for(const p of S.projects){const o=E("option","",p.name);o.value=p.id;sel.append(o)}S.selected=S.projects.some(p=>p.id===prior)?prior:"";sel.value=S.selected;$("editionLabel").textContent=(S.edition==="custom"?"Portfolio":"Standard")+" · Owned version · "+S.projects.length+" projects";render();renderConnections();providerOptions();refreshGrowthOverview().catch(e=>console.warn("Growth summary:",e.message));if(all[0].status==="rejected")$("homeNeeds").textContent="Local backend unavailable — "+all[0].reason.message;}
 function render(){
- renderHome();renderProjects();renderActivity();
+ renderHome();renderHomePortfolio();renderProjects();renderActivity();
  $("soniProject").textContent=projectName(S.selected)||"Select a project above to begin";
  $("newProjectBtn").hidden=S.edition!=="custom";
 }
