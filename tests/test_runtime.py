@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('aibo',ROOT/'runtime/aibo.py')
@@ -30,6 +31,29 @@ class RuntimeTests(unittest.TestCase):
         self.assertIn('MOCK',result['soni'])
         self.assertFalse(result['externalActionsExecuted'])
         self.assertEqual(result['actionGate'],'internal-only')
+    def test_real_provider_rejects_empty_specialist_output(self):
+        with patch.object(aibo,'provider_call',return_value='   '):
+            with self.assertRaisesRegex(aibo.AiboError,'empty or simulated specialist output'):
+                aibo.execute('locksmith-boston','Evaluate SEO opportunities',provider='codex-local',agents=['research'])
+    def test_real_provider_rejects_empty_synthesis(self):
+        values=iter(['Useful research finding based on stated evidence.',
+                     'Independent QA flags missing benchmarks and citations.',
+                     ''])
+        with patch.object(aibo,'provider_call',side_effect=lambda *args,**kwargs:next(values)):
+            with self.assertRaisesRegex(aibo.AiboError,'empty or simulated final answer'):
+                aibo.execute('locksmith-boston','Evaluate SEO opportunities',provider='codex-local',agents=['research'])
+    def test_real_provider_does_not_pass_simulated_text_as_analysis(self):
+        with patch.object(aibo,'provider_call',return_value='[MOCK RESPONSE: no model or external actions executed]'):
+            with self.assertRaisesRegex(aibo.AiboError,'empty or simulated specialist output'):
+                aibo.execute('locksmith-boston','Evaluate SEO opportunities',provider='codex-local',agents=['research'])
+    def test_good_real_provider_result_remains_accepted(self):
+        values=iter(['Evidence: existing homepage needs clear positioning; this is a recommendation, not a verified deployment.',
+                     'QA: site changes have not been implemented; validate actual search visibility independently.',
+                     'The current homepage positioning should be reviewed against user intent. A proposed improvement is a clearer headline; no changes have been deployed.'])
+        with patch.object(aibo,'provider_call',side_effect=lambda *args,**kwargs:next(values)):
+            result=aibo.execute('locksmith-boston','Evaluate SEO opportunities',provider='codex-local',agents=['research'])
+        self.assertIn('no changes have been deployed',result['soni'])
+        self.assertFalse(result['externalActionsExecuted'])
     def test_gated_action_is_never_executed(self):
         result=aibo.execute('unikmo','Send outreach email and publish offers',provider='mock',agents=['sales'])
         self.assertEqual(result['actionGate'],'approval-required')
