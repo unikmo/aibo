@@ -60,7 +60,8 @@ def _file(project):
 def _empty(project):
     return {'project':project,'brand':None,'channels':{},'mischief':None,'autonomy':{
         'level':2,'authorizedChannels':[],'authorizedLowRiskTypes':[],
-        'scopeApproved':False},'opportunities':[],'experiments':[]}
+        'scopeApproved':False},'opportunities':[],'experiments':[],
+            'creativeReviews':[]}
 
 def _read(project):
     _validate_project(project)
@@ -205,10 +206,17 @@ def review_creative(project,body):
     if any(word.casefold() in str(body['content']).casefold()
            for word in data['mischief']['prohibitedThemes']):
         issues.append('prohibited brand theme')
-    return {'project':project,'passed':not issues,'score':round(sum(s.values())/len(s),2),
-            'issues':issues,'status':'PASS' if not issues else 'REWRITE_OR_REJECT',
+    result={'id':'CRE-'+uuid.uuid4().hex[:12].upper(),'project':project,
+            'channel':channel,'passed':not issues,
+            'score':round(sum(s.values())/len(s),2),'issues':issues,
+            'status':'PASS' if not issues else 'REWRITE_OR_REJECT',
             'content':_text(body['content'],5000,True),
-            'estimatedQualityOnly':True,'published':False}
+            'estimatedQualityOnly':True,'published':False,'reviewedAt':_now()}
+    with LOCK:
+        data=_read(project)
+        data.setdefault('creativeReviews',[]).append(result)
+        _write(project,data)
+    return result
 
 def create_experiment(project,body):
     _required_fields(body,('opportunityId','channel','hypothesis','primaryMetric',
@@ -237,7 +245,7 @@ def transition(project,experiment_id,body):
     target=body['status']
     if target not in LIFECYCLE:raise products.ProductError('Invalid experiment state')
     next_states={'DRAFT':('READY_FOR_APPROVAL',),'READY_FOR_APPROVAL':('APPROVED','DRAFT'),
-                 'APPROVED':('RUNNING',),'RUNNING':('MEASURED',),
+                 'APPROVED':('RUNNING',),'RUNNING':(),
                  'MEASURED':('CLOSED','RUNNING'),'CLOSED':()}
     with LOCK:
         data=_read(project)
@@ -245,15 +253,29 @@ def transition(project,experiment_id,body):
         if not item:raise products.ProductError('Unknown experiment')
         if target not in next_states[item['status']]:
             raise products.ProductError('Invalid lifecycle transition')
-        if target=='READY_FOR_APPROVAL' and not body.get('creativeApproved'):
-            raise products.ProductError('Creative review required')
+        if target=='READY_FOR_APPROVAL':
+            review=next((r for r in data.get('creativeReviews',[])
+                         if r['id']==body.get('creativeReviewId') and r['passed']
+                         and r['channel']==item['channel']),None)
+            if review is None:
+                raise products.ProductError('Passing saved creative review required for this channel')
         if target=='APPROVED' and body.get('ownerApproved') is not True:
             raise products.ProductError('Explicit owner approval required')
-        if target=='RUNNING' and body.get('executionEvidence') is not None:
-            raise products.ProductError('Use verified action gateway receipts; manual execution is not proof')
+        if target=='RUNNING':
+            evidence=body.get('manualLaunchEvidence')
+            if not isinstance(evidence,str) or not evidence.strip() or len(evidence)>500:
+                raise products.ProductError('Document manual launch evidence before marking a campaign running')
+            if body.get('executionEvidence') is not None:
+                raise products.ProductError('Unverified manual notes are not provider receipts')
         item['status']=target
-        if target=='READY_FOR_APPROVAL':item['creativeApproved']=True
+        if target=='READY_FOR_APPROVAL':
+            item['creativeApproved']=True
+            item['creativeReviewId']=review['id']
         if target=='APPROVED':item['ownerApprovedAt']=_now()
+        if target=='RUNNING':
+            item['manualLaunchEvidence']=evidence.strip()
+            item['launchVerification']='manual-unverified'
+            item['externalActionExecuted']=False
         item['updatedAt']=_now()
         _write(project,data)
         return item
@@ -307,7 +329,7 @@ def overview(project):
     return {'project':project,'brand':data['brand'],'channels':data['channels'],
             'readiness':readiness(data),'mischief':data['mischief'],
             'autonomy':data['autonomy'],'opportunities':data['opportunities'],
-            'experiments':data['experiments'],
+            'experiments':data['experiments'],'creativeReviews':data.get('creativeReviews',[]),
             'note':'Local marketing planning and evidence ledger only. No posts, messages, purchases or monitoring were performed.'}
 
 def dashboard():
