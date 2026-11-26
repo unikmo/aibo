@@ -17,7 +17,7 @@ This implementation adds a bounded, local-first Growth OS to CariFive's existing
 
 ## Functional regression requirements
 
-- `python -m unittest tests.test_growth_engine tests.test_growth_api tests.test_growth_ui -v`.
+- `python -m unittest discover -s tests -p "test_growth*.py" -v`.
 - `python -m unittest discover -s tests -v`.
 - `python qa/v3_acceptance.py` with Playwright installed.
 - Windows and macOS bundle workflows; clean Windows Standard purchase setup, no founder Portfolio registry included.
