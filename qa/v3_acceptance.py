@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                 page.on("pageerror",lambda err:result["errors"].append(str(err)))
                 for attempt in range(45):
                     try:
-                        page.goto(BASE+"/v3/",wait_until="domcontentloaded",timeout=2500)
+                        page.goto(BASE+"/v3/?edition=custom",wait_until="domcontentloaded",timeout=2500)
                         break
                     except Exception:
                         if attempt==44:raise
