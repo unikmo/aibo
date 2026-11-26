@@ -31,13 +31,13 @@ with tempfile.TemporaryDirectory() as state_dir:
                         if attempt==44:raise
                         time.sleep(.3)
                 page.wait_for_function("document.querySelector('#countProjects').textContent !== '—'")
-                assert page.locator('.nav[data-screen="soni"]').inner_text().strip()=="CariFive"
+                assert page.locator('.nav[data-screen="soni"]').inner_text().strip()=="Talk to CariFive"
                 assert "CariFive" in page.locator("#soni-title").inner_text()
                 assert page.locator("#soniPrompt").get_attribute("aria-label")=="Message CariFive"
                 assert page.locator("#reviewPrompt").get_attribute("aria-label")=="Send to CariFive"
                 assert page.get_by_text("Just ask Soni.",exact=True).count()==0
-                assert page.locator(".nav").count()==5
-                for screen in ("home","soni","projects","activity","connections"):
+                assert page.locator(".nav").count()==6
+                for screen in ("home","soni","projects","activity","connections","growth"):
                     page.locator(f'.nav[data-screen="{screen}"]').click()
                     page.locator("#screen-"+screen+".active").wait_for()
                     assert page.locator(".screen.active").count()==1
@@ -71,7 +71,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     return [css.backgroundColor,css.color,agent.backgroundColor];
                 }""")
                 # Empty chat intentionally has no dark history container.
-                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgba(0, 0, 0, 0)'],colors
+                assert colors==['rgb(255, 255, 255)','rgb(38, 51, 78)','rgba(0, 0, 0, 0)'],colors
                 assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible"
                 assert len(page.locator("#soniProvider option[value=auto]").inner_text())<=27,"Auto provider label should be compact on mobile"
                 def check_composer():
@@ -108,9 +108,11 @@ with tempfile.TemporaryDirectory() as state_dir:
                 page.locator('.nav[data-screen="projects"]').click()
                 # Copy-density and hierarchy contract: no promotional filler or duplicate controls.
                 visible_headings=[page.locator("#screen-"+screen+" h1").inner_text() for screen in ("home","soni","projects","activity","connections")]
-                assert visible_headings[0]=="Overview" and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
-                assert page.locator(".aside-foot").count()==0,"Decorative sidebar footer returned"
-                assert page.locator("#screen-home .page-heading p").count()==0
+                assert visible_headings[0]=="Your business, in focus." and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
+                assert page.locator(".aside-foot .footline").count()==1,"Compact connection-status footer missing"
+                assert page.locator("#screen-home .page-heading .heading-copy").count()==1
+                assert page.locator("#homeTalkForm").count()==1
+                assert page.locator(".nav[data-screen='growth']").count()==1
                 assert page.locator("#screen-activity .page-heading p").count()==0
                 assert page.locator("#screen-projects #projectSubheading").evaluate("(el)=>getComputedStyle(el).position==='absolute'"),"Project instructions should not occupy visual space"
                 assert page.locator("#projectSelect").count()==1
