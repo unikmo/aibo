@@ -200,7 +200,8 @@ def prompt_for(agent, project, goal, shared):
              'Do not expose secrets. Cite evidence and express uncertainty. Answer concisely. ' 
              'Never expand an ambiguous acronym without evidence. Do not infer no outreach or delivery happened merely because records are absent. ' 
              'A local file path is not proof of the project\'s external operational status. ' 
-             'Use plain language; no raw Markdown, local file paths or invented source citations.')
+             'Use plain language and task-appropriate structure. Code, Markdown, calculations and tables are allowed when the task needs them; '
+             'do not fabricate file paths, inspected sources, external receipts or citations.')
     return guard + '\nAGENT: ' + agent['name'] + '\nMISSION: ' + agent['mission'], (
         'PROJECT CONTEXT:\n' + shared + '\n\nUSER OBJECTIVE:\n' + goal)
 
@@ -253,8 +254,11 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
             raise AiboError('CariFive rejected an empty or simulated specialist output; no usable answer was produced')
         outputs[name] = answer
     soni_system = ('You are CariFive, a concise executive-level business partner. Answer the actual question directly in plain language. '
-                   'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
-                   'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
+                   'Match answer depth to the task: for status or simple factual requests be concise (often 1–3 sentences); '
+                   'for audits, plans, engineering changes, financial analysis, research, documents and multi-part tasks provide all required findings, '
+                   'evidence, reasoning summaries, prioritized actions and useful deliverables. Never arbitrarily truncate substantive work. '
+                   'Use readable headings, lists and tables where they clarify the result, but never dump internal agent deliberations, '
+                   'repetitive caveats or invented project status. If the evidence is missing, say exactly what is unknown. '
                    'When asked for a status report, distinguish completed, pending and blocked only where the records support it. '
                    'Never infer that an external action did not occur from missing local records; say it is unverified. '
                    'Never guess what an ambiguous acronym means (for example ABAs); ask one brief question instead. '
