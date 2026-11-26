@@ -12,7 +12,7 @@ DEFAULTS={'research':True,'read_browser':True,'write_local':True,'write_browser'
 
 
 def _project(pid):
-    if not isinstance(pid,str) or pid not in {p['id'] for p in products.custom_projects()}:
+    if not isinstance(pid,str) or pid not in {p['id'] for p in products.project_records()}:
         raise products.ProductError('Unknown project')
 
 
