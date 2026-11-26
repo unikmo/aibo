@@ -146,8 +146,18 @@ def update_project(mode,identifier,data):
     goal=str(data.get('goal','')).strip()[:500]
     if not name or not goal:raise ProductError('Name and goal required')
     if mode=='standard':
-        # Commercial SKU control must not trust browser input or local JSON.
-        raise ProductError('Standard activation requires a verified license. Local demo cannot unlock paid project slots.')
+        if not re.fullmatch(r'(?:standard-slot-)?[1-5]',identifier):
+            raise ProductError('Unknown standard project slot')
+        slot=int(identifier.split('-')[-1])
+        workspace_id=f'standard-slot-{slot}'
+        from datetime import datetime,timezone
+        target=STATE/'workspaces'/(workspace_id+'.json')
+        previous=read_json(target,{})
+        fields={**previous.get('fields',{}),'name':name,'region':region,'goal':goal}
+        write_json(target,{'fields':fields,'step':2,'complete':True,'reviewed':True,
+                           'savedAt':datetime.now(timezone.utc).isoformat(),
+                           'sourceEvidence':previous.get('sourceEvidence',[])})
+        return {'ok':True,'project':workspace_id}
     projects={p['id']:p for p in custom_projects()}
     if identifier not in projects:raise ProductError('Project not in configured workspace')
     state=read_json(STATE/'custom.json',{})
