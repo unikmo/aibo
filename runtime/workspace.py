@@ -301,6 +301,30 @@ def _verified_records_answer(project_id, task):
     """Answer narrow factual questions only from known local state."""
     question=task.strip().casefold()
     project=_project(project_id)
+    if question in ('/today','/growth today'):
+        try:
+            from . import growth_engine
+        except ImportError:
+            import growth_engine
+        selected=growth_engine.today(project_id)
+        if selected['action']:
+            action=selected['action']
+            return ('Growth opportunity for '+project.get('name',project_id)+': '+
+                    action['objective']+'. Priority '+str(action['priority'])+'/100. '+
+                    action['recommendedAction']+'. Source: '+action['source']+
+                    '. No campaign was launched; source and approval checks remain required.')
+        return ('No eligible ready growth experiment is recorded for this project. '+
+                selected['reason'])
+    if question in ('/growth','/marketing status'):
+        try:
+            from . import growth_engine
+        except ImportError:
+            import growth_engine
+        state=growth_engine.overview(project_id)
+        return ('Growth readiness: '+state['readiness']['status']+'. '+
+                str(len(state['opportunities']))+' radar opportunities; '+
+                str(len(state['experiments']))+' experiments. '+
+                'Marketing outcomes and channel connectivity have not been independently verified.')
     is_status=bool(re.fullmatch(
         r"(?:what(?:'s| is)|give me|show me|check|tell me)\s+(?:(?:the|a|current)\s+)?"
         r"(?:status|progress)(?:\s+(?:of|on|for)\s+(?:this|the|our|my)?\s*project)?[?.! ]*",question))
