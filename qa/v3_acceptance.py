@@ -402,7 +402,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     page.locator(".nav[data-screen='home']").click()
                     assert page.get_by_role("button",name="Growth portfolio").count()==1
                     page.get_by_role("button",name="Today's action").click()
-                    assert page.locator("#modalTitle").inner_text().startswith("Today · ")
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.startsWith('Today · ')",timeout=15000)
                     page.locator("#closeModal").click()
                     result["functional"].append("Growth OS entry, readiness, saved per-brand persona, isolation and Today UI")
 
