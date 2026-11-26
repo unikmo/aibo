@@ -138,3 +138,21 @@ button:focus-visible,select:focus-visible,a:focus-visible,textarea:focus-visible
  .topproject select{max-width:132px}
 }
 @media(prefers-reduced-motion:reduce){.growth-overview-card{transition:none}}
+
+/* Actual project portfolio preview */
+.home-portfolio-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:0 0 29px}
+.portfolio-tile{min-width:0;background:#fff;border:1px solid var(--line);border-radius:16px;padding:19px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:25px;box-shadow:var(--shadow);min-height:145px}
+.portfolio-tile:hover{border-color:#a3a2dd;box-shadow:0 9px 23px #4844a312}
+.portfolio-tile-head{display:flex;gap:12px;align-items:flex-start}
+.portfolio-emblem{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:10px;background:#f1f0ff;color:#514cb0;font-size:19px}
+.portfolio-tile-main{min-width:0;display:grid;gap:5px}
+.portfolio-tile-main strong{font-size:13px;color:#25304e;font-weight:720;overflow-wrap:anywhere}
+.portfolio-tile-main small{font-size:11px;color:#8892a6;line-height:1.4;overflow-wrap:anywhere}
+.portfolio-tile-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.portfolio-state{border-radius:99px;padding:6px 11px;font-size:10px;font-weight:740}
+.portfolio-state.is-ready{background:#e8f7f1;color:#16816d}
+.portfolio-state.is-review{background:#fff2e4;color:#93692d}
+.portfolio-state.at-risk{background:#fcebee;color:#b25766}
+.portfolio-arrow{color:#6765b0;font-size:17px}
+@media(max-width:980px){.home-portfolio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.home-portfolio-grid{grid-template-columns:1fr}}
