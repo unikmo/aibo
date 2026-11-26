@@ -56,7 +56,8 @@ def project_records():
     reserved={f'standard-slot-{i}' for i in range(1,MAX_SLOTS+1)}
     if any(item.get('id') in reserved for item in bundled['projects'] + extra['projects']):
         raise ProductError('Reserved standard workspace ID collision')
-    slots=[{'id':f'standard-slot-{i}','name':f'Project slot {i}',
+    slots=[{'id':f'standard-slot-{i}',
+            'name':read_json(STATE/'workspaces'/f'standard-slot-{i}.json',{}).get('fields',{}).get('name') or f'Project slot {i}',
             'projectHome':f'Projects/standard-slot-{i}','stateProject':True,
             'edition':'standard','classification':{'status':'pending-pack',
                 'industry':None,'corePack':None,'addOns':[]}}
