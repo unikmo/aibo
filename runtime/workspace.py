@@ -325,7 +325,7 @@ def _explicit_task_source_context(task):
     Report unreadable sources so the assistant cannot imply they were inspected.
     """
     urls=[]
-    for match in re.findall(r"https://[^\\s<>]+",task):
+    for match in re.findall(r"https://[^\s<>]+",task):
         candidate=match.rstrip('.,;:!?)]}\"\'')
         if candidate not in urls:
             urls.append(candidate)
