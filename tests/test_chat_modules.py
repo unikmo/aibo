@@ -31,7 +31,7 @@ class ChatModuleRoutingTests(unittest.TestCase):
             'build':['engineering','automation'],
             'marketing':['growth','content','sales'],
             'analysis':['research','finance'],
-            'complete':['research','engineering','growth','content','automation'],
+            'complete':['research','engineering','growth','content'],
         }
         for module,agents in expected.items():
             with self.subTest(module=module):
@@ -42,7 +42,7 @@ class ChatModuleRoutingTests(unittest.TestCase):
             ('build',['engineering','automation']),
             ('marketing',['growth','content','sales']),
             ('analysis',['research','finance']),
-            ('complete',['research','engineering','growth','content','automation']),
+            ('complete',['research','engineering','growth','content']),
         ]:
             with self.subTest(module=module):
                 result=workspace.start_run(self.project,{
