@@ -41,6 +41,13 @@ class WorkspaceTests(unittest.TestCase):
                 'Compare https://a.example https://b.example https://c.example')
             self.assertEqual(inspect.call_count,2)
 
+    def test_preexisting_standard_slot_details_survive_new_onboarding(self):
+        products.write_json(products.STATE/'standard.json',{'slots':[
+            {'slot':1,'name':'Legacy Branch','region':'Germany','goal':'Improve retained customers'}]})
+        restored=workspace.setup_state('standard-slot-1')
+        self.assertEqual(restored['fields']['name'],'Legacy Branch')
+        self.assertEqual(restored['fields']['goal'],'Improve retained customers')
+
     def test_standard_slot_uses_same_setup_and_cari_five_execution_without_license_key(self):
         sid='standard-slot-1'
         setup=workspace.save_setup(sid,{'step':2,'fields':{'name':'Local Shop',
