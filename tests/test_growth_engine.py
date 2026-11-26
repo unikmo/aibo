@@ -193,12 +193,42 @@ class GrowthTests(unittest.TestCase):
         self.assertFalse(m['experiment']['externalActionExecuted'])
         self.assertEqual(g.overview(self.pid)['experiments'][0]['status'],'MEASURED')
 
+    def test_unready_brand_cannot_submit_experiment_for_approval(self):
+        self.mischief()
+        e=self.experiment()
+        review=g.review_creative(self.pid,{'content':'Relevant venue booking demo',
+            'channel':'linkedin','scores':creative_scores(),
+            'factChecked':True,'rulesChecked':True})
+        with self.assertRaisesRegex(products.ProductError,'Brand readiness'):
+            g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL',
+                'creativeReviewId':review['id']})
+
+    def test_high_risk_opportunity_cannot_enter_routine_approval(self):
+        self.ready()
+        self.mischief()
+        e=self.experiment(self.opportunity(legalIpRisk=9))
+        review=g.review_creative(self.pid,{'content':'Ethical event idea',
+            'channel':'linkedin','scores':creative_scores(),
+            'factChecked':True,'rulesChecked':True})
+        with self.assertRaisesRegex(products.ProductError,'Risk'):
+            g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL',
+                'creativeReviewId':review['id']})
+
+    def test_fake_creative_review_id_cannot_unlock_campaign(self):
+        self.ready()
+        self.mischief()
+        e=self.experiment()
+        with self.assertRaisesRegex(products.ProductError,'Passing saved creative review'):
+            g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL',
+                'creativeReviewId':'CRE-FORGED'})
+
     def test_measurement_cannot_precede_run(self):
         e=self.experiment()
         with self.assertRaises(products.ProductError):
             g.measure(self.pid,e['id'],{'value':9,'source':'CRM','observedAt':'2026-11-26T00:00:00Z'})
 
     def test_website_intervention_requires_evidence_flag(self):
+        self.ready()
         e=self.experiment()
         self.mischief()
         review=g.review_creative(self.pid,{'content':'Professional booking demo',
