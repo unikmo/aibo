@@ -27,13 +27,15 @@ MODULE_AGENT_ROUTES = {
     'build': ('engineering', 'automation'),
     'marketing': ('growth', 'content', 'sales'),
     'analysis': ('research', 'finance'),
-    'complete': ('research', 'engineering', 'growth', 'content', 'automation'),
+    # Four specialists + independent quality + coordinator fit default six model calls.
+    'complete': ('research', 'engineering', 'growth', 'content'),
 }
 MODULES = frozenset({'auto', *MODULE_AGENT_ROUTES})
 def specialists_for_module(module, task):
     if module not in MODULES:
         raise products.ProductError('Unknown CariFive module')
-    return list(MODULE_AGENT_ROUTES[module]) if module != 'auto' else aibo.select_agents(task)
+    capacity=max(1,costs.current()['maxModelCalls']-2)
+    return list(MODULE_AGENT_ROUTES[module])[:capacity] if module != 'auto' else aibo.select_agents(task)[:capacity]
 
 
 def requires_api_consent(provider):
