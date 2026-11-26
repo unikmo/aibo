@@ -20,6 +20,16 @@ class PortfolioTests(unittest.TestCase):
         self.assertEqual(view['counts']['completed'],0)
         self.assertIsNone(view['businessHealth']);self.assertIsNone(view['pendingApprovals'])
         self.assertEqual(len(view['projects']),view['counts']['projects'])
+    def test_standard_activity_counts_are_isolated_from_portfolio(self):
+        products.write_json(workspace.RUNS_DIR/'standard.json',
+            {'id':'standard','project':'standard-slot-1','task':'Audit shop',
+             'status':'completed','createdAt':'2026-11-26T08:00:00Z'})
+        standard=portfolio.overview('standard')
+        custom=portfolio.overview()
+        self.assertEqual(standard['counts']['projects'],5)
+        self.assertEqual(standard['counts']['completed'],1)
+        self.assertEqual(custom['counts']['completed'],0)
+        self.assertEqual(standard['recentWork'][0]['project'],'standard-slot-1')
     def test_kpi_source_and_persistence(self):
         p=products.custom_projects()[0]
         item=portfolio.save_kpi(p['id'],{'name':'Leads','value':'12','unit':'leads','source':'CRM export'})
