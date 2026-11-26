@@ -62,7 +62,7 @@ function form(title,fields,save){
  node.onsubmit=async e=>{
   e.preventDefault();submit.disabled=true;
   const values=Object.fromEntries(new FormData(node).entries());
-  try{await save(values);await open(current)}
+  try{const result=await save(values);if(result!=="keep-open")await open(current)}
   catch(err){message.textContent=err.message;message.setAttribute("role","alert")}
   finally{submit.disabled=false}
  };
@@ -165,6 +165,7 @@ function creative(project,data){
       "Rewrite needed: "+review.issues.join(", "),
     "This rubric records editor judgments; it is not an independently executed AI evaluation."],
    [["Back to Growth",()=>open(project)]]);
+  return "keep-open";
  });
 }
 function experiment(project,data){
@@ -268,5 +269,19 @@ async function dashboard(){
   "Results entered by users are provisional until source verification."
  ],[["Today's best action",today]]);
 }
+function quickActions(){
+ const heading=document.querySelector("#screen-home .page-heading");
+ if(!heading||heading.querySelector(".growth-quicklinks"))return;
+ const root=E("div","growth-quicklinks");
+ for(const [label,action] of [["Growth portfolio",dashboard],
+                              ["Today's action",today]]){
+  const button=E("button","secondary",label);button.type="button";
+  button.onclick=()=>Promise.resolve(action()).catch(err=>
+   detail("Growth data unavailable",[err.message]));
+  root.append(button);
+ }
+ heading.after(root);
+}
+quickActions();
 window.CariFiveGrowth={open,today,dashboard};
 })();
