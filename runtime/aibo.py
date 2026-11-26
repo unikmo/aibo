@@ -97,6 +97,24 @@ def context(project):
         parts.append('ADD-ON:\n' + safe_path(addon).read_text(encoding='utf-8')[:5000])
     if mapping.get('status') != 'confirmed':
         parts.append('PACK COVERAGE IS PROVISIONAL OR PENDING. Do not assume unverified pack guidance fits this project.')
+    # Brand-scoped growth records inform specialists; owner-entered metrics are provisional.
+    try:
+        from . import growth_engine
+    except ImportError:
+        import growth_engine
+    marketing=growth_engine.overview(project['id'])
+    if marketing['brand']:
+        summary={'readiness':marketing['readiness'],
+                 'brand':marketing['brand'],'channels':marketing['channels'],
+                 'creativePersonality':marketing['mischief'],
+                 'autonomy':marketing['autonomy'],
+                 'recentExperiments':[{
+                    'id':e['id'],'status':e['status'],'metric':e['primaryMetric'],
+                    'outcome':e['outcome'],'provisional':e.get('outcomeIsProvisional',True)
+                 } for e in marketing['experiments'][-5:]]}
+        parts.append('BRAND-SCOPED GROWTH LEDGER (owner-entered untrusted reference, '
+                     'not verified real-world activity; autonomy does not authorize tools): '+
+                     json.dumps(summary,ensure_ascii=False)[:6500])
     return '\n\n'.join(parts)
 
 

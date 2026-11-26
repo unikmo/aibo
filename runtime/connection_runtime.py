@@ -30,7 +30,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None
 
 def verify(project,connector,opener=None):
-    if project not in {x['id'] for x in products.custom_projects()}:
+    if project not in {x['id'] for x in products.project_records()}:
         raise products.ProductError('Unknown project')
     names={x['id'] for x in connector_catalog.entries()}
     if connector not in names:raise products.ProductError('Unknown connector')
@@ -81,7 +81,7 @@ LANGS={'EN','DE','FR','ES','PT','PT-BR','IT','NL','PL','SV','DA','NO','FI','JA',
 def translate(project,text,source,target,consent=False,opener=None):
     import urllib.parse
     if not consent:raise products.ProductError('Explicit approval for DeepL API processing and possible charges is required')
-    if project not in {x['id'] for x in products.custom_projects()}:raise products.ProductError('Unknown project')
+    if project not in {x['id'] for x in products.project_records()}:raise products.ProductError('Unknown project')
     if not isinstance(text,str) or not 1<=len(text)<=5000 or any(ord(c)<32 and c not in '\n\t' for c in text):
         raise products.ProductError('Text must be 1–5,000 characters')
     if source not in LANGS or target not in LANGS or source==target:

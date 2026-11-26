@@ -19,7 +19,7 @@ def _public(item):
     return {k:v for k,v in item.items() if k not in ('approvalId','secret')}
 
 def _validate(project,kind,data):
-    if project not in {x['id'] for x in products.custom_projects()}:raise products.ProductError('Unknown project')
+    if project not in {x['id'] for x in products.project_records()}:raise products.ProductError('Unknown project')
     if kind not in KINDS:raise products.ProductError('Unsupported action')
     if not isinstance(data,dict):raise products.ProductError('Action details required')
     if kind=='buffer-post':

@@ -41,6 +41,29 @@ class WorkspaceTests(unittest.TestCase):
                 'Compare https://a.example https://b.example https://c.example')
             self.assertEqual(inspect.call_count,2)
 
+    def test_preexisting_standard_slot_details_survive_new_onboarding(self):
+        products.write_json(products.STATE/'standard.json',{'slots':[
+            {'slot':1,'name':'Legacy Branch','region':'Germany','goal':'Improve retained customers'}]})
+        restored=workspace.setup_state('standard-slot-1')
+        self.assertEqual(restored['fields']['name'],'Legacy Branch')
+        self.assertEqual(restored['fields']['goal'],'Improve retained customers')
+
+    def test_standard_slot_uses_same_setup_and_cari_five_execution_without_license_key(self):
+        sid='standard-slot-1'
+        setup=workspace.save_setup(sid,{'step':2,'fields':{'name':'Local Shop',
+            'goal':'Improve qualified leads','region':'Germany'},'complete':True})
+        self.assertTrue(setup['complete'])
+        self.assertIn('Local Shop',aibo.context(aibo.project_info(sid)))
+        run=workspace.start_run(sid,{'task':'Review our positioning','provider':'mock'})
+        saved=workspace.run_status(run['id'])
+        self.assertEqual(saved['status'],'completed')
+        self.assertIn('MOCK',saved['result']['soni'])
+        self.assertFalse(saved['result']['externalActionsExecuted'])
+    def test_standard_slot_never_changes_existing_portfolio_setup(self):
+        regular_before=workspace.setup_state(self.id)
+        workspace.save_setup('standard-slot-2',{'step':2,'fields':{'name':'Different Shop',
+            'goal':'Create local marketing plan'},'complete':True})
+        self.assertEqual(workspace.setup_state(self.id),regular_before)
     def test_guided_resume_and_complete(self):
         setup=workspace.save_setup(self.id,{'step':0,'fields':{'name':'Reviewed name','region':'Boston'}})
         self.assertFalse(setup['complete'])

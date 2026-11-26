@@ -25,19 +25,19 @@ with tempfile.TemporaryDirectory() as state_dir:
                 page.on("pageerror",lambda err:result["errors"].append(str(err)))
                 for attempt in range(45):
                     try:
-                        page.goto(BASE+"/v3/",wait_until="domcontentloaded",timeout=2500)
+                        page.goto(BASE+"/v3/?edition=custom",wait_until="domcontentloaded",timeout=2500)
                         break
                     except Exception:
                         if attempt==44:raise
                         time.sleep(.3)
                 page.wait_for_function("document.querySelector('#countProjects').textContent !== '—'")
-                assert page.locator('.nav[data-screen="soni"]').inner_text().strip()=="CariFive"
+                assert page.locator('.nav[data-screen="soni"]').inner_text().strip()=="Talk to CariFive"
                 assert "CariFive" in page.locator("#soni-title").inner_text()
                 assert page.locator("#soniPrompt").get_attribute("aria-label")=="Message CariFive"
                 assert page.locator("#reviewPrompt").get_attribute("aria-label")=="Send to CariFive"
                 assert page.get_by_text("Just ask Soni.",exact=True).count()==0
-                assert page.locator(".nav").count()==5
-                for screen in ("home","soni","projects","activity","connections"):
+                assert page.locator(".nav").count()==6
+                for screen in ("home","soni","projects","activity","connections","growth"):
                     page.locator(f'.nav[data-screen="{screen}"]').click()
                     page.locator("#screen-"+screen+".active").wait_for()
                     assert page.locator(".screen.active").count()==1
@@ -71,7 +71,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     return [css.backgroundColor,css.color,agent.backgroundColor];
                 }""")
                 # Empty chat intentionally has no dark history container.
-                assert colors==['rgb(36, 41, 39)','rgb(244, 243, 238)','rgba(0, 0, 0, 0)'],colors
+                assert colors==['rgb(255, 255, 255)','rgb(38, 51, 78)','rgba(0, 0, 0, 0)'],colors
                 assert page.locator("#soniPrompt").is_visible(),"Soni composer must remain visible"
                 assert len(page.locator("#soniProvider option[value=auto]").inner_text())<=27,"Auto provider label should be compact on mobile"
                 def check_composer():
@@ -108,9 +108,11 @@ with tempfile.TemporaryDirectory() as state_dir:
                 page.locator('.nav[data-screen="projects"]').click()
                 # Copy-density and hierarchy contract: no promotional filler or duplicate controls.
                 visible_headings=[page.locator("#screen-"+screen+" h1").inner_text() for screen in ("home","soni","projects","activity","connections")]
-                assert visible_headings[0]=="Overview" and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
-                assert page.locator(".aside-foot").count()==0,"Decorative sidebar footer returned"
-                assert page.locator("#screen-home .page-heading p").count()==0
+                assert visible_headings[0]=="Your business, in focus." and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
+                assert page.locator(".aside-foot .footline").count()==1,"Compact connection-status footer missing"
+                assert page.locator("#screen-home .page-heading .heading-copy").count()==1
+                assert page.locator("#homeTalkForm").count()==1
+                assert page.locator(".nav[data-screen='growth']").count()==1
                 assert page.locator("#screen-activity .page-heading p").count()==0
                 assert page.locator("#screen-projects #projectSubheading").evaluate("(el)=>getComputedStyle(el).position==='absolute'"),"Project instructions should not occupy visual space"
                 assert page.locator("#projectSelect").count()==1
@@ -347,6 +349,65 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert detail.ok and detail.json()["status"]=="completed"
                     assert "MOCK" in detail.json()["result"]["soni"]
                     result["functional"].append("newly created project routes through Soni")
+
+                    # One-time purchase: five Standard slots initialize and run without
+                    # license activation, and retain local state after a page reload.
+                    page.goto(BASE+"/v3/?edition=standard",wait_until="domcontentloaded")
+                    page.wait_for_function("document.querySelector('#countProjects')?.textContent === '5'",timeout=15000)
+                    standard_data=page.request.get(BASE+"/api/products/standard").json()
+                    assert standard_data["purchase"]["activationRequired"] is False
+                    assert standard_data["purchase"]["upgrades"]["annualUsd"]==48
+                    assert standard_data["purchase"]["mandatoryRenewal"] is False
+                    assert page.locator("#newProjectBtn").is_hidden()
+                    page.locator("#projectSelect").select_option("standard-slot-1")
+                    page.locator(".nav[data-screen='projects']").click()
+                    page.locator("#projectCards .project-summary button",has_text="Import sources").click()
+                    page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible")
+                    page.locator("#modalBody button",has_text="Check sources").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
+                    page.locator("#modalBody form textarea[name='goal']").fill("Improve qualified local enquiries")
+                    page.locator("#modalBody form button[type=submit]").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent==='Project ready'",timeout=15000)
+                    page.locator("#closeModal").click()
+                    current=page.request.get(BASE+"/api/setup/custom/standard-slot-1").json()
+                    assert current["complete"] is True and current["fields"]["goal"]=="Improve qualified local enquiries"
+                    run=page.request.post(BASE+"/api/work/custom/standard-slot-1",
+                        data={"task":"Review Standard project positioning","provider":"mock","consent":False},
+                        headers={"Content-Type":"application/json"})
+                    assert run.ok,run.text()
+                    details=page.request.get(BASE+"/api/run/"+run.json()["id"]).json()
+                    assert details["status"]=="completed" and "MOCK" in details["result"]["soni"]
+                    page.reload(wait_until="domcontentloaded")
+                    page.wait_for_function("document.querySelector('#countProjects')?.textContent === '5'",timeout=15000)
+                    assert page.request.get(BASE+"/api/products/standard").json()["slots"][0]["setupComplete"] is True
+                    result["functional"].append("perpetual Standard five-slot setup, local AI run and reload without key")
+
+                    # Real Growth OS customer journey: entry point, project isolation
+                    # and persisted personality settings, without sending any content.
+                    page.locator("#projectSelect").select_option("standard-slot-1")
+                    page.locator(".nav[data-screen='projects']").click()
+                    page.locator("#projectCards .project-summary button",has_text="Growth OS").click()
+                    page.locator("#modalTitle").wait_for(state="visible")
+                    assert page.locator("#modalTitle").inner_text().startswith("Growth · ")
+                    assert page.locator("#modalBody").get_by_text("Brand readiness: FAIL").count()==1
+                    page.locator("#modalBody button",has_text="Creative personality").click()
+                    page.locator("#modalBody textarea[name='voice']").fill("Clear, clever, evidence-driven")
+                    page.locator("#modalBody input[name='humor']").fill("6")
+                    page.locator("#modalBody input[name='provocation']").fill("2")
+                    page.locator("#modalBody textarea[name='boundaries']").fill("No invented evidence")
+                    page.locator("#modalBody button",has_text="Save reviewed record").click()
+                    page.locator("#modalTitle").wait_for(state="visible")
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.startsWith('Growth · ')",timeout=15000)
+                    assert page.request.get(BASE+"/api/growth/project/standard-slot-1").json()["mischief"]["voice"]=="Clear, clever, evidence-driven"
+                    assert page.request.get(BASE+"/api/growth/project/standard-slot-2").json()["mischief"] is None
+                    page.locator("#closeModal").click()
+                    page.locator(".nav[data-screen='home']").click()
+                    assert page.get_by_role("button",name="Growth portfolio").count()==1
+                    page.get_by_role("button",name="Today's action").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.startsWith('Today · ')",timeout=15000)
+                    page.locator("#closeModal").click()
+                    result["functional"].append("Growth OS entry, readiness, saved per-brand persona, isolation and Today UI")
+
 
 
                 assert not result["errors"], "Browser JS errors: "+repr(result["errors"])

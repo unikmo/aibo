@@ -38,7 +38,7 @@ def records(project=None):
 def queue(payload):
     if not isinstance(payload,dict):raise products.ProductError('Invalid task')
     project=payload.get('project')
-    if project not in {x['id'] for x in products.custom_projects()}:raise products.ProductError('Unknown project')
+    if project not in {x['id'] for x in products.project_records()}:raise products.ProductError('Unknown project')
     if not workspace.setup_state(project)['complete']:
         raise products.ProductError('Initialize the project before starting work')
     task=payload.get('task','')

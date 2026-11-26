@@ -138,7 +138,12 @@ def setup_state(project_id):
     project = _project(project_id)
     data = products.read_json(_path(project_id), {})
     legacy = products.read_json(products.STATE/'custom.json', {}).get(project_id, {})
-    initial = {'name': legacy.get('name', project['name']), 'region': legacy.get('region', project.get('region', '')),
+    if project_id.startswith('standard-slot-'):
+        historical=products.read_json(products.STATE/'standard.json',{})
+        slot_number=int(project_id.split('-')[-1])
+        matched=next((s for s in historical.get('slots',[]) if isinstance(s,dict) and s.get('slot')==slot_number),{})
+        legacy={**matched,**legacy}
+    initial = {'name': legacy.get('name') or project['name'], 'region': legacy.get('region', project.get('region', '')),
                'goal': legacy.get('goal', ''), 'website': '', 'audience': '', 'successMeasure': '', 'notes': ''}
     fields = {**initial, **data.get('fields', {})}
     completed = bool(data.get('complete', False))
@@ -296,6 +301,30 @@ def _verified_records_answer(project_id, task):
     """Answer narrow factual questions only from known local state."""
     question=task.strip().casefold()
     project=_project(project_id)
+    if question in ('/today','/growth today'):
+        try:
+            from . import growth_engine
+        except ImportError:
+            import growth_engine
+        selected=growth_engine.today(project_id)
+        if selected['action']:
+            action=selected['action']
+            return ('Growth opportunity for '+project.get('name',project_id)+': '+
+                    action['objective']+'. Priority '+str(action['priority'])+'/100. '+
+                    action['recommendedAction']+'. Source: '+action['source']+
+                    '. No campaign was launched; source and approval checks remain required.')
+        return ('No eligible ready growth experiment is recorded for this project. '+
+                selected['reason'])
+    if question in ('/growth','/marketing status'):
+        try:
+            from . import growth_engine
+        except ImportError:
+            import growth_engine
+        state=growth_engine.overview(project_id)
+        return ('Growth readiness: '+state['readiness']['status']+'. '+
+                str(len(state['opportunities']))+' radar opportunities; '+
+                str(len(state['experiments']))+' experiments. '+
+                'Marketing outcomes and channel connectivity have not been independently verified.')
     is_status=bool(re.fullmatch(
         r"(?:what(?:'s| is)|give me|show me|check|tell me)\s+(?:(?:the|a|current)\s+)?"
         r"(?:status|progress)(?:\s+(?:of|on|for)\s+(?:this|the|our|my)?\s*project)?[?.! ]*",question))
