@@ -387,7 +387,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert page.locator("#modalTitle").inner_text().startswith("Growth · ")
                     assert page.locator("#modalBody").get_by_text("Brand readiness: FAIL").count()==1
                     page.locator("#modalBody button",has_text="Creative personality").click()
-                    page.locator("#modalBody input[name='voice']").fill("Clear, clever, evidence-driven")
+                    page.locator("#modalBody textarea[name='voice']").fill("Clear, clever, evidence-driven")
                     page.locator("#modalBody input[name='humor']").fill("6")
                     page.locator("#modalBody input[name='provocation']").fill("2")
                     page.locator("#modalBody textarea[name='boundaries']").fill("No invented evidence")
