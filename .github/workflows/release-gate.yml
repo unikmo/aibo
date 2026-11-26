@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   stage-1-unit-integration:
@@ -25,23 +24,9 @@ jobs:
         with:
           python-version: "3.13"
       - name: Python compile and unit / integration regressions
-        shell: bash
         run: |
-          set -o pipefail
-          (python -m compileall -q runtime tests qa && python -m unittest discover -s tests -v) 2>&1 | tee /tmp/aibo-unit.log
-      - name: Record concise failure details on this private PR
-        if: failure() && github.event_name == 'pull_request'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          {
-            echo "CI unit regression failure (temporary diagnostic):"
-            echo '~~~'
-            tail -n 60 /tmp/aibo-unit.log
-            echo '~~~'
-          } > /tmp/aibo-ci-failure.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/aibo-ci-failure.md
+          python -m compileall -q runtime tests qa
+          python -m unittest discover -s tests -v
 
   stage-2-smoke:
     name: 2 Local server smoke
