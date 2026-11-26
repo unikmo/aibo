@@ -138,7 +138,12 @@ def setup_state(project_id):
     project = _project(project_id)
     data = products.read_json(_path(project_id), {})
     legacy = products.read_json(products.STATE/'custom.json', {}).get(project_id, {})
-    initial = {'name': legacy.get('name', project['name']), 'region': legacy.get('region', project.get('region', '')),
+    if project_id.startswith('standard-slot-'):
+        historical=products.read_json(products.STATE/'standard.json',{})
+        slot_number=int(project_id.split('-')[-1])
+        matched=next((s for s in historical.get('slots',[]) if isinstance(s,dict) and s.get('slot')==slot_number),{})
+        legacy={**matched,**legacy}
+    initial = {'name': legacy.get('name') or project['name'], 'region': legacy.get('region', project.get('region', '')),
                'goal': legacy.get('goal', ''), 'website': '', 'audience': '', 'successMeasure': '', 'notes': ''}
     fields = {**initial, **data.get('fields', {})}
     completed = bool(data.get('complete', False))
