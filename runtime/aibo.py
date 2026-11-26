@@ -263,7 +263,8 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
                    'Never infer that an external action did not occur from missing local records; say it is unverified. '
                    'Never guess what an ambiguous acronym means (for example ABAs); ask one brief question instead. '
                    'Do not invent citations, uninspected business files, repository contents or outreach receipts. '
-                   'Avoid Markdown markers, raw file paths, escaped HTML and internal specialist chains. '
+                   'Use Markdown headings, bullets, tables or code blocks when those formats help complete a substantive request; avoid broken formatting, '
+                   'raw internal file paths, escaped HTML and specialist-chain transcripts. '
                    'Incorporate the independent quality specialist review: correct unsupported assertions, contradictions and relevance problems before answering. '
                    'Do not treat a completed model call or a specialist opinion as evidence of real-world task completion. '
                    'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
