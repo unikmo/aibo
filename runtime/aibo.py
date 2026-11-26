@@ -225,6 +225,16 @@ def select_agents(goal):
     return (selected or ['research'])[:5]
 
 
+def _bounded_specialist_context(results, limit):
+    """Include every specialist in bounded context rather than truncating the last ones."""
+    if not results:
+        return '{}'
+    # Limit every entry fairly; a very verbose first agent must not hide the rest.
+    per=max(200, (limit-300*len(results))//len(results))
+    compact={key:str(value)[:per] for key,value in results.items()}
+    return json.dumps(compact,ensure_ascii=False)[:limit]
+
+
 def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=120, output_token_limit=1800, max_model_calls=8, agent_routes=None, deadline=None, extra_context=''):
     project = project_info(project_id)
     roster = load_json(ROSTER)
@@ -244,7 +254,7 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
     for name in requested:
         system, user = prompt_for(index[name], project, goal, shared)
         if name == 'quality':
-            user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + json.dumps(outputs, ensure_ascii=False)[:18000]
+            user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + _bounded_specialist_context(outputs,18000)
         selected_provider,selected_model=(agent_routes.get(name,(provider,model)) if agent_routes else (provider,model))
         remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
         if remaining<1:
@@ -268,7 +278,13 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
                    'Incorporate the independent quality specialist review: correct unsupported assertions, contradictions and relevance problems before answering. '
                    'Do not treat a completed model call or a specialist opinion as evidence of real-world task completion. '
                    'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
-    soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
+    # Keep the independent QA findings even when other specialists return lengthy work.
+    # A blanket slice of ordered outputs used to silently discard the last (quality) entry.
+    quality_review=str(outputs.get('quality',''))[:8000]
+    other_specialists={key:value for key,value in outputs.items() if key!='quality'}
+    soni_input = ('GOAL: '+goal+'\nPROJECT: '+project['name']+
+                  '\nINDEPENDENT QUALITY REVIEW:\n'+quality_review+
+                  '\nOTHER SPECIALIST RESPONSES:\n'+_bounded_specialist_context(other_specialists,15000))
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
     remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
     if remaining<1:
