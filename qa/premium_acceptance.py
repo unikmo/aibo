@@ -28,7 +28,8 @@ def run():
                 browser=pw.chromium.launch(headless=True)
                 for width,height in ((1440,900),(390,844)):
                     page=browser.new_page(viewport={'width':width,'height':height})
-                    errors=[];network=[]
+                    errors=[];network=[];sent_work=[]
+                    page.on('request',lambda req: sent_work.append(json.loads(req.post_data)) if req.method=='POST' and '/api/work/custom/' in req.url and req.post_data else None)
                     page.on('pageerror',lambda e: errors.append(str(e)))
                     page.on('response',lambda r:network.append([r.status,r.url]) if r.status>=400 else None)
                     for attempt in range(40):
@@ -79,6 +80,8 @@ def run():
                     page.locator('#soniProvider').select_option('mock')
                     page.locator('#soniPrompt').press('Enter')
                     page.wait_for_function("document.querySelector('#promptHint')?.textContent==='Completed'",timeout=20000)
+                    assert any(p.get('module')=='marketing' for p in sent_work),sent_work
+                    assert any(p.get('provider')=='mock' for p in sent_work),sent_work
                     # Growth OS is real navigation, never a fictional connected channel.
                     # A new home message must never reuse earlier paid-provider consent.
                     page.locator('#soniProvider').select_option('openai')
@@ -89,6 +92,7 @@ def run():
                     assert page.locator('#screen-soni').is_visible()
                     assert not page.locator('#soniConsent').is_checked()
                     assert 'paid API request' in page.locator('#promptHint').inner_text()
+                    assert not any(p.get('provider')=='openai' for p in sent_work),"Unconsented paid API request was sent"
                     assert page.locator('#soniPrompt').input_value().startswith('Review the financial')
                     page.locator('.nav[data-screen="growth"]').click()
                     assert page.locator('#screen-growth').is_visible()
