@@ -382,7 +382,8 @@ def _worker(run_id):
         item['memoryUsage']=history_meta
         comparisons=soni_memory.comparison_context(item.get('comparedProjects',[])) if item.get('crossProjectReadOnly') else ''
         task_sources=_explicit_task_source_context(item['task'])
-        extra_context='\n\n'.join(x for x in (history,comparisons,task_sources) if x)
+        # Current-task evidence must precede historical chat: the model context is bounded.
+        extra_context='\n\n'.join(x for x in (task_sources,comparisons,history) if x)
         if comparisons:item['comparisonEvidence']='owner-reviewed-profile-fields-only'
         selected,model=(item['provider'],None) if item['provider']=='mock' else ai_providers.route(item['provider'])
         config=ai_providers.public()
