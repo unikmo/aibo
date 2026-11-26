@@ -28,7 +28,8 @@ function renderProjects(){
    const setup=E("button","cta",chosen.setupComplete?"Review sources":"Import sources");
    setup.onclick=()=>openProject(chosen);
    const open=E("button","secondary","Ask CariFive");open.onclick=()=>show("soni");
-   actions.append(setup,open);card.append(state,actions);node.append(card);return;
+   const growth=E("button","secondary","Growth OS");growth.type="button";growth.onclick=()=>window.CariFiveGrowth?.open(chosen.id);
+   actions.append(setup,open,growth);card.append(state,actions);node.append(card);return;
  }
  $("projectSubheading").textContent=S.projects.length+" projects";
  for(const p of S.projects){
