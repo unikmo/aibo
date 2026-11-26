@@ -282,6 +282,10 @@ class Handler(SimpleHTTPRequestHandler):
                     result=growth_engine.set_mischief(project,data)
                 elif action=='autonomy' and len(parts)==4:
                     result=growth_engine.set_autonomy(project,data)
+                elif action=='authorization' and len(parts)==4:
+                    result=growth_engine.autonomy_decision(
+                        project,data.get('channel'),data.get('activity'),
+                        data.get('highRisk') is True)
                 elif action=='opportunity' and len(parts)==4:
                     result=growth_engine.add_opportunity(project,data)
                 elif action=='creative-review' and len(parts)==4:
