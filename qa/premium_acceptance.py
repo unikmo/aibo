@@ -28,7 +28,8 @@ def run():
                 browser=pw.chromium.launch(headless=True)
                 for width,height in ((1440,900),(390,844)):
                     page=browser.new_page(viewport={'width':width,'height':height})
-                    errors=[];network=[]
+                    errors=[];network=[];sent_work=[]
+                    page.on('request',lambda req: sent_work.append(json.loads(req.post_data)) if req.method=='POST' and '/api/work/custom/' in req.url and req.post_data else None)
                     page.on('pageerror',lambda e: errors.append(str(e)))
                     page.on('response',lambda r:network.append([r.status,r.url]) if r.status>=400 else None)
                     for attempt in range(40):
@@ -44,7 +45,13 @@ def run():
                     assert page.locator('#homeTalkForm').is_visible()
                     assert page.locator('#homePortfolio .portfolio-tile').count()==3
                     assert page.locator('#homePortfolio .portfolio-state').count()==3
-                    assert page.locator('#homeTalkPrompt').get_attribute('placeholder')=="What would you like CariFive to do today?"
+                    assert page.locator('#homeTalkPrompt').get_attribute('placeholder')=="Ask CariFive anything…"
+                    assert page.locator('#screen-home .home-talk-head').count()==0
+                    assert page.locator('#settingsBtn').count()==1
+                    assert page.locator('#accountBtn').count()==1
+                    assert page.locator('#homeModule').count()==1
+                    assert page.locator('#soniModule').count()==1
+                    assert page.locator('#homeTalkPrompt').evaluate("(el)=>getComputedStyle(el).resize")=="none"
                     assert 'No brand' in page.locator('#growthReadyValue').inner_text()
                     page.wait_for_function("document.querySelector('#todayTitle')?.textContent!=='Looking for a high-value next step…'",timeout=15000)
                     assert page.evaluate('document.documentElement.scrollWidth-window.innerWidth')<=3
@@ -53,10 +60,16 @@ def run():
                     assert not network,network
                     # Home composer retains the task and requests a project rather than using global context.
                     task="Review marketing positioning and growth opportunities."
+                    page.locator('#homeModule').select_option('marketing')
                     page.locator('#homeTalkPrompt').fill(task)
-                    page.locator('#homeTalkSend').click()
+                    page.locator('#homeTalkPrompt').press('Shift+Enter')
+                    page.locator('#homeTalkPrompt').type('Prioritize quick wins.')
+                    submitted=task+'\nPrioritize quick wins.'
+                    assert page.locator('#homeTalkPrompt').input_value()==submitted
+                    page.locator('#homeTalkPrompt').press('Enter')
                     assert page.locator('#screen-soni').is_visible()
-                    assert page.locator('#soniPrompt').input_value()==task
+                    assert page.locator('#soniPrompt').input_value()==submitted
+                    assert page.locator('#soniModule').input_value()=='marketing'
                     assert 'Choose a project' in page.locator('#promptHint').inner_text()
                     # Finish reviewed setup in the isolated local backend, then use real mock execution.
                     init=page.request.post(BASE+'/api/setup/custom/standard-slot-1',data={
@@ -65,18 +78,21 @@ def run():
                     assert init.ok,init.text()
                     page.locator('#projectSelect').select_option('standard-slot-1')
                     page.locator('#soniProvider').select_option('mock')
-                    page.locator('#reviewPrompt').click()
+                    page.locator('#soniPrompt').press('Enter')
                     page.wait_for_function("document.querySelector('#promptHint')?.textContent==='Completed'",timeout=20000)
+                    assert any(p.get('module')=='marketing' for p in sent_work),sent_work
+                    assert any(p.get('provider')=='mock' for p in sent_work),sent_work
                     # Growth OS is real navigation, never a fictional connected channel.
                     # A new home message must never reuse earlier paid-provider consent.
                     page.locator('#soniProvider').select_option('openai')
                     page.locator('#soniConsent').check()
                     page.locator('.nav[data-screen="home"]').click()
                     page.locator('#homeTalkPrompt').fill('Review the financial risk of this launch.')
-                    page.locator('#homeTalkSend').click()
+                    page.locator('#homeTalkPrompt').press('Enter')
                     assert page.locator('#screen-soni').is_visible()
                     assert not page.locator('#soniConsent').is_checked()
-                    assert 'approve its charges' in page.locator('#promptHint').inner_text()
+                    assert 'paid API request' in page.locator('#promptHint').inner_text()
+                    assert not any(p.get('provider')=='openai' for p in sent_work),"Unconsented paid API request was sent"
                     assert page.locator('#soniPrompt').input_value().startswith('Review the financial')
                     page.locator('.nav[data-screen="growth"]').click()
                     assert page.locator('#screen-growth').is_visible()

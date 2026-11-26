@@ -34,9 +34,9 @@ with tempfile.TemporaryDirectory() as state_dir:
                 assert page.locator('.nav[data-screen="soni"]').inner_text().strip()=="Talk to CariFive"
                 assert "CariFive" in page.locator("#soni-title").inner_text()
                 assert page.locator("#soniPrompt").get_attribute("aria-label")=="Message CariFive"
-                assert page.locator("#reviewPrompt").get_attribute("aria-label")=="Send to CariFive"
+                assert page.locator("#reviewPrompt").get_attribute("aria-label")=="Send message"
                 assert page.get_by_text("Just ask Soni.",exact=True).count()==0
-                assert page.locator(".nav").count()==6
+                assert page.locator(".nav[data-screen]").count()==6
                 for screen in ("home","soni","projects","activity","connections","growth"):
                     page.locator(f'.nav[data-screen="{screen}"]').click()
                     page.locator("#screen-"+screen+".active").wait_for()
@@ -108,9 +108,15 @@ with tempfile.TemporaryDirectory() as state_dir:
                 page.locator('.nav[data-screen="projects"]').click()
                 # Copy-density and hierarchy contract: no promotional filler or duplicate controls.
                 visible_headings=[page.locator("#screen-"+screen+" h1").inner_text() for screen in ("home","soni","projects","activity","connections")]
-                assert visible_headings[0]=="Your business, in focus." and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
+                assert visible_headings[0]=="One place to think, build and grow your business." and visible_headings[2:] == ["Projects","Activity","Connections"],visible_headings
                 assert page.locator(".aside-foot .footline").count()==1,"Compact connection-status footer missing"
-                assert page.locator("#screen-home .page-heading .heading-copy").count()==1
+                assert page.locator("#screen-home .page-heading .heading-copy").count()==0
+                assert page.locator("#screen-home .page-heading .eyebrow").count()==0
+                assert page.locator("#homeModule").count()==1
+                assert page.locator("#soniModule").count()==1
+                assert page.locator("#modalFooter").count()==1
+                assert page.locator("#settingsBtn").count()==1
+                assert page.locator("#accountBtn").count()==1
                 assert page.locator("#homeTalkForm").count()==1
                 assert page.locator(".nav[data-screen='growth']").count()==1
                 assert page.locator("#screen-activity .page-heading p").count()==0
