@@ -258,6 +258,22 @@ class GrowthTests(unittest.TestCase):
         self.assertTrue(g.requires_specific_approval('political-content'))
         self.assertTrue(g.requires_specific_approval('physical-activation'))
 
+    def test_autonomy_policy_never_bypasses_real_action_gateway(self):
+        basic=g.autonomy_decision(self.pid,'linkedin','routine-post')
+        self.assertEqual(basic['decision'],'PREPARE_FOR_APPROVAL')
+        self.assertFalse(basic['canExecuteExternalAction'])
+        g.set_autonomy(self.pid,{'level':4,'authorizedChannels':['linkedin'],
+            'authorizedLowRiskTypes':['routine-post'],'scopeApproved':True})
+        eligible=g.autonomy_decision(self.pid,'linkedin','routine-post')
+        self.assertEqual(eligible['decision'],'ELIGIBLE_SCOPED_LOW_RISK')
+        self.assertFalse(eligible['canExecuteExternalAction'])
+        offscope=g.autonomy_decision(self.pid,'reddit','routine-post')
+        self.assertEqual(offscope['decision'],'EXPLICIT_APPROVAL_REQUIRED')
+        sensitive=g.autonomy_decision(self.pid,'linkedin','political-content')
+        self.assertEqual(sensitive['decision'],'EXPLICIT_APPROVAL_REQUIRED')
+        with self.assertRaises(products.ProductError):
+            g.autonomy_decision(self.pid,'unknown-channel','routine-post')
+
     def test_dashboard_does_not_invent_commercial_outcomes(self):
         self.ready()
         report=g.dashboard()
