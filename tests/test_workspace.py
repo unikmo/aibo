@@ -17,6 +17,30 @@ class WorkspaceTests(unittest.TestCase):
         self.id=products.custom_projects()[0]['id']
         workspace.CURRENT.clear()
 
+    def test_supplied_public_url_is_inspected_for_task_context(self):
+        item={'reference':'https://example.org/page','excerpt':'Verified page headline and a clear explanation of the service.'}
+        with patch.object(workspace.source_onboarding,'inspect_remote',return_value=item) as inspect:
+            context=workspace._explicit_task_source_context('Audit https://example.org/page for conversion issues')
+        inspect.assert_called_once_with('website','https://example.org/page')
+        self.assertIn('Verified page headline',context)
+        self.assertIn('READ ONLY SOURCE',context)
+
+    def test_unreadable_url_reports_failure_instead_of_fabricating_page_text(self):
+        with patch.object(workspace.source_onboarding,'inspect_remote',
+                          side_effect=workspace.source_onboarding.SourceError('requires JavaScript')):
+            context=workspace._explicit_task_source_context('Review https://example.org/app')
+        self.assertIn('SOURCE NOT VERIFIED',context)
+        self.assertIn('requires JavaScript',context)
+
+    def test_explicit_url_inspection_is_bounded_and_does_not_browse_without_url(self):
+        with patch.object(workspace.source_onboarding,'inspect_remote',
+                          return_value={'excerpt':'A documented readable source'}) as inspect:
+            self.assertEqual(workspace._explicit_task_source_context('Review our positioning'), '')
+            self.assertEqual(inspect.call_count,0)
+            workspace._explicit_task_source_context(
+                'Compare https://a.example https://b.example https://c.example')
+            self.assertEqual(inspect.call_count,2)
+
     def test_guided_resume_and_complete(self):
         setup=workspace.save_setup(self.id,{'step':0,'fields':{'name':'Reviewed name','region':'Boston'}})
         self.assertFalse(setup['complete'])
