@@ -24,6 +24,13 @@
 - New workspaces are additive and governed by the existing project capacity limit.
 - Interface: `/v3/?edition=custom` or the legacy `/custom/` page.
 
+## Distribution safety
+- Windows and macOS customer builds default to a sanitized, empty bundled project registry so they cannot expose the founder's Portfolio project names.
+- Owner-only development distribution requires an explicit `-OwnerPortfolio` Windows build flag or `AIBO_OWNER_PORTFOLIO=1` in the macOS build.
+- The local app opens the owner's Portfolio when actual bundled Portfolio projects exist. A sanitized customer bundle opens five Standard workspaces by default.
+- Build scripts must not copy user-specific runtime state, AI provider credentials, or customer documents into commercial installers.
+- Verify a fresh sanitized packaged application with the owner registry absent before any commercial release.
+
 ## Non-negotiable safeguards
 - Do not send, publish, spend, book, sign contracts or deploy without scoped authorization and a verified external receipt.
 - Local editability is not a waiver of consumer rights or an automatic transfer of liability to the customer.
