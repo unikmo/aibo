@@ -298,6 +298,10 @@ def measure(project,experiment_id,body):
            'recordedAt':_now(),'verified':False}
     try:dt.datetime.fromisoformat(entry['observedAt'].replace('Z','+00:00'))
     except ValueError:raise products.ProductError('Invalid observation timestamp')
+    issue=None
+    if body.get('websiteEvidence') is True:
+        issue=_text(body.get('websiteIssue'),700,True)
+        reference=_text(body.get('websiteEvidenceRef'),500,True)
     with LOCK:
         data=_read(project)
         item=next((x for x in data['experiments'] if x['id']==experiment_id),None)
@@ -310,6 +314,14 @@ def measure(project,experiment_id,body):
                          else ('SCALE' if value>=item['threshold'] else
                                'ITERATE' if value>=item['threshold']*.5 else 'STOP'))
         item['outcomeIsProvisional']=True
+        if issue is not None:
+            item['websiteIntervention']={
+                'id':'WEB-'+uuid.uuid4().hex[:12].upper(),
+                'status':'PENDING_BUILD_REVIEW',
+                'issue':issue,'evidenceRef':reference,
+                'observedMetric':item['primaryMetric'],'observedValue':value,
+                'source':entry['source'],'createdAt':_now(),
+                'note':'Request for the Build module; no website modification authorized or executed.'}
         _write(project,data)
     return {'experiment':item,'note':'Manually entered metrics and outcomes are provisional until independently verified.'}
 
