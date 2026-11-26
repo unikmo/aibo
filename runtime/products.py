@@ -1,9 +1,4 @@
-"""AIBO dual product state: local development backend, not a commercial license authority.
-
-Standard entitlements are supplied by an external trusted activation service for production.
-Local owner settings cannot grant paid entitlements.
-"""
-import json
+"""AIBO perpetual-version software: no activation or renewal checks.\n\nPurchased installed versions remain usable; upgrades are optional.\n"""\nimport json
 import os
 import sys
 from pathlib import Path
@@ -17,6 +12,8 @@ ROOT=Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
 REGISTRY=ROOT/'System'/'project-registry.json'
 STATE=Path(os.environ.get('AIBO_STATE_DIR', str(Path.home()/'.aibo-state')))
 MAX_SLOTS=5
+UPGRADE_ANNUAL_USD=48
+PURCHASE_MODEL='perpetual-version'
 
 class ProductError(ValueError): pass
 
@@ -56,7 +53,15 @@ def project_records():
         raise ProductError('Invalid bundled project registry')
     if not isinstance(extra,dict) or not isinstance(extra.get('projects'),list):
         raise ProductError('Invalid local project registry')
-    return bundled['projects'] + extra['projects']
+    reserved={f'standard-slot-{i}' for i in range(1,MAX_SLOTS+1)}
+    if any(item.get('id') in reserved for item in bundled['projects'] + extra['projects']):
+        raise ProductError('Reserved standard workspace ID collision')
+    slots=[{'id':f'standard-slot-{i}','name':f'Project slot {i}',
+            'projectHome':f'Projects/standard-slot-{i}','stateProject':True,
+            'edition':'standard','classification':{'status':'pending-pack',
+                'industry':None,'corePack':None,'addOns':[]}}
+           for i in range(1,MAX_SLOTS+1)]
+    return bundled['projects'] + extra['projects'] + slots
 
 
 def _project_folder(record):
@@ -73,6 +78,7 @@ def custom_projects():
     state=read_json(STATE/'custom.json',{})
     projects=[]
     for p in registry['projects']:
+        if p.get('edition')=='standard':continue
         x=state.get(p['id'],{})
         mapping=read_json(_project_folder(p)/'PROJECT-KNOWLEDGE.json',p.get('classification') or {'status':'pending-pack','industry':None,'corePack':None,'addOns':[]})
         setup=read_json(STATE/'workspaces'/(p['id']+'.json'),{})
