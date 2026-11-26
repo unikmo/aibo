@@ -171,13 +171,20 @@ class GrowthTests(unittest.TestCase):
             g.transition(self.pid,e['id'],{'status':'APPROVED','ownerApproved':True})
         with self.assertRaises(products.ProductError):
             g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL'})
-        g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL','creativeApproved':True})
+        self.mischief()
+        review=g.review_creative(self.pid,{'content':'Professional booking demo',
+            'channel':'linkedin','scores':creative_scores(),'factChecked':True,'rulesChecked':True})
+        g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL',
+            'creativeReviewId':review['id']})
         with self.assertRaises(products.ProductError):
             g.transition(self.pid,e['id'],{'status':'APPROVED'})
         g.transition(self.pid,e['id'],{'status':'APPROVED','ownerApproved':True})
         with self.assertRaises(products.ProductError):
             g.transition(self.pid,e['id'],{'status':'RUNNING','executionEvidence':'manual'})
-        g.transition(self.pid,e['id'],{'status':'RUNNING'})
+        with self.assertRaises(products.ProductError):
+            g.transition(self.pid,e['id'],{'status':'RUNNING'})
+        g.transition(self.pid,e['id'],{'status':'RUNNING',
+            'manualLaunchEvidence':'Founder reports sending one compliant personal message'})
         m=g.measure(self.pid,e['id'],{'value':11,'source':'Manually reviewed CRM',
            'observedAt':'2026-11-26T13:00:00+01:00'})
         self.assertEqual(m['experiment']['outcome'],'SCALE')
@@ -193,9 +200,14 @@ class GrowthTests(unittest.TestCase):
 
     def test_website_intervention_requires_evidence_flag(self):
         e=self.experiment()
-        g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL','creativeApproved':True})
+        self.mischief()
+        review=g.review_creative(self.pid,{'content':'Professional booking demo',
+            'channel':'linkedin','scores':creative_scores(),'factChecked':True,'rulesChecked':True})
+        g.transition(self.pid,e['id'],{'status':'READY_FOR_APPROVAL',
+            'creativeReviewId':review['id']})
         g.transition(self.pid,e['id'],{'status':'APPROVED','ownerApproved':True})
-        g.transition(self.pid,e['id'],{'status':'RUNNING'})
+        g.transition(self.pid,e['id'],{'status':'RUNNING',
+            'manualLaunchEvidence':'Founder reports sending one compliant personal message'})
         m=g.measure(self.pid,e['id'],{'value':2,'source':'Landing analytics',
             'observedAt':'2026-11-26T00:00:00Z','websiteEvidence':True})
         self.assertEqual(m['experiment']['outcome'],'WEBSITE_INTERVENTION_REQUIRED')
