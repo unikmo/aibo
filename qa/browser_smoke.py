@@ -82,22 +82,24 @@ def run(output, chromium=None):
                            return {ok:response.status>=200&&response.status<300,status:response.status,
                                json:async()=>response.body,text:async()=>typeof response.body==='string'?response.body:JSON.stringify(response.body)};
                         };''')
-                        scripts=['navigation.js','product.js','ai-providers-ui.js']
-                        if edition=='custom':scripts+=['operations.js','secure-workflows.js']
+                        scripts=['app.js','product.js']
+                        if edition=='custom':scripts+=['operations.js','infra_ui.js','secure-workflows.js']
                         for script in scripts:page.add_script_tag(path=str(WEB/'shared'/script))
                         page.evaluate("document.dispatchEvent(new Event('DOMContentLoaded'))")
                         page.wait_for_timeout(250)
                         check(edition+' loaded navigation',lambda p=page:p.locator('.nav-list [data-view]').count()>0 or (_ for _ in ()).throw(AssertionError('no main nav')))
-                        def provider_check(p=page):
-                            details=p.locator('.aibo-sidebar-settings summary')
-                            if details.count():details.first.click()
-                            p.locator('[data-view="ai-providers"]').first.click()
-                            assert p.locator('#ai-providers').is_visible()
-                            assert p.locator('details.aibo-ai-entry[open]').count()==0
-                            p.locator('details.aibo-ai-entry summary').first.click()
-                            assert p.locator('details.aibo-ai-entry[open]').count()==1
-                            return 'Provider options initially collapsed, expand on demand'
-                        check(edition+' provider UI',provider_check)
+                        def product_check(p=page,mode=edition):
+                            p.wait_for_function("document.querySelector('#project-list')?.children.length > 0",timeout=5000)
+                            assert p.locator('#project-list').is_visible()
+                            status=backend('/api/products/'+mode)
+                            assert status['status']==200,status
+                            if mode=='standard':
+                                assert len(status['body']['slots'])==5
+                                assert status['body']['purchase']['activationRequired'] is False
+                            else:
+                                assert status['body']['projects']
+                            return 'Project list rendered from actual '+mode+' backend without activation'
+                        check(edition+' real project edition',product_check)
                         if edition=='custom':
                             page.locator('[data-view="soni"]').first.click();page.wait_for_timeout(200)
                             page.locator('#op-chat-project').select_option(project)
