@@ -383,6 +383,7 @@ with tempfile.TemporaryDirectory() as state_dir:
                     # Real Growth OS customer journey: entry point, project isolation
                     # and persisted personality settings, without sending any content.
                     page.locator("#projectSelect").select_option("standard-slot-1")
+                    page.locator(".nav[data-screen='projects']").click()
                     page.locator("#projectCards .project-summary button",has_text="Growth OS").click()
                     page.locator("#modalTitle").wait_for(state="visible")
                     assert page.locator("#modalTitle").inner_text().startswith("Growth · ")
