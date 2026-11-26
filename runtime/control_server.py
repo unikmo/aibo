@@ -190,6 +190,7 @@ class Handler(SimpleHTTPRequestHandler):
         if path=='/api/dependencies':self._json(200,{'tasks':dependencies.records()});return
         if path=='/api/connections/catalog':self._json(200,connector_catalog.catalog());return
         if path=='/api/cost-controls':self._json(200,{**costs.current(),'budgetEnforcement':'not-available','usageMetering':'not-connected'});return
+        if path=='/api/portfolio/standard':self._json(200,portfolio.overview('standard'));return
         if path=='/api/portfolio/custom':self._json(200,portfolio.overview());return
         if path.startswith('/api/setup/custom/') and path.endswith('/sources'):
             parts=path.strip('/').split('/')
