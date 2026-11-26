@@ -348,6 +348,37 @@ with tempfile.TemporaryDirectory() as state_dir:
                     assert "MOCK" in detail.json()["result"]["soni"]
                     result["functional"].append("newly created project routes through Soni")
 
+                    # One-time purchase: five Standard slots initialize and run without
+                    # license activation, and retain local state after a page reload.
+                    page.goto(BASE+"/v3/?edition=standard",wait_until="domcontentloaded")
+                    page.wait_for_function("document.querySelector('#countProjects')?.textContent === '5'",timeout=15000)
+                    standard_data=page.request.get(BASE+"/api/products/standard").json()
+                    assert standard_data["purchase"]["activationRequired"] is False
+                    assert standard_data["purchase"]["upgrades"]["annualUsd"]==48
+                    assert standard_data["purchase"]["mandatoryRenewal"] is False
+                    assert page.locator("#newProjectBtn").is_hidden()
+                    page.locator("#projectSelect").select_option("standard-slot-1")
+                    page.locator("#projectCards .project-summary button",has_text="Import sources").click()
+                    page.locator("#modalBody input[name='sourceLink']").wait_for(state="visible")
+                    page.locator("#modalBody button",has_text="Check sources").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent?.includes('Review project profile')",timeout=15000)
+                    page.locator("#modalBody form textarea[name='goal']").fill("Improve qualified local enquiries")
+                    page.locator("#modalBody form button[type=submit]").click()
+                    page.wait_for_function("document.querySelector('#modalTitle')?.textContent==='Project ready'",timeout=15000)
+                    page.locator("#closeModal").click()
+                    current=page.request.get(BASE+"/api/setup/custom/standard-slot-1").json()
+                    assert current["complete"] is True and current["fields"]["goal"]=="Improve qualified local enquiries"
+                    run=page.request.post(BASE+"/api/work/custom/standard-slot-1",
+                        data={"task":"Review Standard project positioning","provider":"mock","consent":False},
+                        headers={"Content-Type":"application/json"})
+                    assert run.ok,run.text()
+                    details=page.request.get(BASE+"/api/run/"+run.json()["id"]).json()
+                    assert details["status"]=="completed" and "MOCK" in details["result"]["soni"]
+                    page.reload(wait_until="domcontentloaded")
+                    page.wait_for_function("document.querySelector('#countProjects')?.textContent === '5'",timeout=15000)
+                    assert page.request.get(BASE+"/api/products/standard").json()["slots"][0]["setupComplete"] is True
+                    result["functional"].append("perpetual Standard five-slot setup, local AI run and reload without key")
+
 
                 assert not result["errors"], "Browser JS errors: "+repr(result["errors"])
                 page.close()
