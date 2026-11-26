@@ -46,6 +46,27 @@ class RuntimeTests(unittest.TestCase):
         with patch.object(aibo,'provider_call',return_value='[MOCK RESPONSE: no model or external actions executed]'):
             with self.assertRaisesRegex(aibo.AiboError,'empty or simulated specialist output'):
                 aibo.execute('locksmith-boston','Evaluate SEO opportunities',provider='codex-local',agents=['research'])
+    def test_all_specialists_and_quality_survive_large_context(self):
+        captured=[]
+        long_response='LONG_EVIDENCE_BLOCK ' * 1500
+        def provider(provider,system,user,model,timeout,limit):
+            captured.append(user)
+            if 'INDEPENDENT REVIEW OF PRIOR WORK:' in user:
+                self.assertIn('research',user)
+                self.assertIn('growth',user)
+                self.assertIn('engineering',user)
+                return 'QUALITY REVIEW: Evidence needs verification, do not claim deployment.'
+            if 'INDEPENDENT QUALITY REVIEW:' in user:
+                self.assertIn('QUALITY REVIEW: Evidence needs verification',user)
+                for name in ('research','growth','engineering'):
+                    self.assertIn(name,user)
+                return 'Action plan with caveats and verified follow-up checks.'
+            return long_response
+        with patch.object(aibo,'provider_call',side_effect=provider):
+            result=aibo.execute('locksmith-boston','Audit website engineering, SEO and market',provider='codex-local',
+                                agents=['research','growth','engineering'])
+        self.assertEqual(len(captured),5)
+        self.assertIn('Action plan',result['soni'])
     def test_synthesis_depth_follows_real_task_instead_of_universal_short_limit(self):
         prompts=[]
         def provider(provider,system,user,model,timeout,limit):
