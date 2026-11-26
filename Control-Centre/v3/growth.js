@@ -273,8 +273,8 @@ async function dashboard(){
  ],[["Today's best action",today]]);
 }
 function quickActions(){
- const heading=document.querySelector("#screen-home .page-heading");
- if(!heading||heading.querySelector(".growth-quicklinks"))return;
+ const composer=document.querySelector("#screen-home .home-talk");
+ if(!composer||document.querySelector("#screen-home .growth-quicklinks"))return;
  const root=E("div","growth-quicklinks");
  for(const [label,action] of [["Growth portfolio",dashboard],
                               ["Today's action",today]]){
@@ -283,7 +283,7 @@ function quickActions(){
    detail("Growth data unavailable",[err.message]));
   root.append(button);
  }
- heading.after(root);
+ composer.after(root);
 }
 quickActions();
 window.CariFiveGrowth={open,today,dashboard};
