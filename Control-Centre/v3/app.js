@@ -1,6 +1,7 @@
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id), E=(tag,cls,content)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(content!==undefined)e.textContent=String(content??"");return e;};
+const EXPLICIT_EDITION=new URLSearchParams(location.search).has("edition");
 const S={projects:[],activity:[],actions:[],connections:null,providers:null,selected:"",filter:"all",edition:new URLSearchParams(location.search).get("edition")==="custom"?"custom":"standard",busy:false,providerChoice:null};
 const safe=(x)=>String(x??"");
 function notice(title,msg){$("modalTitle").textContent=title;$("modalBody").textContent=msg;$("modalBody").replaceChildren(document.createTextNode(msg));$("overlay").classList.add("open");$("closeModal").focus()}
@@ -370,5 +371,13 @@ if(location.protocol==="https:"&&!["localhost","127.0.0.1"].includes(location.ho
   banner.textContent="CariFive web preview — the local execution engine is not connected. Tasks and integrations are unavailable online.";
   document.body.prepend(banner);
 }
-(async()=>{await refresh();show(location.hash.slice(1)||"home");})();
+(async()=>{
+ if(!EXPLICIT_EDITION){
+   // Keep the founder's existing portfolio as the private owner default.
+   // Customer packages have an empty bundled portfolio and open Standard.
+   const owner=await api("/api/portfolio/custom").catch(()=>({projects:[]}));
+   if(owner.projects?.length)S.edition="custom";
+ }
+ await refresh();show(location.hash.slice(1)||"home");
+})();
 })();
