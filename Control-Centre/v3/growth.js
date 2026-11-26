@@ -31,6 +31,7 @@ const states=["EXISTS_AND_USABLE","EXISTS_BUT_WEAK","EXISTS_BUT_OFF_BRAND",
 let current="";
 function modal(title){
  $("modalTitle").textContent=title;const body=$("modalBody");body.replaceChildren();
+ $("modalFooter").replaceChildren($("closeModal"));
  $("overlay").classList.add("open");return body;
 }
 function detail(title,lines,actions=[]){
@@ -39,7 +40,7 @@ function detail(title,lines,actions=[]){
  if(actions.length){const bar=E("div","growth-buttons");
   for(const [name,click] of actions){const b=E("button","secondary",name);b.type="button";
    b.onclick=()=>Promise.resolve(click()).catch(e=>detail("Growth action unavailable",[e.message],[["Back",()=>open(current)]]));
-   bar.append(b)}root.append(bar)}
+   bar.append(b)}$("modalFooter").append(bar)}
 }
 function form(title,fields,save){
  const root=modal(title),node=E("form","growth-form");
