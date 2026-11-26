@@ -97,6 +97,24 @@ def context(project):
         parts.append('ADD-ON:\n' + safe_path(addon).read_text(encoding='utf-8')[:5000])
     if mapping.get('status') != 'confirmed':
         parts.append('PACK COVERAGE IS PROVISIONAL OR PENDING. Do not assume unverified pack guidance fits this project.')
+    # Brand-scoped growth records inform specialists; owner-entered metrics are provisional.
+    try:
+        from . import growth_engine
+    except ImportError:
+        import growth_engine
+    marketing=growth_engine.overview(project['id'])
+    if marketing['brand']:
+        summary={'readiness':marketing['readiness'],
+                 'brand':marketing['brand'],'channels':marketing['channels'],
+                 'creativePersonality':marketing['mischief'],
+                 'autonomy':marketing['autonomy'],
+                 'recentExperiments':[{
+                    'id':e['id'],'status':e['status'],'metric':e['primaryMetric'],
+                    'outcome':e['outcome'],'provisional':e.get('outcomeIsProvisional',True)
+                 } for e in marketing['experiments'][-5:]]}
+        parts.append('BRAND-SCOPED GROWTH LEDGER (owner-entered untrusted reference, '
+                     'not verified real-world activity; autonomy does not authorize tools): '+
+                     json.dumps(summary,ensure_ascii=False)[:6500])
     return '\n\n'.join(parts)
 
 
@@ -200,7 +218,8 @@ def prompt_for(agent, project, goal, shared):
              'Do not expose secrets. Cite evidence and express uncertainty. Answer concisely. ' 
              'Never expand an ambiguous acronym without evidence. Do not infer no outreach or delivery happened merely because records are absent. ' 
              'A local file path is not proof of the project\'s external operational status. ' 
-             'Use plain language; no raw Markdown, local file paths or invented source citations.')
+             'Use plain language and task-appropriate structure. Code, Markdown, calculations and tables are allowed when the task needs them; '
+             'do not fabricate file paths, inspected sources, external receipts or citations.')
     return guard + '\nAGENT: ' + agent['name'] + '\nMISSION: ' + agent['mission'], (
         'PROJECT CONTEXT:\n' + shared + '\n\nUSER OBJECTIVE:\n' + goal)
 
@@ -224,6 +243,16 @@ def select_agents(goal):
     return (selected or ['research'])[:5]
 
 
+def _bounded_specialist_context(results, limit):
+    """Include every specialist in bounded context rather than truncating the last ones."""
+    if not results:
+        return '{}'
+    # Limit every entry fairly; a very verbose first agent must not hide the rest.
+    per=max(200, (limit-300*len(results))//len(results))
+    compact={key:str(value)[:per] for key,value in results.items()}
+    return json.dumps(compact,ensure_ascii=False)[:limit]
+
+
 def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=120, output_token_limit=1800, max_model_calls=8, agent_routes=None, deadline=None, extra_context=''):
     project = project_info(project_id)
     roster = load_json(ROSTER)
@@ -243,27 +272,44 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
     for name in requested:
         system, user = prompt_for(index[name], project, goal, shared)
         if name == 'quality':
-            user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + json.dumps(outputs, ensure_ascii=False)[:18000]
+            user += '\n\nINDEPENDENT REVIEW OF PRIOR WORK:\n' + _bounded_specialist_context(outputs,18000)
         selected_provider,selected_model=(agent_routes.get(name,(provider,model)) if agent_routes else (provider,model))
         remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
         if remaining<1:
             raise AiboError('CariFive task deadline reached; no completed result can be reported')
-        outputs[name] = provider_call(selected_provider, system, user, selected_model, remaining, output_token_limit)
+        answer = provider_call(selected_provider, system, user, selected_model, remaining, output_token_limit)
+        if selected_provider != 'mock' and (not isinstance(answer,str) or not answer.strip() or answer.lstrip().startswith('[MOCK RESPONSE')):
+            raise AiboError('CariFive rejected an empty or simulated specialist output; no usable answer was produced')
+        outputs[name] = answer
     soni_system = ('You are CariFive, a concise executive-level business partner. Answer the actual question directly in plain language. '
-                   'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
-                   'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
+                   'Match answer depth to the task: for status or simple factual requests be concise (often 1–3 sentences); '
+                   'for audits, plans, engineering changes, financial analysis, research, documents and multi-part tasks provide all required findings, '
+                   'evidence, reasoning summaries, prioritized actions and useful deliverables. Never arbitrarily truncate substantive work. '
+                   'Use readable headings, lists and tables where they clarify the result, but never dump internal agent deliberations, '
+                   'repetitive caveats or invented project status. If the evidence is missing, say exactly what is unknown. '
                    'When asked for a status report, distinguish completed, pending and blocked only where the records support it. '
                    'Never infer that an external action did not occur from missing local records; say it is unverified. '
                    'Never guess what an ambiguous acronym means (for example ABAs); ask one brief question instead. '
                    'Do not invent citations, uninspected business files, repository contents or outreach receipts. '
-                   'Avoid Markdown markers, raw file paths, escaped HTML and internal specialist chains. '
+                   'Use Markdown headings, bullets, tables or code blocks when those formats help complete a substantive request; avoid broken formatting, '
+                   'raw internal file paths, escaped HTML and specialist-chain transcripts. '
+                   'Incorporate the independent quality specialist review: correct unsupported assertions, contradictions and relevance problems before answering. '
+                   'Do not treat a completed model call or a specialist opinion as evidence of real-world task completion. '
                    'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
-    soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
+    # Keep the independent QA findings even when other specialists return lengthy work.
+    # A blanket slice of ordered outputs used to silently discard the last (quality) entry.
+    quality_review=str(outputs.get('quality',''))[:8000]
+    other_specialists={key:value for key,value in outputs.items() if key!='quality'}
+    soni_input = ('GOAL: '+goal+'\nPROJECT: '+project['name']+
+                  '\nINDEPENDENT QUALITY REVIEW:\n'+quality_review+
+                  '\nOTHER SPECIALIST RESPONSES:\n'+_bounded_specialist_context(other_specialists,15000))
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
     remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
     if remaining<1:
         raise AiboError('CariFive task deadline reached before synthesis')
     synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, remaining, output_token_limit)
+    if selected_provider != 'mock' and (not isinstance(synthesis,str) or not synthesis.strip() or synthesis.lstrip().startswith('[MOCK RESPONSE')):
+        raise AiboError('CariFive rejected an empty or simulated final answer; no usable result was produced')
     return {'project':project_id, 'provider':provider, 'agents':requested, 'classification':project.get('classification'),
             'actionGate':classify_action(goal), 'decisionPackage':approval_record(project_id, goal) if classify_action(goal)=='approval-required' else None,
             'specialistResults':outputs, 'soni':synthesis, 'providerRouting':{k:v[0] for k,v in (agent_routes or {}).items()}, 'externalActionsExecuted':False,

@@ -1,5 +1,5 @@
 /* The two editions reuse the original UI. Product-specific state is loaded from localhost.
-   This interface does not issue paid entitlements or perform external actions. */
+   This interface does not issue licenses or perform external actions. */
 (()=>{
 'use strict';
 const mode=document.body.dataset.product;
@@ -16,17 +16,17 @@ if(trustCopy)trustCopy.textContent=standard?'Nothing goes live, spends money, or
 document.querySelectorAll('.dashboard-view').forEach(v=>v.classList.remove('active'));
 document.querySelectorAll('.nav-item').forEach(a=>a.classList.remove('active'));
 document.querySelector('.workspace-switcher b').textContent=standard?'AIBO Standard':'AIBO Custom';
-document.querySelector('.workspace-switcher small').textContent=standard?'5-project license':'Portfolio workspaces';
+document.querySelector('.workspace-switcher small').textContent=standard?'5 owned workspaces':'Portfolio workspaces';
 document.querySelector('.breadcrumb span').textContent=standard?'Standard':'Portfolio';
 document.querySelector('.breadcrumb b').textContent='Projects';
-const sync=document.querySelector('.sync-status');if(sync)sync.innerHTML='<i></i>'+(standard?'Preview mode':'Portfolio preview');
+const sync=document.querySelector('.sync-status');if(sync)sync.innerHTML='<i></i>'+'Local · owned version';
 const brand=document.querySelector('.brand');if(brand)brand.href='#projects';
 const topAction=document.querySelector('.topbar .help-button'); if(topAction) topAction.title='FAQ & help';
 const item=document.createElement('a');item.className='nav-item';item.href='#projects';item.dataset.view='projects';item.innerHTML='<span>▤</span>Projects';nav.insertBefore(item,nav.firstChild);item.classList.add('active');
 // Prevent a sample dashboard from being mistaken for real project performance.
 nav.querySelectorAll('.nav-item:not([data-view=projects])').forEach(a=>a.remove());
 const section=document.createElement('section');section.className='dashboard-view';section.id='projects';
-section.innerHTML=`<div class="page-intro compact"><div><h1>Projects</h1></div></div><div class="product-summary panel" id="product-summary" aria-live="polite">Loading local configuration…</div><div id="project-list" class="product-list"></div><div class="panel product-footer">${standard?'Need more than five active projects or another pack? That is an upgrade, not a local setting.':'Additions are additive only. Creating or initializing a project does not replace any existing project folder or file.'}</div></section>`;
+section.innerHTML=`<div class="page-intro compact"><div><h1>Projects</h1></div></div><div class="product-summary panel" id="product-summary" aria-live="polite">Loading local configuration…</div><div id="project-list" class="product-list"></div><div class="panel product-footer">${standard?'One-time purchase. This version continues working without renewal. Optional feature upgrades: $48/year or individually. AI provider costs are separate.':'One-time purchase. Upgrades are optional; your existing projects remain yours.'}</div></section>`;
 content.append(section);section.classList.add('active');
 let state;
 let catalog={corePacks:[],addOns:[]};
@@ -44,9 +44,9 @@ async function load(){
 function render(){
  const summary=document.querySelector('#product-summary'),list=document.querySelector('#project-list');
  if(standard){
- const license=state.license;
- summary.innerHTML=`<div class="product-summary-top"><strong>Standard license</strong><span class="summary-pill">${license.projectLimit} project slots</span></div><p>Industry: <b>${escape(license.industry||'Not activated')}</b> · Core pack: <b>${escape(license.corePack||'Not activated')}</b> · Add-on: <b>${escape((license.addOns&&license.addOns[0])||'Not activated')}</b></p><small>The license holds the knowledge. Each project only adds its own business details and connections.</small>`;
- list.innerHTML=state.slots.map(x=>`<article class="panel product-project"><div class="product-project-info"><div class="product-project-heading"><span class="project-index">0${x.slot}</span><b>${x.name||'Project slot '+x.slot}</b><span class="project-state ${x.initialized?'configured':'pending'}">${x.initialized?'Initialized':'Available'}</span></div><div class="project-facts"><span><strong>Status</strong>${x.initialized?'Setup started':'Ready to initialize'}</span><span><strong>Region</strong>${escape(x.region||'—')}</span><span><strong>Main goal</strong>${escape(x.goal||'—')}</span></div></div><button class="secondary-button" disabled title="Verified license required">Initialize</button></article>`).join('');
+ const purchase=state.purchase;
+ summary.innerHTML=`<div class="product-summary-top"><strong>Standard · owned version</strong><span class="summary-pill">${state.slots.length} workspaces</span></div><p>Own this installed version permanently. No activation key or compulsory subscription.</p><small>Optional major upgrades: $48/year or individually priced. AI provider credentials and fees are separate. Statutory defect remedies remain unaffected.</small>`;
+ list.innerHTML=state.slots.map(x=>`<article class="panel product-project"><div class="product-project-info"><div class="product-project-heading"><span class="project-index">0${x.slot}</span><b>${escape(x.name||'Project slot '+x.slot)}</b><span class="project-state ${x.initialized?'configured':'pending'}">${x.initialized?'Initialized':'Available'}</span></div><div class="project-facts"><span><strong>Status</strong>${x.setupComplete?'Ready for CariFive':'Ready to initialize'}</span><span><strong>Region</strong>${escape(x.region||'—')}</span><span><strong>Main goal</strong>${escape(x.goal||'—')}</span></div></div><a class="secondary-button" href="../v3/?edition=standard#projects">${x.setupComplete?"Open in CariFive":"Set up project"}</a></article>`).join('');
  }else{
  summary.innerHTML=`<div class="product-summary-top"><strong>15 existing projects${state.projects.length!==15?' + new additions':''}</strong><button class="primary-button" type="button" id="create-custom-project"><span>+</span> New project</button></div><p>Create more workspaces whenever you need them. <b>Existing projects are preserved.</b> New projects are added to the portfolio; they do not replace existing folders or files.</p><small>Choose the project, initialize it, and let CariFive use that project’s own knowledge setup.</small>`;
  list.innerHTML=state.projects.map((x,i)=>`<article class="panel product-project"><div class="product-project-info"><div class="product-project-heading"><span class="project-index">${String(i+1).padStart(2,'0')}</span><b>${escape(x.name)}</b><span class="project-state ${x.setupComplete?'configured':'pending'}">${x.setupComplete?'Ready':x.setupStep?'Setup in progress':'Needs setup'}</span></div><div class="project-facts"><span><strong>Industry</strong>${escape(x.industry||'Pending')}</span><span><strong>Core pack</strong>${escape(x.corePack||'Pending assignment')}</span><span><strong>Add-ons</strong>${x.addOns.length?escape(x.addOns.join(', ')):'Pending / none assigned'}</span></div><small>${x.setupComplete?'Ready for CariFive.':'Complete guided setup to unlock CariFive.'}${x.region?' · '+escape(x.region):''}</small></div><div class="project-actions"><button class="secondary-button" data-custom-id="${escape(x.id)}">${x.setupComplete?'Edit setup':x.setupStep?'Resume setup':'Initialize'}</button>${x.setupComplete?`<button class="primary-button" data-work-id="${escape(x.id)}">Ask CariFive</button>`:''}</div></article>`).join('');

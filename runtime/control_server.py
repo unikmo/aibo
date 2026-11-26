@@ -9,7 +9,7 @@ from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlsplit
 try:
-    from . import products, workspace, portfolio, costs, connector_catalog, connection_runtime, dependencies, editorial, oauth_local, action_gateway, attachments, agent_setup, ai_providers, relationship_work, browser_qa, drive_oauth
+    from . import products, workspace, portfolio, costs, connector_catalog, connection_runtime, dependencies, editorial, oauth_local, action_gateway, attachments, agent_setup, ai_providers, relationship_work, browser_qa, drive_oauth, growth_engine
 except ImportError:
     import products
     import workspace
@@ -27,6 +27,7 @@ except ImportError:
     import relationship_work
     import browser_qa
     import drive_oauth
+    import growth_engine
 try:
     from . import infra_actions
 except ImportError:
@@ -190,6 +191,15 @@ class Handler(SimpleHTTPRequestHandler):
         if path=='/api/dependencies':self._json(200,{'tasks':dependencies.records()});return
         if path=='/api/connections/catalog':self._json(200,connector_catalog.catalog());return
         if path=='/api/cost-controls':self._json(200,{**costs.current(),'budgetEnforcement':'not-available','usageMetering':'not-connected'});return
+        if path=='/api/growth/dashboard':
+            self._json(200,growth_engine.dashboard());return
+        if path=='/api/growth/today':
+            self._json(200,growth_engine.today());return
+        if path.startswith('/api/growth/project/'):
+            try:self._json(200,growth_engine.overview(path.split('/')[-1]))
+            except (ValueError,TypeError) as exc:self._json(400,{'error':str(exc)})
+            return
+        if path=='/api/portfolio/standard':self._json(200,portfolio.overview('standard'));return
         if path=='/api/portfolio/custom':self._json(200,portfolio.overview());return
         if path.startswith('/api/setup/custom/') and path.endswith('/sources'):
             parts=path.strip('/').split('/')
@@ -258,6 +268,38 @@ class Handler(SimpleHTTPRequestHandler):
                     result=engine.execute(data.get('id'));status=200
                 self._json(status,result)
             except (ValueError,TypeError) as exc:self._json(400,{'error':str(exc)[:160]})
+            return
+        if path.startswith('/api/growth/'):
+            try:
+                data=self._read_body()
+                parts=path.strip('/').split('/')
+                if len(parts)<4 or parts[0:2]!=['api','growth']:
+                    raise products.ProductError('Invalid growth endpoint')
+                action=parts[2];project=parts[3]
+                if action=='brand' and len(parts)==4:
+                    result=growth_engine.brand_profile(project,data)
+                elif action=='mischief' and len(parts)==4:
+                    result=growth_engine.set_mischief(project,data)
+                elif action=='autonomy' and len(parts)==4:
+                    result=growth_engine.set_autonomy(project,data)
+                elif action=='authorization' and len(parts)==4:
+                    result=growth_engine.autonomy_decision(
+                        project,data.get('channel'),data.get('activity'),
+                        data.get('highRisk') is True)
+                elif action=='opportunity' and len(parts)==4:
+                    result=growth_engine.add_opportunity(project,data)
+                elif action=='creative-review' and len(parts)==4:
+                    result=growth_engine.review_creative(project,data)
+                elif action=='experiment' and len(parts)==4:
+                    result=growth_engine.create_experiment(project,data)
+                elif action=='transition' and len(parts)==5:
+                    result=growth_engine.transition(project,parts[4],data)
+                elif action=='measure' and len(parts)==5:
+                    result=growth_engine.measure(project,parts[4],data)
+                else:raise products.ProductError('Unknown growth operation')
+                self._json(200,result)
+            except (ValueError,TypeError,KeyError) as exc:
+                self._json(400,{'error':str(exc)[:250]})
             return
         if path=='/api/browser/inspect':
             try:

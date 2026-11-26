@@ -8,10 +8,19 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
 fi
 python3 -m pip install "pypdf>=5,<8" pillow pywebview pyobjc-framework-Cocoa pyobjc-framework-WebKit
 python3 packaging/generate_icons.py
+# Default customer edition excludes founder-only project names and registry.
+# AIBO_OWNER_PORTFOLIO=1 may only be used for the founder's private package.
+BUNDLE_SYSTEM="$ROOT/System"
+if [[ "${AIBO_OWNER_PORTFOLIO:-0}" != "1" ]]; then
+  BUNDLE_SYSTEM="$ROOT/build/customer-System"
+  mkdir -p "$BUNDLE_SYSTEM"
+  cp -R "$ROOT/System/." "$BUNDLE_SYSTEM/"
+  printf '{"projects":[]}\n' > "$BUNDLE_SYSTEM/project-registry.json"
+fi
 python3 -m PyInstaller --noconfirm --clean --onedir --windowed --icon "$ROOT/packaging/icons/AIBO.icns" --name AIBO \
   --specpath build \
   --add-data "$ROOT/Control-Centre:Control-Centre" \
-  --add-data "$ROOT/System:System" \
+  --add-data "$BUNDLE_SYSTEM:System" \
   --add-data "$ROOT/Industry-Packs:Industry-Packs" \
   --add-data "$ROOT/runtime/agents.json:runtime" \
   --add-data "$ROOT/runtime/connectors.json:runtime" \

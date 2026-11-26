@@ -1,7 +1,6 @@
-"""AIBO dual product state: local development backend, not a commercial license authority.
+"""AIBO perpetual-version software: no activation or renewal checks.
 
-Standard entitlements are supplied by an external trusted activation service for production.
-Local owner settings cannot grant paid entitlements.
+Purchased installed versions remain usable; upgrades are optional.
 """
 import json
 import os
@@ -17,6 +16,8 @@ ROOT=Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.parent))
 REGISTRY=ROOT/'System'/'project-registry.json'
 STATE=Path(os.environ.get('AIBO_STATE_DIR', str(Path.home()/'.aibo-state')))
 MAX_SLOTS=5
+UPGRADE_ANNUAL_USD=48
+PURCHASE_MODEL='perpetual-version'
 
 class ProductError(ValueError): pass
 
@@ -56,7 +57,16 @@ def project_records():
         raise ProductError('Invalid bundled project registry')
     if not isinstance(extra,dict) or not isinstance(extra.get('projects'),list):
         raise ProductError('Invalid local project registry')
-    return bundled['projects'] + extra['projects']
+    reserved={f'standard-slot-{i}' for i in range(1,MAX_SLOTS+1)}
+    if any(item.get('id') in reserved for item in bundled['projects'] + extra['projects']):
+        raise ProductError('Reserved standard workspace ID collision')
+    slots=[{'id':f'standard-slot-{i}',
+            'name':read_json(STATE/'workspaces'/f'standard-slot-{i}.json',{}).get('fields',{}).get('name') or f'Project slot {i}',
+            'projectHome':f'Projects/standard-slot-{i}','stateProject':True,
+            'edition':'standard','classification':{'status':'pending-pack',
+                'industry':None,'corePack':None,'addOns':[]}}
+           for i in range(1,MAX_SLOTS+1)]
+    return bundled['projects'] + extra['projects'] + slots
 
 
 def _project_folder(record):
@@ -73,6 +83,7 @@ def custom_projects():
     state=read_json(STATE/'custom.json',{})
     projects=[]
     for p in registry['projects']:
+        if p.get('edition')=='standard':continue
         x=state.get(p['id'],{})
         mapping=read_json(_project_folder(p)/'PROJECT-KNOWLEDGE.json',p.get('classification') or {'status':'pending-pack','industry':None,'corePack':None,'addOns':[]})
         setup=read_json(STATE/'workspaces'/(p['id']+'.json'),{})
@@ -84,19 +95,52 @@ def custom_projects():
             'goal':setup.get('fields',{}).get('goal',x.get('goal',''))})
     return projects
 
+def purchase_model():
+    """Commercial policy only: no client-side claim can issue a purchase receipt."""
+    return {
+        'type':PURCHASE_MODEL, 'activationRequired':False, 'licenseKeyRequired':False,
+        'access':'perpetual-to-installed-version','mandatoryRenewal':False,
+        'upgrades':{'optional':True,'annualUsd':UPGRADE_ANNUAL_USD,
+                    'annualTermMonths':12,'individualMajorRelease':True,
+                    'individualPriceUsd':None,'noRenewalDisablesExistingVersion':True},
+        'support':{'separatelyPriced':True,'unsupportedModificationsMayBeBillable':True,
+                   'statutoryDefectRemediesPreserved':True,
+                   'requiredSecurityUpdatesExcludedFromPaidFeatureUpgrades':True},
+        'aiProvider':{'customerCredentialsMayBeRequired':True,'providerFeesSeparate':True},
+        'purchaseProof':'seller-issued order receipt, not a local activation code'
+    }
+
+
 def standard_state():
-    x=read_json(STATE/'standard.json',{})
-    slots=x.get('slots',[])
-    # Always provision five stable slots; inactive slots hold no business content.
-    slots=(slots+[{'slot':i,'initialized':False,'name':'','region':'','goal':''} for i in range(1,6)])[0:5]
-    for i,s in enumerate(slots):s['slot']=i+1
-    return {'license':{'status':'not-activated','industry':None,'corePack':None,'addOns':[],
-                       'projectLimit':MAX_SLOTS,'note':'Production licenses must be verified by a trusted issuer.'},
+    """Five local slots, distinct from the existing owner's portfolio."""
+    old=read_json(STATE/'standard.json',{})
+    legacy=old.get('slots',[]) if isinstance(old,dict) else []
+    slots=[]
+    for i in range(1,MAX_SLOTS+1):
+        previous=next((s for s in legacy if isinstance(s,dict) and s.get('slot')==i),{})
+        setup=read_json(STATE/'workspaces'/f'standard-slot-{i}.json',{})
+        fields=setup.get('fields',{}) if isinstance(setup,dict) else {}
+        slots.append({
+            'slot':i,'id':f'standard-slot-{i}',
+            'name':fields.get('name') or previous.get('name') or f'Project slot {i}',
+            'region':fields.get('region') or previous.get('region',''),
+            'goal':fields.get('goal') or previous.get('goal',''),
+            'initialized':bool(setup.get('complete') or previous.get('initialized')),
+            'setupComplete':bool(setup.get('complete')),
+            'setupStep':setup.get('step',0),
+            'readiness':'Ready' if setup.get('complete') else 'Setup needed',
+            'industry':None,
+            'tasksOpen':0,'tasksCompleted':0,'tasksFailed':0
+        })
+    return {'purchase':purchase_model(),
+            'license':{'status':'no-activation-required','projectLimit':MAX_SLOTS,
+                       'note':'Permanent access to this installed version; optional upgrades.'},
             'slots':slots}
+
 
 def state_for(mode):
     if mode=='standard':return standard_state()
-    if mode=='custom':return {'projects':custom_projects(),'model':'project-scoped-knowledge'}
+    if mode=='custom':return {'projects':custom_projects(),'model':'project-scoped-knowledge','purchase':purchase_model()}
     raise ProductError('Invalid product mode')
 
 def update_project(mode,identifier,data):
@@ -107,8 +151,18 @@ def update_project(mode,identifier,data):
     goal=str(data.get('goal','')).strip()[:500]
     if not name or not goal:raise ProductError('Name and goal required')
     if mode=='standard':
-        # Commercial SKU control must not trust browser input or local JSON.
-        raise ProductError('Standard activation requires a verified license. Local demo cannot unlock paid project slots.')
+        if not re.fullmatch(r'(?:standard-slot-)?[1-5]',identifier):
+            raise ProductError('Unknown standard project slot')
+        slot=int(identifier.split('-')[-1])
+        workspace_id=f'standard-slot-{slot}'
+        from datetime import datetime,timezone
+        target=STATE/'workspaces'/(workspace_id+'.json')
+        previous=read_json(target,{})
+        fields={**previous.get('fields',{}),'name':name,'region':region,'goal':goal}
+        write_json(target,{'fields':fields,'step':2,'complete':True,'reviewed':True,
+                           'savedAt':datetime.now(timezone.utc).isoformat(),
+                           'sourceEvidence':previous.get('sourceEvidence',[])})
+        return {'ok':True,'project':workspace_id}
     projects={p['id']:p for p in custom_projects()}
     if identifier not in projects:raise ProductError('Project not in configured workspace')
     state=read_json(STATE/'custom.json',{})

@@ -1,7 +1,8 @@
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id), E=(tag,cls,content)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(content!==undefined)e.textContent=String(content??"");return e;};
-const S={projects:[],activity:[],actions:[],connections:null,providers:null,selected:"",filter:"all",edition:new URLSearchParams(location.search).get("edition")==="standard"?"standard":"custom",busy:false,providerChoice:null};
+const EXPLICIT_EDITION=new URLSearchParams(location.search).has("edition");
+const S={projects:[],activity:[],actions:[],connections:null,providers:null,selected:"",filter:"all",edition:new URLSearchParams(location.search).get("edition")==="custom"?"custom":"standard",busy:false,providerChoice:null};
 const safe=(x)=>String(x??"");
 function notice(title,msg){$("modalTitle").textContent=title;$("modalBody").textContent=msg;$("modalBody").replaceChildren(document.createTextNode(msg));$("overlay").classList.add("open");$("closeModal").focus()}
 function formModal(title,fields,submit){$("modalTitle").textContent=title;const root=$("modalBody");root.replaceChildren();const form=E("form","modal-form");for(const f of fields){const label=E("label","",f.label),control=E(f.multiline?"textarea":f.options?"select":"input","field");control.name=f.name;if(f.multiline){control.rows=3;}else if(f.options){for(const [val,txt] of f.options){const option=E("option","",txt);option.value=val;control.append(option);}}else{control.type=f.type||"text";}control.value=f.value??"";if(f.required)control.required=true;if(f.max)control.maxLength=f.max;if(f.disabled)control.disabled=true;label.append(control);form.append(label);}
@@ -12,10 +13,39 @@ async function api(url,options={}){const r=await fetch(url,{cache:"no-store",...
 const json=(method,body)=>({method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
 function projectName(id){return S.projects.find(p=>p.id===id)?.name||id||"Project"}
 function filteredProjects(){return S.selected?S.projects.filter(p=>p.id===S.selected):S.projects}
-function show(name){if(!["home","soni","projects","activity","connections"].includes(name))return;document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+name));document.querySelectorAll(".nav").forEach(x=>{const yes=x.dataset.screen===name;x.classList.toggle("active",yes);if(yes)x.setAttribute("aria-current","page");else x.removeAttribute("aria-current")});if(location.hash.slice(1)!==name)location.hash=name;document.title="AIBO — "+name[0].toUpperCase()+name.slice(1);if(name==="soni")renderConversation();if(name==="activity")refresh().catch(e=>console.warn('Activity refresh:',e.message));window.scrollTo(0,0)}
+function show(name){if(!["home","soni","projects","activity","connections","growth"].includes(name))return;document.querySelectorAll(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+name));document.querySelectorAll(".nav").forEach(x=>{const yes=x.dataset.screen===name;x.classList.toggle("active",yes);if(yes)x.setAttribute("aria-current","page");else x.removeAttribute("aria-current")});if(location.hash.slice(1)!==name)location.hash=name;document.title="CariFive — "+(name==="soni"?"Talk to CariFive":name[0].toUpperCase()+name.slice(1));if(name==="soni")renderConversation();if(name==="activity")refresh().catch(e=>console.warn('Activity refresh:',e.message));if(name==="growth")refreshGrowthOverview();window.scrollTo(0,0)}
 document.addEventListener("click",e=>{const r=e.target.closest("[data-go],[data-screen]");if(r){e.preventDefault();show(r.dataset.go||r.dataset.screen)}});
 function renderRows(id,items,empty){const node=$(id);node.replaceChildren();if(!items.length){node.className="empty";node.textContent=empty;return;}node.className="";for(const item of items){const row=E("div","rowitem"),left=E("div");left.append(E("strong","",item.name),E("small","",item.info));row.append(left,E("span","pill"+(["failed","interrupted","Attention"].includes(item.status)?" gold":""),item.status||"Recorded"));if(item.click){row.style.cursor="pointer";row.tabIndex=0;row.setAttribute("role","button");row.onclick=item.click;row.onkeydown=e=>{if(e.key==="Enter")item.click()}}node.append(row)}}
 function renderHome(){const p=filteredProjects(),num=k=>p.reduce((n,x)=>n+Number(x[k]||0),0),activity=S.activity.filter(x=>!S.selected||x.project===S.selected);$("countProjects").textContent=p.length;$("countActive").textContent=num("tasksOpen");$("countNeeds").textContent=num("tasksFailed");$("countDone").textContent=num("tasksCompleted");renderRows("homeNeeds",p.filter(x=>x.tasksFailed||x.tasksOpen||!x.setupComplete).slice(0,5).map(x=>({name:x.name,info:x.tasksFailed?"Latest work needs review":x.tasksOpen?"Work running":"Review setup",status:x.tasksFailed?"Attention":"Review",click:()=>openProject(x)})),"Nothing needs attention.");renderRows("homeRecent",activity.slice(0,5).map(x=>({name:projectName(x.project),info:(x.task||"Task").slice(0,130),status:x.status,click:()=>runDetail(x.id)})),"No activity yet.");renderRows("homeHealth",p.slice(0,6).map(x=>({name:x.name,info:x.readiness||"No readiness assessment",status:x.tasksFailed?"Attention":"Recorded"})),"No portfolio records available.")}
+function renderHomePortfolio(){
+ const list=$("homePortfolio");list.replaceChildren();
+ const projects=filteredProjects().slice(0,3);
+ if(!projects.length){
+  list.append(E("div","empty","No projects in this workspace."));
+  return;
+ }
+ for(const p of projects){
+  const card=E("button","portfolio-tile");
+  card.type="button";
+  const head=E("div","portfolio-tile-head");
+  const emblem=E("span","portfolio-emblem","▣");
+  const text=E("div","portfolio-tile-main");
+  text.append(E("strong","",p.name),E("small","",p.industry||"CariFive project"));
+  head.append(emblem,text);
+  const state=p.tasksFailed?"Needs attention":p.setupComplete?"Ready":"Setup needed";
+  const status=E("span","portfolio-state "+(p.tasksFailed?"at-risk":p.setupComplete?"is-ready":"is-review"),state);
+  const footer=E("div","portfolio-tile-foot");
+  footer.append(status,E("span","portfolio-arrow","↗"));
+  card.append(head,footer);
+  card.onclick=()=>{
+   S.selected=p.id;
+   $("projectSelect").value=p.id;
+   render();
+   show("projects");
+  };
+  list.append(card);
+ }
+}
 function renderProjects(){
  const node=$("projectCards");node.replaceChildren();
  const chosen=S.projects.find(p=>p.id===S.selected);
@@ -27,7 +57,8 @@ function renderProjects(){
    const setup=E("button","cta",chosen.setupComplete?"Review sources":"Import sources");
    setup.onclick=()=>openProject(chosen);
    const open=E("button","secondary","Ask CariFive");open.onclick=()=>show("soni");
-   actions.append(setup,open);card.append(state,actions);node.append(card);return;
+   const growth=E("button","secondary","Growth OS");growth.type="button";growth.onclick=()=>window.CariFiveGrowth?.open(chosen.id);
+   actions.append(setup,open,growth);card.append(state,actions);node.append(card);return;
  }
  $("projectSubheading").textContent=S.projects.length+" projects";
  for(const p of S.projects){
@@ -79,7 +110,6 @@ execute.onclick=()=>formModal("Execute approved action · "+(a.kind||""),[{name:
 controls.append(approve,execute);$("modalBody").append(controls);
 }
 async function openProject(p){
-  if(S.edition==="standard"){notice("Standard edition","A verified license is required before activating project slots.");return;}
   try{
     const [state,local]=await Promise.all([api("/api/setup/custom/"+encodeURIComponent(p.id)),api("/api/setup/custom/"+encodeURIComponent(p.id)+"/sources").catch(()=>({suggestions:{}}))]);
     const root=$("modalBody");root.replaceChildren();$("modalTitle").textContent="Set up "+p.name;
@@ -140,7 +170,7 @@ async function openProject(p){
         const hostname=main?new URL(main).hostname.toLowerCase():"";
         const kind=hostname==="github.com"?"repository":
           ["docs.google.com","drive.google.com"].includes(hostname)?"drive":"website";
-        if(main&&data[kind]&&data[kind]!==main)throw Error("Use the More sources section to avoid two links of the same type");
+        if(main&&normalizeLink(data[kind])&&normalizeLink(data[kind])!==main)throw Error("Use the More sources section to avoid two links of the same type");
         const sources={website:normalizeLink(data.website),repository:normalizeLink(data.repository),drive:normalizeLink(data.drive)};
         if(main)sources[kind]=main;
         const report=await api("/api/setup/custom/"+encodeURIComponent(p.id)+"/inspect",
@@ -186,7 +216,7 @@ function renderSourceReview(project,state,report){
   intro.append(E("p","",missingSource||"Check the source content and suggested details below, then save the project."));
   if(sourceReviewed&&!usableSuggestions.length)intro.append(E("p","source-warning","The source was read, but it did not state a clear business goal. Enter the goal yourself before saving."));
   if(sources.length){
-    const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");
+    const list=E("details","source-extra"),heading=E("summary","","Sources inspected ("+sources.length+")");list.open=true;
     list.append(heading);
     for(const entry of sources.slice(0,8)){const item=E("div","source-list-item");item.append(E("strong","",entry.reference),E("p","",entry.excerpt?.trim()?entry.excerpt.slice(0,550):"The source returned no readable text."));list.append(item)}
     intro.append(list);
@@ -290,7 +320,7 @@ soniComposer.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.
 function providerOptions(){const select=$("soniProvider");select.replaceChildren();for(const [val,label] of [["mock","Demo (no paid AI)"],["auto","Auto · Codex → Claude"],["codex-local","Codex · local CLI"],["claude-local","Claude · local CLI"],["openai","OpenAI API"],["anthropic","Anthropic API"],["openrouter","OpenRouter API"],["vercel-gateway","Vercel AI Gateway"],["together","Together API"],["groq","Groq API"]]){const opt=E("option","",label+(S.providers?.ready?.[val]?" · available":""));opt.value=val;select.append(opt)}select.value=S.providerChoice||"auto";select.title="Automatic: Codex CLI first, Claude CLI on failure. Paid API requires separate approval.";providerConsent()}
 function providerConsent(){const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);document.querySelector(".consent").classList.toggle("visible",paid);$("soniConsent").checked=false;}
 $("soniProvider").onchange=()=>{S.providerChoice=$("soniProvider").value;providerConsent()};
-$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(S.edition==="standard"){notice("License not activated","Standard edition requires trusted license activation before CariFive execution.");return}if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<255;i++){
+$("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),project=S.selected,provider=$("soniProvider").value;const button=$("reviewPrompt");if(!project){notice("Select a project","Choose an existing project before starting a task.");return}if(task.length<5){notice("Describe the task","Enter at least five characters.");return}if(S.busy)return;S.busy=true;button.disabled=true;$("promptHint").textContent="Submitting task…";try{const r=await api("/api/work/custom/"+encodeURIComponent(project),json("POST",{task,provider,consent:$("soniConsent").checked}));$("soniPrompt").value="";sizeComposer();$("promptHint").textContent="Run started · "+r.id;await renderConversation();for(let i=0;i<255;i++){
   await new Promise(ok=>setTimeout(ok,2000));
   const status=await api("/api/run/"+encodeURIComponent(r.id));
   if(["completed","failed","interrupted"].includes(status.status)){
@@ -305,9 +335,85 @@ $("reviewPrompt").onclick=async()=>{const task=$("soniPrompt").value.trim(),proj
   }
   if(i===254){$("promptHint").textContent="Execution deadline reached. Check Activity.";await renderConversation();}
 }}catch(e){$("promptHint").textContent="Task not started";notice("CariFive could not start",e.message)}finally{button.disabled=false;S.busy=false;}};
+// Chat-first home composer uses the existing real CariFive conversation and provider gate.
+const homeTalkForm=$("homeTalkForm"),homeTalkPrompt=$("homeTalkPrompt");
+homeTalkForm.addEventListener("submit",e=>{
+ e.preventDefault();
+ const prompt=homeTalkPrompt.value.trim();
+ if(prompt.length<5){homeTalkPrompt.focus();return;}
+ $("soniPrompt").value=prompt;
+ sizeComposer();
+ show("soni");
+ if(!S.selected){
+  $("promptHint").textContent="Choose a project above, then press Send. Your message is kept.";
+  $("projectSelect").focus();
+  return;
+ }
+ // Approval is per task. Never carry earlier API payment consent into a new request.
+ $("soniConsent").checked=false;
+ homeTalkPrompt.value="";
+ const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);
+ if(paid){
+  $("promptHint").textContent="Review the selected paid provider and approve its charges before sending.";
+  $("soniPrompt").focus();
+  return;
+ }
+ // Only the existing chat submission route executes, never a parallel home endpoint.
+ $("reviewPrompt").click();
+});
+homeTalkPrompt.addEventListener("keydown",e=>{
+ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();homeTalkForm.requestSubmit();}
+});
+const openGrowth=()=>{show("growth");};
+for(const id of ["homeGrowthButton","growthReadiness","growthRadar","growthCreative","growthExperiments"]){
+ $(id).onclick=openGrowth;
+}
+$("growthTodayScreen").onclick=()=>window.CariFiveGrowth?.today();
+$("growthPortfolioDetails").onclick=()=>window.CariFiveGrowth?.dashboard();
+$("growthManageBrand").onclick=()=>{
+ if(!S.selected){notice("Choose a project","Select a project in the top bar to manage its Growth OS.");return;}
+ window.CariFiveGrowth?.open(S.selected);
+};
+$("todayAction").onclick=()=>{
+ if(!S.selected){window.CariFiveGrowth?.today();return;}
+ window.CariFiveGrowth?.open(S.selected);
+};
+async function refreshGrowthOverview(){
+ let data;
+ try{data=await api("/api/growth/dashboard");}catch(e){
+  $("growthScreenSummary").textContent="Growth records are unavailable: "+e.message;
+  $("todayTitle").textContent="No verified recommendation available";
+  $("todayDescription").textContent="Growth records must be available before a next action can be recommended.";
+  return;
+ }
+ const list=Array.isArray(data.brands)?data.brands:[];
+ const ready=list.filter(x=>x.readiness==="PASS").length;
+ const tests=list.reduce((n,x)=>n+Number(x.experiments||0),0);
+ const measured=list.reduce((n,x)=>n+Number(x.measured||0),0);
+ $("growthReadyValue").textContent=list.length?ready+" of "+list.length+" ready":"No brand assessed";
+ $("growthExperimentValue").textContent=tests?tests+" recorded":"No experiments yet";
+ $("growthCreativeValue").textContent="Review in brand";
+ $("growthScreenSummary").textContent=list.length
+   ?list.length+" brand"+(list.length===1?"":"s")+" assessed · "+ready+" passed readiness · "+tests+" experiments · "+measured+" with manually recorded measurements. Outcomes not independently verified."
+   :"No brand growth profile yet. Select a project and use Manage selected brand to review the offer, audience and channels.";
+ $("growthRadarValue").textContent="Review opportunities";
+ try{
+  const next=await api("/api/growth/today");
+  if(next.action){
+   $("todayTitle").textContent=next.action.objective;
+   $("todayDescription").textContent=next.action.project+" · "+next.action.recommendedAction+" · Based on recorded evidence, not live monitoring.";
+  }else{
+   $("todayTitle").textContent="Start with a brand readiness review";
+   $("todayDescription").textContent=next.reason||"No eligible, owner-reviewed opportunity is recorded.";
+  }
+ }catch(e){
+  $("todayTitle").textContent="Opportunity review unavailable";
+  $("todayDescription").textContent=e.message;
+ }
+}
 $("projectSelect").onchange=e=>{S.selected=e.target.value;render();renderConversation()};
 $("newProjectBtn").onclick=()=>{
- if(S.edition!=="custom"){notice("License not activated","A verified license is required to create new projects.");return;}
+ if(S.edition!=="custom"){notice("Five project slots","Standard includes five permanent workspaces. Choose a slot from the Projects page.");return;}
  formModal("New project",[{name:"name",label:"Project name",required:true,max:80}],async d=>{
    const result=await api("/api/projects/custom",json("POST",{name:d.name,industry:"",region:"",corePack:null,addOns:[]}));
    S.selected=result.project;
@@ -352,13 +458,13 @@ async function providerModel(){
     await loadModels();
   }catch(e){notice("Models unavailable",e.message)}
 }
-async function agentSettings(){if(!S.selected||S.edition!=="custom"){notice("Choose a project","Select a Custom project to edit CariFive's project-scoped settings.");return}try{const a=await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected));formModal("Agent setup · "+projectName(S.selected),[{name:"workingStyle",label:"Working style",value:a.workingStyle,options:[["autonomous","Autonomous within permissions"],["supervised","Supervised"]]}],async d=>{await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected),json("PUT",{workingStyle:d.workingStyle}))});}catch(e){notice("Agent settings unavailable",e.message)}}
+async function agentSettings(){if(!S.selected){notice("Choose a project","Select a project to edit CariFive's project-scoped settings.");return}try{const a=await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected));formModal("Agent setup · "+projectName(S.selected),[{name:"workingStyle",label:"Working style",value:a.workingStyle,options:[["autonomous","Autonomous within permissions"],["supervised","Supervised"]]}],async d=>{await api("/api/agent-setup/custom/"+encodeURIComponent(S.selected),json("PUT",{workingStyle:d.workingStyle}))});}catch(e){notice("Agent settings unavailable",e.message)}}
 $("settingsBtn").onclick=()=>{notice("Settings","Choose the control area. Permissions, AI provider routing and usage limits remain locally managed.");const controls=E("div","modal-controls");for(const [label,fn] of [["Cost controls",costSettings],["AI providers",providerSettings],["API credentials",providerCredentials],["Select model",providerModel],["Project agents",agentSettings]]){const button=E("button","secondary",label);button.type="button";button.onclick=fn;controls.append(button)}$("modalBody").append(controls)};
 
-$("accountBtn").onclick=()=>notice("Account and edition","AIBO is running as a local-first workspace. Cross-device identity and signed commercial licensing are not yet verified. Current edition: "+S.edition+".");
-async function refresh(){let projectState;const opts=[api("/api/portfolio/custom"),api("/api/products/"+S.edition),api("/api/actions"),api("/api/connections/catalog"),api("/api/ai-providers")];const all=await Promise.allSettled(opts);const get=i=>all[i].status==="fulfilled"?all[i].value:null;const portfolio=get(0)||{projects:[],recentWork:[]};projectState=get(1);S.projects=S.edition==="custom"?portfolio.projects||[]:(projectState?.slots||[]).map(x=>({id:"slot-"+x.slot,name:x.name||"Project slot "+x.slot,industry:"Licensed slot",readiness:"License not activated",setupComplete:false,tasksOpen:0,tasksCompleted:0,tasksFailed:0}));S.activity=S.edition==="custom"?portfolio.recentWork||[]:[];S.actions=S.edition==="custom"?get(2)?.actions||[]:[];S.connections=get(3);S.providers=get(4);const sel=$("projectSelect"),prior=S.selected;sel.replaceChildren();const allOpt=E("option","","All projects");allOpt.value="";sel.append(allOpt);for(const p of S.projects){const o=E("option","",p.name);o.value=p.id;sel.append(o)}S.selected=S.projects.some(p=>p.id===prior)?prior:"";sel.value=S.selected;$("editionLabel").textContent=(S.edition==="custom"?"Portfolio edition":"Standard edition")+" · "+S.projects.length+" projects";render();renderConnections();providerOptions();if(all[0].status==="rejected")$("homeNeeds").textContent="Local backend unavailable — "+all[0].reason.message;}
+$("accountBtn").onclick=()=>notice("Your CariFive version","One-time purchase: keep this installed version without renewal or activation keys. Optional feature upgrades: $48/year or individually priced. AI provider costs are separate. Unsupported customer modifications and custom support may be billable; statutory defect remedies and required security updates remain protected.");
+async function refresh(){let projectState;const opts=[api("/api/portfolio/"+S.edition),api("/api/products/"+S.edition),api("/api/actions"),api("/api/connections/catalog"),api("/api/ai-providers")];const all=await Promise.allSettled(opts);const get=i=>all[i].status==="fulfilled"?all[i].value:null;const portfolio=get(0)||{projects:[],recentWork:[]};projectState=get(1);S.projects=portfolio.projects?.length?portfolio.projects:(S.edition==="custom"?projectState?.projects||[]:(projectState?.slots||[]).map(x=>({...x,id:x.id||"standard-slot-"+x.slot,industry:"Standard",readiness:x.setupComplete?"Ready":"Setup needed",tasksOpen:0,tasksCompleted:0,tasksFailed:0})));S.activity=(portfolio.recentWork||[]).filter(x=>S.edition==="custom"?!String(x.project||"").startsWith("standard-slot-"):String(x.project||"").startsWith("standard-slot-"));S.actions=(get(2)?.actions||[]).filter(x=>S.edition==="custom"?!String(x.project||"").startsWith("standard-slot-"):String(x.project||"").startsWith("standard-slot-"));S.connections=get(3);S.providers=get(4);const sel=$("projectSelect"),prior=S.selected;sel.replaceChildren();const allOpt=E("option","","All projects");allOpt.value="";sel.append(allOpt);for(const p of S.projects){const o=E("option","",p.name);o.value=p.id;sel.append(o)}S.selected=S.projects.some(p=>p.id===prior)?prior:"";sel.value=S.selected;$("editionLabel").textContent=(S.edition==="custom"?"Portfolio":"Standard")+" · Owned version · "+S.projects.length+" projects";render();renderConnections();providerOptions();refreshGrowthOverview().catch(e=>console.warn("Growth summary:",e.message));if(all[0].status==="rejected")$("homeNeeds").textContent="Local backend unavailable — "+all[0].reason.message;}
 function render(){
- renderHome();renderProjects();renderActivity();
+ renderHome();renderHomePortfolio();renderProjects();renderActivity();
  $("soniProject").textContent=projectName(S.selected)||"Select a project above to begin";
  $("newProjectBtn").hidden=S.edition!=="custom";
 }
@@ -371,5 +477,13 @@ if(location.protocol==="https:"&&!["localhost","127.0.0.1"].includes(location.ho
   banner.textContent="CariFive web preview — the local execution engine is not connected. Tasks and integrations are unavailable online.";
   document.body.prepend(banner);
 }
-(async()=>{await refresh();show(location.hash.slice(1)||"home");})();
+(async()=>{
+ if(!EXPLICIT_EDITION){
+   // Keep the founder's existing portfolio as the private owner default.
+   // Customer packages have an empty bundled portfolio and open Standard.
+   const owner=await api("/api/portfolio/custom").catch(()=>({projects:[]}));
+   if(owner.projects?.length)S.edition="custom";
+ }
+ await refresh();show(location.hash.slice(1)||"home");
+})();
 })();

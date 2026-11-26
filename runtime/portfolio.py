@@ -11,14 +11,15 @@ except ImportError:
 LOCK=threading.RLock()
 KPI_FILE=products.STATE/'portfolio-kpis.json'
 
-def _projects():
+def _projects(mode='custom'):
+    if mode=='standard':return products.standard_state()['slots']
     return products.custom_projects()
 
 def _kpis():
     return products.read_json(KPI_FILE,{})
 
-def all_runs():
-    allowed={p['id'] for p in _projects()}
+def all_runs(mode='custom'):
+    allowed={p['id'] for p in _projects(mode)}
     items=[]
     if workspace.RUNS_DIR.exists():
         for f in workspace.RUNS_DIR.glob('*.json'):
@@ -28,8 +29,8 @@ def all_runs():
                 items.append({k:x.get(k) for k in ('id','project','task','status','provider','createdAt','updatedAt','error')})
     return sorted(items,key=lambda x:x.get('createdAt') or '',reverse=True)
 
-def overview():
-    projects=_projects(); runs=all_runs(); metrics=_kpis()
+def overview(mode='custom'):
+    projects=_projects(mode); runs=all_runs(mode); metrics=_kpis()
     counts={s:sum(1 for r in runs if r['status']==s) for s in ('queued','running','completed','failed','interrupted')}
     projects_out=[]
     for p in projects:
