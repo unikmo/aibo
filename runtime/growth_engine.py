@@ -256,6 +256,8 @@ def transition(project,experiment_id,body):
         if target=='READY_FOR_APPROVAL':
             if readiness(data)['status']!='PASS':
                 raise products.ProductError('Brand readiness must PASS before campaign approval')
+            if data.get('channels',{}).get(item['channel'])!='EXISTS_AND_USABLE':
+                raise products.ProductError('Campaign channel is not classified usable for this brand')
             opportunity=next((o for o in data['opportunities']
                               if o['id']==item['opportunityId']),None)
             if not opportunity or opportunity['decision'] in ('ESCALATE','IGNORE'):
