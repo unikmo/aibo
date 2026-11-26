@@ -248,7 +248,10 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
         remaining=timeout if deadline is None else min(timeout,int(deadline-time.monotonic()))
         if remaining<1:
             raise AiboError('CariFive task deadline reached; no completed result can be reported')
-        outputs[name] = provider_call(selected_provider, system, user, selected_model, remaining, output_token_limit)
+        answer = provider_call(selected_provider, system, user, selected_model, remaining, output_token_limit)
+        if selected_provider != 'mock' and (not isinstance(answer,str) or not answer.strip() or answer.lstrip().startswith('[MOCK RESPONSE')):
+            raise AiboError('CariFive rejected an empty or simulated specialist output; no usable answer was produced')
+        outputs[name] = answer
     soni_system = ('You are CariFive, a concise executive-level business partner. Answer the actual question directly in plain language. '
                    'Default to one to three short sentences, approximately 45–90 words maximum. Never dump agent deliberations, '
                    'raw markdown, repetitive caveats, or invented project status. If the evidence is missing, say exactly what is unknown. '
@@ -257,6 +260,8 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
                    'Never guess what an ambiguous acronym means (for example ABAs); ask one brief question instead. '
                    'Do not invent citations, uninspected business files, repository contents or outreach receipts. '
                    'Avoid Markdown markers, raw file paths, escaped HTML and internal specialist chains. '
+                   'Incorporate the independent quality specialist review: correct unsupported assertions, contradictions and relevance problems before answering. '
+                   'Do not treat a completed model call or a specialist opinion as evidence of real-world task completion. '
                    'No external tool execution is authorized by this request. Specialists are internal; do not list them by default.')
     soni_input = 'GOAL: '+goal+'\nPROJECT: '+project['name']+'\nSPECIALIST RESPONSES:\n'+json.dumps(outputs, ensure_ascii=False)[:24000]
     selected_provider,selected_model=(agent_routes.get('soni',(provider,model)) if agent_routes else (provider,model))
@@ -264,6 +269,8 @@ def execute(project_id, goal, provider='mock', agents=None, model=None, timeout=
     if remaining<1:
         raise AiboError('CariFive task deadline reached before synthesis')
     synthesis = provider_call(selected_provider, soni_system, soni_input, selected_model, remaining, output_token_limit)
+    if selected_provider != 'mock' and (not isinstance(synthesis,str) or not synthesis.strip() or synthesis.lstrip().startswith('[MOCK RESPONSE')):
+        raise AiboError('CariFive rejected an empty or simulated final answer; no usable result was produced')
     return {'project':project_id, 'provider':provider, 'agents':requested, 'classification':project.get('classification'),
             'actionGate':classify_action(goal), 'decisionPackage':approval_record(project_id, goal) if classify_action(goal)=='approval-required' else None,
             'specialistResults':outputs, 'soni':synthesis, 'providerRouting':{k:v[0] for k,v in (agent_routes or {}).items()}, 'externalActionsExecuted':False,
