@@ -239,8 +239,12 @@ class GrowthTests(unittest.TestCase):
         g.transition(self.pid,e['id'],{'status':'RUNNING',
             'manualLaunchEvidence':'Founder reports sending one compliant personal message'})
         m=g.measure(self.pid,e['id'],{'value':2,'source':'Landing analytics',
-            'observedAt':'2026-11-26T00:00:00Z','websiteEvidence':True})
+            'observedAt':'2026-11-26T00:00:00Z','websiteEvidence':True,
+            'websiteIssue':'Landing page form does not submit',
+            'websiteEvidenceRef':'QA recording #42'})
         self.assertEqual(m['experiment']['outcome'],'WEBSITE_INTERVENTION_REQUIRED')
+        self.assertEqual(m['experiment']['websiteIntervention']['status'],'PENDING_BUILD_REVIEW')
+        self.assertFalse(m['experiment']['externalActionExecuted'])
 
     def test_default_autonomy_and_l3_requires_owner_approval(self):
         self.assertEqual(g.overview(self.pid)['autonomy']['level'],2)
