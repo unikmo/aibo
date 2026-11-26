@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id), E=(tag,cls,content)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(content!==undefined)e.textContent=String(content??"");return e;};
-const S={projects:[],activity:[],actions:[],connections:null,providers:null,selected:"",filter:"all",edition:new URLSearchParams(location.search).get("edition")==="standard"?"standard":"custom",busy:false,providerChoice:null};
+const S={projects:[],activity:[],actions:[],connections:null,providers:null,selected:"",filter:"all",edition:new URLSearchParams(location.search).get("edition")==="custom"?"custom":"standard",busy:false,providerChoice:null};
 const safe=(x)=>String(x??"");
 function notice(title,msg){$("modalTitle").textContent=title;$("modalBody").textContent=msg;$("modalBody").replaceChildren(document.createTextNode(msg));$("overlay").classList.add("open");$("closeModal").focus()}
 function formModal(title,fields,submit){$("modalTitle").textContent=title;const root=$("modalBody");root.replaceChildren();const form=E("form","modal-form");for(const f of fields){const label=E("label","",f.label),control=E(f.multiline?"textarea":f.options?"select":"input","field");control.name=f.name;if(f.multiline){control.rows=3;}else if(f.options){for(const [val,txt] of f.options){const option=E("option","",txt);option.value=val;control.append(option);}}else{control.type=f.type||"text";}control.value=f.value??"";if(f.required)control.required=true;if(f.max)control.maxLength=f.max;if(f.disabled)control.disabled=true;label.append(control);form.append(label);}
