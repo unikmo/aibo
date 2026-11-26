@@ -182,16 +182,16 @@ def catalog():
 
 def request_connection(data):
     try:
-        from .products import ProductError, custom_projects
+        from .products import ProductError, project_records
     except ImportError:
-        from products import ProductError, custom_projects
+        from products import ProductError, project_records
     if not isinstance(data, dict):
         raise ProductError('Invalid request')
     connector = data.get('connector')
     project = data.get('project')
     if not isinstance(connector, str) or connector not in {x['id'] for x in entries()}:
         raise ProductError('Unknown connector')
-    if not isinstance(project, str) or project not in {x['id'] for x in custom_projects()}:
+    if not isinstance(project, str) or project not in {x['id'] for x in project_records()}:
         raise ProductError('Choose an existing project')
     with _LOCK:
         current = requests()
