@@ -158,6 +158,32 @@ def requires_specific_approval(kind,body=None):
           'premium-generation','bulk-outreach'}
     return kind in high or (isinstance(body,dict) and body.get('highRisk') is True)
 
+def autonomy_decision(project,channel,activity,high_risk=False):
+    """Policy assessment only. Every actual external action uses the separate gateway."""
+    data=_read(project)
+    if channel not in CHANNELS:
+        raise products.ProductError('Unsupported marketing channel')
+    activity=_text(activity,80,True)
+    policy=data['autonomy']
+    level=policy['level']
+    if high_risk or requires_specific_approval(activity):
+        decision='EXPLICIT_APPROVAL_REQUIRED'
+    elif level==0:
+        decision='RECOMMEND_ONLY'
+    elif level==1:
+        decision='DRAFT_ONLY'
+    elif level==2:
+        decision='PREPARE_FOR_APPROVAL'
+    elif (policy['scopeApproved'] and channel in policy['authorizedChannels']
+          and activity in policy['authorizedLowRiskTypes']):
+        decision='ELIGIBLE_SCOPED_LOW_RISK'
+    else:
+        decision='EXPLICIT_APPROVAL_REQUIRED'
+    return {'project':project,'channel':channel,'activity':activity,'level':level,
+            'decision':decision,'canExecuteExternalAction':False,
+            'note':'No live action is authorized here; gateway approval and provider verification remain mandatory.'}
+
+
 def _assess_opportunity(scores):
     if not isinstance(scores,dict) or set(scores)!=set(SCORE_FIELDS):
         raise products.ProductError('All opportunity criteria must be assessed')
