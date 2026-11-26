@@ -349,8 +349,16 @@ homeTalkForm.addEventListener("submit",e=>{
   $("projectSelect").focus();
   return;
  }
- // Only the existing chat submission route performs AI execution and checks provider consent.
+ // Approval is per task. Never carry earlier API payment consent into a new request.
+ $("soniConsent").checked=false;
  homeTalkPrompt.value="";
+ const paid=["openai","anthropic","openrouter","vercel-gateway","together","groq"].includes($("soniProvider").value);
+ if(paid){
+  $("promptHint").textContent="Review the selected paid provider and approve its charges before sending.";
+  $("soniPrompt").focus();
+  return;
+ }
+ // Only the existing chat submission route executes, never a parallel home endpoint.
  $("reviewPrompt").click();
 });
 homeTalkPrompt.addEventListener("keydown",e=>{
