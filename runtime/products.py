@@ -90,19 +90,52 @@ def custom_projects():
             'goal':setup.get('fields',{}).get('goal',x.get('goal',''))})
     return projects
 
+def purchase_model():
+    """Commercial policy only: no client-side claim can issue a purchase receipt."""
+    return {
+        'type':PURCHASE_MODEL, 'activationRequired':False, 'licenseKeyRequired':False,
+        'access':'perpetual-to-installed-version','mandatoryRenewal':False,
+        'upgrades':{'optional':True,'annualUsd':UPGRADE_ANNUAL_USD,
+                    'annualTermMonths':12,'individualMajorRelease':True,
+                    'individualPriceUsd':None,'noRenewalDisablesExistingVersion':True},
+        'support':{'separatelyPriced':True,'unsupportedModificationsMayBeBillable':True,
+                   'statutoryDefectRemediesPreserved':True,
+                   'requiredSecurityUpdatesExcludedFromPaidFeatureUpgrades':True},
+        'aiProvider':{'customerCredentialsMayBeRequired':True,'providerFeesSeparate':True},
+        'purchaseProof':'seller-issued order receipt, not a local activation code'
+    }
+
+
 def standard_state():
-    x=read_json(STATE/'standard.json',{})
-    slots=x.get('slots',[])
-    # Always provision five stable slots; inactive slots hold no business content.
-    slots=(slots+[{'slot':i,'initialized':False,'name':'','region':'','goal':''} for i in range(1,6)])[0:5]
-    for i,s in enumerate(slots):s['slot']=i+1
-    return {'license':{'status':'not-activated','industry':None,'corePack':None,'addOns':[],
-                       'projectLimit':MAX_SLOTS,'note':'Production licenses must be verified by a trusted issuer.'},
+    """Five local slots, distinct from the existing owner's portfolio."""
+    old=read_json(STATE/'standard.json',{})
+    legacy=old.get('slots',[]) if isinstance(old,dict) else []
+    slots=[]
+    for i in range(1,MAX_SLOTS+1):
+        previous=next((s for s in legacy if isinstance(s,dict) and s.get('slot')==i),{})
+        setup=read_json(STATE/'workspaces'/f'standard-slot-{i}.json',{})
+        fields=setup.get('fields',{}) if isinstance(setup,dict) else {}
+        slots.append({
+            'slot':i,'id':f'standard-slot-{i}',
+            'name':fields.get('name') or previous.get('name') or f'Project slot {i}',
+            'region':fields.get('region') or previous.get('region',''),
+            'goal':fields.get('goal') or previous.get('goal',''),
+            'initialized':bool(setup.get('complete') or previous.get('initialized')),
+            'setupComplete':bool(setup.get('complete')),
+            'setupStep':setup.get('step',0),
+            'readiness':'Ready' if setup.get('complete') else 'Setup needed',
+            'industry':None,
+            'tasksOpen':0,'tasksCompleted':0,'tasksFailed':0
+        })
+    return {'purchase':purchase_model(),
+            'license':{'status':'no-activation-required','projectLimit':MAX_SLOTS,
+                       'note':'Permanent access to this installed version; optional upgrades.'},
             'slots':slots}
+
 
 def state_for(mode):
     if mode=='standard':return standard_state()
-    if mode=='custom':return {'projects':custom_projects(),'model':'project-scoped-knowledge'}
+    if mode=='custom':return {'projects':custom_projects(),'model':'project-scoped-knowledge','purchase':purchase_model()}
     raise ProductError('Invalid product mode')
 
 def update_project(mode,identifier,data):
