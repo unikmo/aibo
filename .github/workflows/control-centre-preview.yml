@@ -8,6 +8,12 @@ on:
       - '.github/workflows/control-centre-preview.yml'
   workflow_dispatch:
 
+# Cancel superseded PR runs before they burn additional hosted-runner minutes.
+# This does not bypass billing limits or waive the release acceptance criteria.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
