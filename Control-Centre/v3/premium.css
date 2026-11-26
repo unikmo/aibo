@@ -219,3 +219,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,textarea:focus-visible
 #modalFooter .growth-buttons button:first-child:hover{background:#353395}
 #modalBody .growth-form{max-height:min(55dvh,550px)}
 @media(max-width:580px){#overlay .modal{padding:21px 19px 18px;gap:12px}#modalFooter{gap:7px}#modalFooter .growth-buttons{gap:7px}#modalFooter button{font-size:11px}}
+
+.composer-control-label{font-size:11px;letter-spacing:.01em;color:#737f94;font-weight:650;margin-right:-3px;white-space:nowrap}
+#screen-soni .prompt-controls .composer-control-label{font-size:11px;color:#737f94}
+@media(max-width:580px){.composer-control-label{font-size:10px!important}.composer-options,.prompt-controls{column-gap:5px!important}}
