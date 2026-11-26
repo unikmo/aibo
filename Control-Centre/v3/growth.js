@@ -216,8 +216,11 @@ function campaign(project,e,data){
    {name:"value",label:"Observed "+e.primaryMetric,required:true},
    {name:"source",label:"Source (manual; not independently verified)",required:true},
    {name:"observedAt",label:"Observation ISO date/time",value:new Date().toISOString(),required:true},
-   {name:"websiteEvidence",label:"Website intervention needed?",
-    options:[["false","No"],["true","Yes"]]}
+   {name:"websiteEvidence",label:"Evidence-backed website intervention?",
+    options:[["false","No"],["true","Yes"]]},
+   {name:"websiteIssue",label:"Website defect and commercial impact (required for intervention)",
+    multi:true},
+   {name:"websiteEvidenceRef",label:"Website evidence reference (required for intervention)"}
   ],async v=>post("/api/growth/measure/"+f(project)+"/"+f(e.id),
      {...v,websiteEvidence:v.websiteEvidence==="true"}))]);
   if(e.status==="MEASURED")
