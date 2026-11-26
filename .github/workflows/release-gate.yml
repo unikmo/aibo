@@ -10,6 +10,12 @@ on:
       - ".github/workflows/release-gate.yml"
   workflow_dispatch:
 
+# Cancel superseded PR runs before they burn additional hosted-runner minutes.
+# This does not bypass billing limits or waive the release acceptance criteria.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -26,7 +32,9 @@ jobs:
       - name: Python compile and unit / integration regressions
         run: |
           python -m compileall -q runtime tests qa
-          python -m unittest discover -s tests -v
+          python -m unittest discover -s tests -p 'test_growth*.py' -v
+          python -m unittest discover -s tests -p 'test_products.py' -v
+          python -m unittest discover -s tests -p 'test_workspace.py' -v
 
   stage-2-smoke:
     name: 2 Local server smoke

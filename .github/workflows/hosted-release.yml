@@ -1,4 +1,4 @@
-name: AntiBalcony hosted release checks
+name: CariFive hosted release checks
 
 on:
   workflow_dispatch:
@@ -9,6 +9,12 @@ on:
       - 'Control-Centre/v3/**'
       - 'qa/hosted_release_smoke.py'
       - '.github/workflows/hosted-release.yml'
+
+# Cancel superseded PR runs before they burn additional hosted-runner minutes.
+# This does not bypass billing limits or waive the release acceptance criteria.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
