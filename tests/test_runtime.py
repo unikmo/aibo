@@ -46,6 +46,18 @@ class RuntimeTests(unittest.TestCase):
         with patch.object(aibo,'provider_call',return_value='[MOCK RESPONSE: no model or external actions executed]'):
             with self.assertRaisesRegex(aibo.AiboError,'empty or simulated specialist output'):
                 aibo.execute('locksmith-boston','Evaluate SEO opportunities',provider='codex-local',agents=['research'])
+    def test_synthesis_depth_follows_real_task_instead_of_universal_short_limit(self):
+        prompts=[]
+        def provider(provider,system,user,model,timeout,limit):
+            prompts.append(system)
+            return 'This is a nonempty task-specific result with traceable actions.'
+        with patch.object(aibo,'provider_call',side_effect=provider):
+            aibo.execute('locksmith-boston','Prepare a detailed technical and SEO audit',provider='codex-local',agents=['engineering'])
+        specialist,quality,coordinator=prompts
+        self.assertIn('task-appropriate structure',specialist)
+        self.assertIn('arbitrarily truncate substantive work',coordinator)
+        self.assertIn('Markdown headings',coordinator)
+        self.assertNotIn('45–90 words maximum',coordinator)
     def test_good_real_provider_result_remains_accepted(self):
         values=iter(['Evidence: existing homepage needs clear positioning; this is a recommendation, not a verified deployment.',
                      'QA: site changes have not been implemented; validate actual search visibility independently.',
