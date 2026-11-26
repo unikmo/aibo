@@ -68,6 +68,16 @@ def run():
                     page.locator('#reviewPrompt').click()
                     page.wait_for_function("document.querySelector('#promptHint')?.textContent==='Completed'",timeout=20000)
                     # Growth OS is real navigation, never a fictional connected channel.
+                    # A new home message must never reuse earlier paid-provider consent.
+                    page.locator('#soniProvider').select_option('openai')
+                    page.locator('#soniConsent').check()
+                    page.locator('.nav[data-screen="home"]').click()
+                    page.locator('#homeTalkPrompt').fill('Review the financial risk of this launch.')
+                    page.locator('#homeTalkSend').click()
+                    assert page.locator('#screen-soni').is_visible()
+                    assert not page.locator('#soniConsent').is_checked()
+                    assert 'approve its charges' in page.locator('#promptHint').inner_text()
+                    assert page.locator('#soniPrompt').input_value().startswith('Review the financial')
                     page.locator('.nav[data-screen="growth"]').click()
                     assert page.locator('#screen-growth').is_visible()
                     assert 'not independently verified' in page.locator('#growthScreenSummary').inner_text().lower() or 'No brand growth profile' in page.locator('#growthScreenSummary').inner_text()
